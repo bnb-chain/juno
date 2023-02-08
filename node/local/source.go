@@ -9,9 +9,10 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/simapp/params"
-
 	"github.com/cosmos/cosmos-sdk/store"
+	storesdk "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/forbole/juno/v4/node"
 	"github.com/spf13/viper"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/log"
@@ -19,8 +20,6 @@ import (
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	tmstore "github.com/tendermint/tendermint/store"
 	db "github.com/tendermint/tm-db"
-
-	"github.com/forbole/juno/v4/node"
 )
 
 var (
@@ -43,7 +42,7 @@ type Source struct {
 
 // NewSource returns a new Source instance
 func NewSource(home string, encodingConfig *params.EncodingConfig) (*Source, error) {
-	levelDB, err := sdk.NewLevelDB("application", path.Join(home, "data"))
+	levelDB, err := db.NewGoLevelDB("application", path.Join(home, "data"))
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +60,7 @@ func NewSource(home string, encodingConfig *params.EncodingConfig) (*Source, err
 	return &Source{
 		StoreDB: levelDB,
 
-		Codec:       encodingConfig.Marshaler,
+		Codec:       encodingConfig.Codec,
 		LegacyAmino: encodingConfig.Amino,
 
 		BlockStore: tmstore.NewBlockStore(blockStoreDB),
@@ -103,13 +102,13 @@ func getFieldUsingReflection(app interface{}, fieldName string) interface{} {
 // the field with the specified name inside the given app. Such field must be of type
 // map[string]*sdk.KVStoreKey and is commonly named something similar to "keys"
 func (k Source) MountKVStores(app interface{}, fieldName string) error {
-	keys, ok := getFieldUsingReflection(app, fieldName).(map[string]*sdk.KVStoreKey)
+	keys, ok := getFieldUsingReflection(app, fieldName).(map[string]*storesdk.KVStoreKey)
 	if !ok {
 		return fmt.Errorf("error while getting keys")
 	}
 
 	for _, key := range keys {
-		k.Cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, nil)
+		k.Cms.MountStoreWithDB(key, storesdk.StoreTypeIAVL, nil)
 	}
 
 	return nil
@@ -120,13 +119,13 @@ func (k Source) MountKVStores(app interface{}, fieldName string) error {
 // the field with the specified name inside the given app. Such field must be of type
 // map[string]*sdk.TransientStoreKey and is commonly named something similar to "tkeys"
 func (k Source) MountTransientStores(app interface{}, fieldName string) error {
-	tkeys, ok := getFieldUsingReflection(app, fieldName).(map[string]*sdk.TransientStoreKey)
+	tkeys, ok := getFieldUsingReflection(app, fieldName).(map[string]*storesdk.TransientStoreKey)
 	if !ok {
 		return fmt.Errorf("error while getting transient keys")
 	}
 
 	for _, key := range tkeys {
-		k.Cms.MountStoreWithDB(key, sdk.StoreTypeTransient, nil)
+		k.Cms.MountStoreWithDB(key, storesdk.StoreTypeTransient, nil)
 	}
 
 	return nil
@@ -137,13 +136,13 @@ func (k Source) MountTransientStores(app interface{}, fieldName string) error {
 // the field with the specified name inside the given app. Such field must be of type
 // map[string]*sdk.MemoryStoreKey and is commonly named something similar to "memkeys"
 func (k Source) MountMemoryStores(app interface{}, fieldName string) error {
-	memKeys, ok := getFieldUsingReflection(app, fieldName).(map[string]*sdk.MemoryStoreKey)
+	memKeys, ok := getFieldUsingReflection(app, fieldName).(map[string]*storesdk.MemoryStoreKey)
 	if !ok {
 		return fmt.Errorf("error while getting memory keys")
 	}
 
 	for _, key := range memKeys {
-		k.Cms.MountStoreWithDB(key, sdk.StoreTypeMemory, nil)
+		k.Cms.MountStoreWithDB(key, storesdk.StoreTypeMemory, nil)
 	}
 
 	return nil
@@ -172,5 +171,5 @@ func (k Source) LoadHeight(height int64) (sdk.Context, error) {
 		}
 	}
 
-	return sdk.NewContext(cms, tmproto.Header{}, false, k.Logger), nil
+	return sdk.NewContext(cms, tmproto.Header{}, false, nil, k.Logger), nil
 }
