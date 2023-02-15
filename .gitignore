@@ -17,3 +17,5 @@ coverage.txt
 
 # configuration
 *.toml
+
+config.yaml

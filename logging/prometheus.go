@@ -16,7 +16,7 @@ var StartHeight = prometheus.NewCounter(
 var WorkerCount = prometheus.NewCounter(
 	prometheus.CounterOpts{
 		Name: "juno_worker_count",
-		Help: "Number of active workers.",
+		Help: "Height of active workers.",
 	},
 )
 
