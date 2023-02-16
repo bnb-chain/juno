@@ -1,6 +1,8 @@
 package mysql
 
 import (
+	"context"
+
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/logging"
@@ -12,8 +14,15 @@ import (
 // from config. It returns a database connection handle or an error if the
 // connection fails.
 func Builder(ctx *database.Context) (database.Database, error) {
-
-	return &Database{}, nil
+	db, err := New(&ctx.Cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &Database{
+		db:             db,
+		EncodingConfig: ctx.EncodingConfig,
+		Logger:         ctx.Logger,
+	}, nil
 }
 
 // Database defines a wrapper around a SQL database and implements functionality
@@ -22,6 +31,11 @@ type Database struct {
 	db             *gorm.DB
 	EncodingConfig *params.EncodingConfig
 	Logger         logging.Logger
+}
+
+func (db *Database) PrepareTables(ctx context.Context) error {
+	// TODO
+	return nil
 }
 
 // HasBlock implements database.Database

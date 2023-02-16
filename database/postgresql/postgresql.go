@@ -1,6 +1,7 @@
 package postgresql
 
 import (
+	"context"
 	"database/sql"
 	"encoding/base64"
 	"fmt"
@@ -24,7 +25,7 @@ import (
 // from config. It returns a database connection handle or an error if the
 // connection fails.
 func Builder(ctx *database.Context) (database.Database, error) {
-	postgresDb, err := sqlx.Open("postgres", utils.GetEnvOr(env.DatabaseURI, ctx.Cfg.URL))
+	postgresDb, err := sqlx.Open("postgres", utils.GetEnvOr(env.DatabaseURI, ctx.Cfg.DSN))
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +72,10 @@ func (db *Database) createPartitionIfNotExists(table string, partitionID int64) 
 }
 
 // -------------------------------------------------------------------------------------------------------------------
+
+func (db *Database) PrepareTables(ctx context.Context) error {
+	return nil
+}
 
 // HasBlock implements database.Database
 func (db *Database) HasBlock(height int64) (bool, error) {

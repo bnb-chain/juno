@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 
 	"github.com/forbole/juno/v4/logging"
@@ -12,6 +13,9 @@ import (
 
 // Database represents an abstract database that can be used to save data inside it
 type Database interface {
+	// PrepareTables create tables
+	PrepareTables(ctx context.Context) error
+
 	// HasBlock tells whether or not the database has already stored the block having the given height.
 	// An error is returned if the operation fails.
 	HasBlock(height int64) (bool, error)

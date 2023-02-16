@@ -60,7 +60,7 @@ func migrateConfig() (Config, error) {
 		Node:  cfg.Node,
 		Chain: cfg.Chain,
 		Database: databaseconfig.Config{
-			URL: fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=%s&search_path=%s",
+			DSN: fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=%s&search_path=%s",
 				cfg.Database.User,
 				cfg.Database.Password,
 				cfg.Database.Host,
