@@ -12,8 +12,15 @@ import (
 // from config. It returns a database connection handle or an error if the
 // connection fails.
 func Builder(ctx *database.Context) (database.Database, error) {
-
-	return &Database{}, nil
+	db, err := New(&ctx.Cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &Database{
+		db:             db,
+		EncodingConfig: ctx.EncodingConfig,
+		Logger:         ctx.Logger,
+	}, nil
 }
 
 // Database defines a wrapper around a SQL database and implements functionality

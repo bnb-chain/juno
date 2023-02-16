@@ -1,17 +1,46 @@
 package config
 
-import "net/url"
+import (
+	"net/url"
+	"time"
+
+	"github.com/forbole/juno/v4/utils/stringutils"
+)
+
+type Duration time.Duration
+
+func (d Duration) MarshalText() ([]byte, error) {
+	return stringutils.UnsafeStringToBytes(time.Duration(d).String()), nil
+}
+
+func (d *Duration) UnmarshalText(text []byte) error {
+	dd, err := time.ParseDuration(stringutils.UnsafeBytesToString(text))
+	*d = Duration(dd)
+	return err
+}
+
+type DatabaseType string
+
+const (
+	PostgreSQL DatabaseType = "postgres"
+	MySQL      DatabaseType = "mysql"
+)
 
 type Config struct {
-	URL                string `yaml:"url"`
-	MaxOpenConnections int    `yaml:"max_open_connections"`
-	MaxIdleConnections int    `yaml:"max_idle_connections"`
-	PartitionSize      int64  `yaml:"partition_size"`
-	PartitionBatchSize int64  `yaml:"partition_batch"`
+	Type               DatabaseType `yaml:"type"`
+	DSN                string       `yaml:"dsn"`
+	Secrets            *Params
+	SlowThreshold      Duration
+	MaxOpenConnections int `yaml:"max_open_connections"`
+	MaxIdleConnections int `yaml:"max_idle_connections"`
+	ConnMaxIdleTime    Duration
+	ConnMaxLifetime    Duration
+	PartitionSize      int64 `yaml:"partition_size"`
+	PartitionBatchSize int64 `yaml:"partition_batch"`
 }
 
 func (c *Config) getURL() *url.URL {
-	parsedURL, err := url.Parse(c.URL)
+	parsedURL, err := url.Parse(c.DSN)
 	if err != nil {
 		panic(err)
 	}
@@ -44,12 +73,12 @@ func (c *Config) GetSSLMode() string {
 }
 
 func NewDatabaseConfig(
-	url string,
+	dsn string,
 	maxOpenConnections int, maxIdleConnections int,
 	partitionSize int64, batchSize int64,
 ) Config {
 	return Config{
-		URL:                url,
+		DSN:                dsn,
 		MaxOpenConnections: maxOpenConnections,
 		MaxIdleConnections: maxIdleConnections,
 		PartitionSize:      partitionSize,

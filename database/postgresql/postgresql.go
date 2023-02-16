@@ -24,7 +24,7 @@ import (
 // from config. It returns a database connection handle or an error if the
 // connection fails.
 func Builder(ctx *database.Context) (database.Database, error) {
-	postgresDb, err := sqlx.Open("postgres", utils.GetEnvOr(env.DatabaseURI, ctx.Cfg.URL))
+	postgresDb, err := sqlx.Open("postgres", utils.GetEnvOr(env.DatabaseURI, ctx.Cfg.DSN))
 	if err != nil {
 		return nil, err
 	}
