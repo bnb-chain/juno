@@ -1,6 +1,7 @@
 package postgresql
 
 import (
+	"context"
 	"database/sql"
 	"encoding/base64"
 	"fmt"
@@ -71,6 +72,10 @@ func (db *Database) createPartitionIfNotExists(table string, partitionID int64) 
 }
 
 // -------------------------------------------------------------------------------------------------------------------
+
+func (db *Database) PrepareTables(ctx context.Context) error {
+	return nil
+}
 
 // HasBlock implements database.Database
 func (db *Database) HasBlock(height int64) (bool, error) {

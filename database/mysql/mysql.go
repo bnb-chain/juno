@@ -1,6 +1,8 @@
 package mysql
 
 import (
+	"context"
+
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/logging"
@@ -29,6 +31,11 @@ type Database struct {
 	db             *gorm.DB
 	EncodingConfig *params.EncodingConfig
 	Logger         logging.Logger
+}
+
+func (db *Database) PrepareTables(ctx context.Context) error {
+	// TODO
+	return nil
 }
 
 // HasBlock implements database.Database
