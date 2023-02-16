@@ -26,3 +26,7 @@ type Tx struct {
 
 	// Timestamp uint64 `gorm:"column:timestamp"` ?
 }
+
+func (*Tx) TableName() string {
+	return "txs"
+}
