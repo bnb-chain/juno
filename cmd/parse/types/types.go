@@ -2,13 +2,10 @@ package types
 
 import (
 	"github.com/cosmos/cosmos-sdk/simapp"
-
-	"github.com/forbole/juno/v4/logging"
-	"github.com/forbole/juno/v4/types/config"
-
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/database/builder"
 	"github.com/forbole/juno/v4/modules/registrar"
+	"github.com/forbole/juno/v4/types/config"
 )
 
 // Config contains all the configuration for the "parse" command
@@ -18,7 +15,6 @@ type Config struct {
 	encodingConfigBuilder EncodingConfigBuilder
 	setupCfg              SdkConfigSetup
 	buildDb               database.Builder
-	logger                logging.Logger
 }
 
 // NewConfig allows to build a new Config instance
@@ -94,18 +90,4 @@ func (cfg *Config) GetDBBuilder() database.Builder {
 		return builder.Builder
 	}
 	return cfg.buildDb
-}
-
-// WithLogger sets the logger to be used while parsing the data
-func (cfg *Config) WithLogger(logger logging.Logger) *Config {
-	cfg.logger = logger
-	return cfg
-}
-
-// GetLogger returns the logger to be used when parsing the data
-func (cfg *Config) GetLogger() logging.Logger {
-	if cfg.logger == nil {
-		return logging.DefaultLogger()
-	}
-	return cfg.logger
 }

@@ -3,21 +3,14 @@ package registrar
 import (
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/forbole/juno/v4/node"
-
-	"github.com/forbole/juno/v4/modules/telemetry"
-
-	"github.com/forbole/juno/v4/logging"
-
-	"github.com/forbole/juno/v4/types/config"
-
-	"github.com/forbole/juno/v4/modules/pruning"
-
+	"github.com/forbole/juno/v4/database"
+	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/modules/messages"
-
-	"github.com/forbole/juno/v4/database"
+	"github.com/forbole/juno/v4/modules/pruning"
+	"github.com/forbole/juno/v4/modules/telemetry"
+	"github.com/forbole/juno/v4/node"
+	"github.com/forbole/juno/v4/types/config"
 )
 
 // Context represents the context of the modules registrar
@@ -27,13 +20,12 @@ type Context struct {
 	EncodingConfig *params.EncodingConfig
 	Database       database.Database
 	Proxy          node.Node
-	Logger         logging.Logger
 }
 
 // NewContext allows to build a new Context instance
 func NewContext(
 	parsingConfig config.Config, sdkConfig *sdk.Config, encodingConfig *params.EncodingConfig,
-	database database.Database, proxy node.Node, logger logging.Logger,
+	database database.Database, proxy node.Node,
 ) Context {
 	return Context{
 		JunoConfig:     parsingConfig,
@@ -41,11 +33,10 @@ func NewContext(
 		EncodingConfig: encodingConfig,
 		Database:       database,
 		Proxy:          proxy,
-		Logger:         logger,
 	}
 }
 
-// Registrar represents a modules registrar. This allows to build a list of modules that can later be used by
+// Registrar represents a module registrar. This allows to build a list of modules that can later be used by
 // specifying their names inside the TOML configuration file.
 type Registrar interface {
 	BuildModules(context Context) modules.Modules
@@ -86,7 +77,7 @@ func NewDefaultRegistrar(parser messages.MessageAddressesParser) *DefaultRegistr
 // BuildModules implements Registrar
 func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 	return modules.Modules{
-		pruning.NewModule(ctx.JunoConfig, ctx.Database, ctx.Logger),
+		pruning.NewModule(ctx.JunoConfig, ctx.Database),
 		messages.NewModule(r.parser, ctx.EncodingConfig.Codec, ctx.Database),
 		telemetry.NewModule(ctx.JunoConfig),
 	}
@@ -96,14 +87,14 @@ func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 
 // GetModules returns the list of module implementations based on the given module names.
 // For each module name that is specified but not found, a warning log is printed.
-func GetModules(mods modules.Modules, names []string, logger logging.Logger) []modules.Module {
+func GetModules(mods modules.Modules, names []string) []modules.Module {
 	var modulesImpls []modules.Module
 	for _, name := range names {
 		module, found := mods.FindByName(name)
 		if found {
 			modulesImpls = append(modulesImpls, module)
 		} else {
-			logger.Error("Module is required but not registered. Be sure to register it using registrar.RegisterModule", "module", name)
+			log.Errorw("Module is required but not registered. Be sure to register it using registrar.RegisterModule", "module", name)
 		}
 	}
 	return modulesImpls

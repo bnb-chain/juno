@@ -2,7 +2,7 @@ package v4
 
 import (
 	databaseconfig "github.com/forbole/juno/v4/database/config"
-	loggingconfig "github.com/forbole/juno/v4/logging/config"
+	loggingconfig "github.com/forbole/juno/v4/log/config"
 	"github.com/forbole/juno/v4/modules/pruning"
 	"github.com/forbole/juno/v4/modules/telemetry"
 	nodeconfig "github.com/forbole/juno/v4/node/config"
