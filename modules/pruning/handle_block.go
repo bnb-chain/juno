@@ -2,6 +2,7 @@ package pruning
 
 import (
 	"fmt"
+	"github.com/forbole/juno/v4/log"
 
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
@@ -39,7 +40,7 @@ func (m *Module) HandleBlock(
 		}
 
 		// Prune the height
-		m.logger.Debug("pruning", "module", "pruning", "height", height)
+		log.Debugw("pruning", "module", "pruning", "height", height)
 		err = pruningDb.Prune(height)
 		if err != nil {
 			return fmt.Errorf("error while pruning height %d: %s", height, err.Error())

@@ -7,18 +7,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
-
-	"github.com/forbole/juno/v4/logging"
-
 	"github.com/cosmos/cosmos-sdk/simapp/params"
-	"github.com/lib/pq"
-
 	"github.com/forbole/juno/v4/database"
+	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/env"
 	"github.com/forbole/juno/v4/types/utils"
+	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 // Builder creates a database connection with the given database connection info
@@ -37,7 +34,6 @@ func Builder(ctx *database.Context) (database.Database, error) {
 	return &Database{
 		SQL:            postgresDb,
 		EncodingConfig: ctx.EncodingConfig,
-		Logger:         ctx.Logger,
 	}, nil
 }
 
@@ -49,7 +45,6 @@ var _ database.Database = &Database{}
 type Database struct {
 	SQL            *sqlx.DB
 	EncodingConfig *params.EncodingConfig
-	Logger         logging.Logger
 }
 
 // createPartitionIfNotExists creates a new partition having the given partition id if not existing
@@ -307,7 +302,7 @@ ON CONFLICT (transaction_hash, index, partition_id) DO UPDATE
 func (db *Database) Close() {
 	err := db.SQL.Close()
 	if err != nil {
-		db.Logger.Error("error while closing connection", "err", err)
+		log.Errorw("error while closing connection", "err", err)
 	}
 }
 

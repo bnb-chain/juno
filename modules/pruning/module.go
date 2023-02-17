@@ -1,12 +1,9 @@
 package pruning
 
 import (
-	"github.com/forbole/juno/v4/types/config"
-
-	"github.com/forbole/juno/v4/logging"
-
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/modules"
+	"github.com/forbole/juno/v4/types/config"
 )
 
 var (
@@ -17,13 +14,12 @@ var (
 
 // Module represents the pruning module allowing to clean the database periodically
 type Module struct {
-	cfg    *Config
-	db     database.Database
-	logger logging.Logger
+	cfg *Config
+	db  database.Database
 }
 
 // NewModule builds a new Module instance
-func NewModule(cfg config.Config, db database.Database, logger logging.Logger) *Module {
+func NewModule(cfg config.Config, db database.Database) *Module {
 	bz, err := cfg.GetBytes()
 	if err != nil {
 		panic(err)
@@ -35,9 +31,8 @@ func NewModule(cfg config.Config, db database.Database, logger logging.Logger) *
 	}
 
 	return &Module{
-		cfg:    pruningCfg,
-		db:     db,
-		logger: logger,
+		cfg: pruningCfg,
+		db:  db,
 	}
 }
 

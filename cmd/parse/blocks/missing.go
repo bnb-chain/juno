@@ -5,11 +5,9 @@ import (
 	"strconv"
 
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
-
-	"github.com/spf13/cobra"
-
 	"github.com/forbole/juno/v4/parser"
 	"github.com/forbole/juno/v4/types/config"
+	"github.com/spf13/cobra"
 )
 
 // newMissingCmd returns a Cobra command that allows to fix missing blocks in database
@@ -29,7 +27,7 @@ func newMissingCmd(parseConfig *parsecmdtypes.Config) *cobra.Command {
 				return err
 			}
 
-			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Logger, parseCtx.Modules)
+			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules)
 			worker := parser.NewWorker(workerCtx, nil, 0)
 
 			dbLastHeight, err := parseCtx.Database.GetLastBlockHeight()

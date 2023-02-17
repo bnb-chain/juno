@@ -14,7 +14,6 @@ import (
 	"github.com/forbole/juno/v4/database"
 	databaseconfig "github.com/forbole/juno/v4/database/config"
 	postgres "github.com/forbole/juno/v4/database/postgresql"
-	"github.com/forbole/juno/v4/logging"
 )
 
 func TestDatabaseTestSuite(t *testing.T) {
@@ -39,7 +38,7 @@ func (suite *DbTestSuite) SetupTest() {
 		100000,
 		100,
 	)
-	db, err := postgres.Builder(database.NewContext(dbCfg, &codec, logging.DefaultLogger()))
+	db, err := postgres.Builder(database.NewContext(dbCfg, &codec))
 	suite.Require().NoError(err)
 
 	bigDipperDb, ok := (db).(*postgres.Database)

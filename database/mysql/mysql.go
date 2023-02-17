@@ -5,7 +5,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
-	"github.com/forbole/juno/v4/logging"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/types"
 	"gorm.io/gorm"
@@ -23,7 +22,6 @@ func Builder(ctx *database.Context) (database.Database, error) {
 	return &Database{
 		db:             db,
 		EncodingConfig: ctx.EncodingConfig,
-		Logger:         ctx.Logger,
 	}, nil
 }
 
@@ -32,7 +30,6 @@ func Builder(ctx *database.Context) (database.Database, error) {
 type Database struct {
 	db             *gorm.DB
 	EncodingConfig *params.EncodingConfig
-	Logger         logging.Logger
 }
 
 func (db *Database) PrepareTables(ctx context.Context) error {

@@ -3,26 +3,21 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/x/authz"
-
-	"github.com/forbole/juno/v4/logging"
-
 	"github.com/cosmos/cosmos-sdk/codec"
-
-	"github.com/forbole/juno/v4/database"
-	"github.com/forbole/juno/v4/types/config"
-
-	"github.com/forbole/juno/v4/modules"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-
+	"github.com/cosmos/cosmos-sdk/x/authz"
+	"github.com/forbole/juno/v4/database"
+	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types"
+	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // Worker defines a job consumer that is responsible for getting and
@@ -34,9 +29,8 @@ type Worker struct {
 	codec   codec.Codec
 	modules []modules.Module
 
-	node   node.Node
-	db     database.Database
-	logger logging.Logger
+	node node.Node
+	db   database.Database
 }
 
 // NewWorker allows to create a new Worker implementation.
@@ -48,17 +42,16 @@ func NewWorker(ctx *Context, queue types.HeightQueue, index int) Worker {
 		queue:   queue,
 		db:      ctx.Database,
 		modules: ctx.Modules,
-		logger:  ctx.Logger,
 	}
 }
 
 // Start starts a worker by listening for new jobs (block heights) from the
 // given worker queue. Any failed job is logged and re-enqueued.
 func (w Worker) Start() {
-	logging.WorkerCount.Inc()
+	log.WorkerCount.Inc()
 	chainID, err := w.node.ChainID()
 	if err != nil {
-		w.logger.Error("error while getting chain ID from the node ", "err", err)
+		log.Errorw("error while getting chain ID from the node ", "err", err)
 	}
 
 	for i := range w.queue {
@@ -68,12 +61,12 @@ func (w Worker) Start() {
 
 			// TODO: Implement exponential backoff or max retries for a block height.
 			go func() {
-				w.logger.Error("re-enqueueing failed block", "height", i, "err", err)
+				log.Errorw("re-enqueueing failed block", "height", i, "err", err)
 				w.queue <- i
 			}()
 		}
 
-		logging.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
+		log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
 	}
 }
 
@@ -87,7 +80,7 @@ func (w Worker) ProcessIfNotExists(height int64) error {
 	}
 
 	if exists {
-		w.logger.Debug("skipping already exported block", "height", height)
+		log.Debugw("skipping already exported block", "height", height)
 		return nil
 	}
 
@@ -108,7 +101,7 @@ func (w Worker) Process(height int64) error {
 		return w.HandleGenesis(genesisDoc, genesisState)
 	}
 
-	w.logger.Debug("processing block", "height", height)
+	log.Debugw("processing block", "height", height)
 
 	block, err := w.node.Block(height)
 	if err != nil {
@@ -156,7 +149,7 @@ func (w Worker) HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[strin
 	for _, module := range w.modules {
 		if genesisModule, ok := module.(modules.GenesisModule); ok {
 			if err := genesisModule.HandleGenesis(genesisDoc, appState); err != nil {
-				w.logger.GenesisError(module, err)
+				log.Errorw("error while handling genesis", "module", module, "err", err)
 			}
 		}
 	}
@@ -224,7 +217,7 @@ func (w Worker) ExportBlock(
 		if blockModule, ok := module.(modules.BlockModule); ok {
 			err = blockModule.HandleBlock(b, r, txs, vals)
 			if err != nil {
-				w.logger.BlockError(module, b, err)
+				log.Errorw("error while handling block", "module", module, "height", b, "err", err)
 			}
 		}
 	}
@@ -284,7 +277,8 @@ func (w Worker) handleTx(tx *types.Tx) {
 		if transactionModule, ok := module.(modules.TransactionModule); ok {
 			err := transactionModule.HandleTx(tx)
 			if err != nil {
-				w.logger.TxError(module, tx, err)
+				log.Errorw("error while handling transaction", "module", module.Name(), "height", tx.Height,
+					"txHash", tx.TxHash, "err", err)
 			}
 		}
 	}
@@ -298,7 +292,8 @@ func (w Worker) handleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 		if messageModule, ok := module.(modules.MessageModule); ok {
 			err := messageModule.HandleMsg(index, msg, tx)
 			if err != nil {
-				w.logger.MsgError(module, tx, msg, err)
+				log.Errorw("error while handling message", "module", module, "height", tx.Height,
+					"txHash", tx.TxHash, "msg", proto.MessageName(msg), "err", err)
 			}
 		}
 	}
@@ -309,14 +304,15 @@ func (w Worker) handleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 			var executedMsg sdk.Msg
 			err := w.codec.UnpackAny(msgAny, &executedMsg)
 			if err != nil {
-				w.logger.Error("unable to unpack MsgExec inner message", "index", authzIndex, "error", err)
+				log.Errorw("unable to unpack MsgExec inner message", "index", authzIndex, "error", err)
 			}
 
 			for _, module := range w.modules {
 				if messageModule, ok := module.(modules.AuthzMessageModule); ok {
 					err = messageModule.HandleMsgExec(index, msgExec, authzIndex, executedMsg, tx)
 					if err != nil {
-						w.logger.MsgError(module, tx, executedMsg, err)
+						log.Errorw("error while handling message", "module", module, "height", tx.Height,
+							"txHash", tx.TxHash, "msg", proto.MessageName(executedMsg), "err", err)
 					}
 				}
 			}
@@ -356,13 +352,13 @@ func (w Worker) ExportTxs(txs []*types.Tx) error {
 	}
 
 	totalBlocks := w.db.GetTotalBlocks()
-	logging.DbBlockCount.WithLabelValues("total_blocks_in_db").Set(float64(totalBlocks))
+	log.DbBlockCount.WithLabelValues("total_blocks_in_db").Set(float64(totalBlocks))
 
 	dbLatestHeight, err := w.db.GetLastBlockHeight()
 	if err != nil {
 		return err
 	}
-	logging.DbLatestHeight.WithLabelValues("db_latest_height").Set(float64(dbLatestHeight))
+	log.DbLatestHeight.WithLabelValues("db_latest_height").Set(float64(dbLatestHeight))
 
 	return nil
 }

@@ -4,13 +4,10 @@ import (
 	"fmt"
 
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
-
-	"github.com/rs/zerolog/log"
-
-	"github.com/spf13/cobra"
-
 	"github.com/forbole/juno/v4/parser"
 	"github.com/forbole/juno/v4/types/config"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -32,7 +29,7 @@ You can specify a custom height range by using the %s and %s flags.
 				return err
 			}
 
-			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Logger, parseCtx.Modules)
+			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules)
 			worker := parser.NewWorker(workerCtx, nil, 0)
 
 			// Get the flag values

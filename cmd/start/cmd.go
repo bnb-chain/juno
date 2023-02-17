@@ -8,18 +8,13 @@ import (
 	"time"
 
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
-	"github.com/forbole/juno/v4/types/utils"
-
-	"github.com/forbole/juno/v4/logging"
-
-	"github.com/forbole/juno/v4/types/config"
-
-	"github.com/go-co-op/gocron"
-
+	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/parser"
 	"github.com/forbole/juno/v4/types"
-
+	"github.com/forbole/juno/v4/types/config"
+	"github.com/forbole/juno/v4/types/utils"
+	"github.com/go-co-op/gocron"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +53,7 @@ func NewStartCmd(cmdCfg *parsecmdtypes.Config) *cobra.Command {
 func startParsing(ctx *parser.Context) error {
 	// Get the config
 	cfg := config.Cfg.Parser
-	logging.StartHeight.Add(float64(cfg.StartHeight))
+	log.StartHeight.Add(float64(cfg.StartHeight))
 
 	// Start periodic operations
 	scheduler := gocron.NewScheduler(time.UTC)
@@ -93,7 +88,7 @@ func startParsing(ctx *parser.Context) error {
 	// Start each blocking worker in a go-routine where the worker consumes jobs
 	// off of the export queue.
 	for i, w := range workers {
-		ctx.Logger.Debug("starting worker...", "number", i+1)
+		log.Debugw("starting worker...", "number", i+1)
 		go w.Start()
 	}
 
@@ -129,7 +124,7 @@ func enqueueMissingBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
 
 	lastDbBlockHeight, err := ctx.Database.GetLastBlockHeight()
 	if err != nil {
-		ctx.Logger.Error("failed to get last block height from database", "error", err)
+		log.Errorw("failed to get last block height from database", "error", err)
 	}
 
 	// Get the start height, default to the config's height
@@ -142,12 +137,12 @@ func enqueueMissingBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
 	}
 
 	if cfg.FastSync {
-		ctx.Logger.Info("fast sync is enabled, ignoring all previous blocks", "latest_block_height", latestBlockHeight)
+		log.Infow("fast sync is enabled, ignoring all previous blocks", "latest_block_height", latestBlockHeight)
 		for _, module := range ctx.Modules {
 			if mod, ok := module.(modules.FastSyncModule); ok {
 				err := mod.DownloadState(latestBlockHeight)
 				if err != nil {
-					ctx.Logger.Error("error while performing fast sync",
+					log.Error("error while performing fast sync",
 						"err", err,
 						"last_block_height", latestBlockHeight,
 						"module", module.Name(),
@@ -156,9 +151,9 @@ func enqueueMissingBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
 			}
 		}
 	} else {
-		ctx.Logger.Info("syncing missing blocks...", "latest_block_height", latestBlockHeight)
+		log.Infow("syncing missing blocks...", "latest_block_height", latestBlockHeight)
 		for _, i := range ctx.Database.GetMissingHeights(startHeight, latestBlockHeight) {
-			ctx.Logger.Debug("enqueueing missing block", "height", i)
+			log.Debug("enqueueing missing block", "height", i)
 			exportQueue <- i
 		}
 	}
@@ -174,7 +169,7 @@ func enqueueNewBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
 
 		// Enqueue all heights from the current height up to the latest height
 		for ; currHeight <= latestBlockHeight; currHeight++ {
-			ctx.Logger.Debug("enqueueing new block", "height", currHeight)
+			log.Debugw("enqueueing new block", "height", currHeight)
 			exportQueue <- currHeight
 		}
 		time.Sleep(config.GetAvgBlockTime())
@@ -190,7 +185,7 @@ func mustGetLatestHeight(ctx *parser.Context) int64 {
 			return latestBlockHeight
 		}
 
-		ctx.Logger.Error("failed to get last block from RPCConfig client",
+		log.Errorw("failed to get last block from RPCConfig client",
 			"err", err,
 			"retry interval", config.GetAvgBlockTime(),
 			"retry count", retryCount)
@@ -211,7 +206,7 @@ func trapSignal(ctx *parser.Context) {
 
 	go func() {
 		sig := <-sigCh
-		ctx.Logger.Info("caught signal; shutting down...", "signal", sig.String())
+		log.Infow("caught signal; shutting down...", "signal", sig.String())
 		defer ctx.Node.Stop()
 		defer ctx.Database.Close()
 		defer waitGroup.Done()

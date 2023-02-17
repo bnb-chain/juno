@@ -2,12 +2,9 @@ package database
 
 import (
 	"context"
+
 	"github.com/cosmos/cosmos-sdk/simapp/params"
-
-	"github.com/forbole/juno/v4/logging"
-
 	databaseconfig "github.com/forbole/juno/v4/database/config"
-
 	"github.com/forbole/juno/v4/types"
 )
 
@@ -16,7 +13,7 @@ type Database interface {
 	// PrepareTables create tables
 	PrepareTables(ctx context.Context) error
 
-	// HasBlock tells whether or not the database has already stored the block having the given height.
+	// HasBlock tells whether the database has already stored the block having the given height.
 	// An error is returned if the operation fails.
 	HasBlock(height int64) (bool, error)
 
@@ -76,15 +73,13 @@ type PruningDb interface {
 type Context struct {
 	Cfg            databaseconfig.Config
 	EncodingConfig *params.EncodingConfig
-	Logger         logging.Logger
 }
 
 // NewContext allows to build a new Context instance
-func NewContext(cfg databaseconfig.Config, encodingConfig *params.EncodingConfig, logger logging.Logger) *Context {
+func NewContext(cfg databaseconfig.Config, encodingConfig *params.EncodingConfig) *Context {
 	return &Context{
 		Cfg:            cfg,
 		EncodingConfig: encodingConfig,
-		Logger:         logger,
 	}
 }
 
