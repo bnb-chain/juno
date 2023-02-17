@@ -108,3 +108,7 @@ type AuthzMessageModule interface {
 	// will still be called.
 	HandleMsgExec(index int, msgExec *authz.MsgExec, authzMsgIndex int, executedMsg sdk.Msg, tx *types.Tx) error
 }
+
+type CommonModule interface {
+	PrepareTables()
+}

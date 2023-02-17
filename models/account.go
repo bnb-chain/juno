@@ -1,10 +1,10 @@
 package models
 
 type Account struct {
-	Address string `gorm:"address;primaryKey"`
-	Type    string `gorm:"type"`
-	Balance uint64 `gorm:"balance"` // changed from events of coin_spent and coin_receive
-	TxCount uint64 `gorm:"tx_count"`
+	Address string `gorm:"column:address;primaryKey"`
+	Type    string `gorm:"column:type"`
+	Balance uint64 `gorm:"column:balance"` // changed from events of coin_spent and coin_receive
+	TxCount uint64 `gorm:"column:tx_count"`
 }
 
 func (*Account) TableName() string {

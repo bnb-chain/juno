@@ -2,12 +2,14 @@ package mysql
 
 import (
 	"context"
-
 	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/forbole/juno/v4/database"
+	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/logging"
+	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/types"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Builder creates a database connection with the given database connection info
@@ -34,13 +36,46 @@ type Database struct {
 }
 
 func (db *Database) PrepareTables(ctx context.Context) error {
-	// TODO
+
+	//TODO load by modules
+
+	db.db.Migrator().AutoMigrate(&models.Account{})
+	db.db.Migrator().AutoMigrate(&models.Block{})
+	db.db.Migrator().AutoMigrate(&models.Tx{})
+
+	//block_syncer tables
+	db.db.Migrator().AutoMigrate(&models.Bucket{})
+	db.db.Migrator().AutoMigrate(&models.Group{})
+	db.db.Migrator().AutoMigrate(&models.Object{})
+
+	//validator tables
+	db.db.Migrator().AutoMigrate(&models.Validator{})
+	db.db.Migrator().AutoMigrate(&models.ValidatorInfo{})
+	db.db.Migrator().AutoMigrate(&models.ValidatorDescription{})
+	db.db.Migrator().AutoMigrate(&models.ValidatorCommission{})
+	db.db.Migrator().AutoMigrate(&models.ValidatorVotingPower{})
+	db.db.Migrator().AutoMigrate(&models.ValidatorStatus{})
+	db.db.Migrator().AutoMigrate(&models.ValidatorSigningInfo{})
+
+	//modules
+
 	return nil
 }
 
 // HasBlock implements database.Database
 func (db *Database) HasBlock(height int64) (bool, error) {
 	var res bool
+
+	var block models.Block
+	if err := db.db.Table("blocks").Where("`height` = ?", height).
+		First(&block).
+		Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return false, nil
+		}
+		log.Errorf("Other DB error: %s", err.Error())
+		return false, err
+	}
 	return res, nil
 }
 
@@ -91,7 +126,16 @@ func (db *Database) SaveValidators(validators []*types.Validator) error {
 		return nil
 	}
 
+	for _, val := range validators {
+		valDo := &models.Validator{
+			ConsensusAddress: val.ConsAddr,
+			ConsensusPubkey:  val.ConsPubKey,
+		}
+		db.inTx(valDo, true)
+	}
+
 	return nil
+
 }
 
 // SaveCommitSignatures implements database.Database
@@ -112,4 +156,31 @@ func (db *Database) SaveMessage(msg *types.Message) error {
 // Close implements database.Database
 func (db *Database) Close() {
 
+}
+
+func (db *Database) inTx(inst interface{}, overwrite bool) {
+
+	if inst == nil {
+		log.Warnw("nil instance diggerSaveAndDontCare")
+		return
+	}
+
+	tx := db.db.Begin()
+
+	if !overwrite {
+		if err := tx.Clauses(clause.Insert{Modifier: "IGNORE"}).CreateInBatches(inst, 2000).Error; err != nil {
+			log.Warnw("insert save error", "error", err)
+		}
+	}
+
+	if err := tx.Clauses(clause.OnConflict{
+		UpdateAll: true,
+	}).Error; err != nil {
+		log.Warnw("insert save error", "error", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Errorw("insert commit error", "error", err)
+		tx.Rollback()
+	}
 }
