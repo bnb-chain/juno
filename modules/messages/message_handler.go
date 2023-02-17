@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gogo/protobuf/proto"
@@ -27,7 +28,7 @@ func HandleMsg(
 		return err
 	}
 
-	return db.SaveMessage(types.NewMessage(
+	return db.SaveMessage(context.TODO(), types.NewMessage(
 		tx.TxHash,
 		index,
 		proto.MessageName(msg),
