@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -12,11 +11,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
+	"github.com/gogo/protobuf/proto"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
@@ -204,7 +205,7 @@ func (w Worker) ExportBlock(
 	}
 
 	// Save the block
-	err = w.db.SaveBlock(w.ctx, types.NewBlockFromTmBlock(b, sumGasTxs(txs)))
+	err = w.db.SaveBlock(w.ctx, models.NewBlockFromTmBlock(b, sumGasTxs(txs)))
 	if err != nil {
 		return fmt.Errorf("failed to persist block: %s", err)
 	}

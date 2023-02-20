@@ -6,15 +6,18 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/forbole/juno/v4/log"
-	"github.com/forbole/juno/v4/types/config"
-	"github.com/lib/pq"
-	"gorm.io/gorm"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/simapp/params"
+	"github.com/forbole/juno/v4/common"
 	databaseconfig "github.com/forbole/juno/v4/database/config"
+	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/types"
+	"github.com/forbole/juno/v4/types/config"
+	"github.com/lib/pq"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Database represents an abstract database that can be used to save data inside it
@@ -37,7 +40,7 @@ type Database interface {
 	// and the transactions contained inside that block.
 	// An error is returned if the operation fails.
 	// NOTE. For each transaction inside txs, SaveTx will be called as well.
-	SaveBlock(ctx context.Context, block *types.Block) error
+	SaveBlock(ctx context.Context, block *models.Block) error
 
 	// GetTotalBlocks returns total number of blocks stored in database.
 	GetTotalBlocks(ctx context.Context) int64
@@ -166,15 +169,14 @@ func (db *Impl) GetMissingHeights(ctx context.Context, startHeight, endHeight in
 }
 
 // SaveBlock implements database.Database
-func (db *Impl) SaveBlock(ctx context.Context, block *types.Block) error {
-	sqlStatement := `
-INSERT INTO block (height, hash, num_txs, total_gas, proposer_address, timestamp)
-VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`
-
-	proposerAddress := sql.NullString{Valid: len(block.ProposerAddress) != 0, String: block.ProposerAddress}
-	err := db.Db.Exec(sqlStatement,
-		block.Height, block.Hash, block.TxNum, block.TotalGas, proposerAddress, block.Timestamp,
-	).Error
+func (db *Impl) SaveBlock(ctx context.Context, block *models.Block) error {
+	err := db.Db.Table((&models.Block{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "hash"}},
+		UpdateAll: true,
+	}, clause.OnConflict{
+		Columns:   []clause.Column{{Name: "height"}},
+		UpdateAll: true,
+	}).Create(block).Error
 	return err
 }
 
@@ -207,23 +209,6 @@ func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
 
 // saveTxInsidePartition stores the given transaction inside the partition having the given id
 func (db *Impl) saveTxInsidePartition(tx *types.Tx, partitionID int64) error {
-	sqlStatement := `
-INSERT INTO transaction 
-(hash, height, success, messages, memo, signatures, signer_infos, fee, gas_wanted, gas_used, raw_log, logs, partition_id) 
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
-ON CONFLICT (hash, partition_id) DO UPDATE 
-	SET height = excluded.height, 
-		success = excluded.success, 
-		messages = excluded.messages,
-		memo = excluded.memo, 
-		signatures = excluded.signatures, 
-		signer_infos = excluded.signer_infos,
-		fee = excluded.fee, 
-		gas_wanted = excluded.gas_wanted, 
-		gas_used = excluded.gas_used,
-		raw_log = excluded.raw_log, 
-		logs = excluded.logs`
-
 	var sigs = make([]string, len(tx.Signatures))
 	for index, sig := range tx.Signatures {
 		sigs[index] = base64.StdEncoding.EncodeToString(sig)
@@ -259,13 +244,28 @@ ON CONFLICT (hash, partition_id) DO UPDATE
 		return err
 	}
 
-	err = db.Db.Exec(sqlStatement,
-		tx.TxHash, tx.Height, tx.Successful(),
-		msgsBz, tx.Body.Memo, pq.Array(sigs),
-		sigInfoBz, string(feeBz),
-		tx.GasWanted, tx.GasUsed, tx.RawLog, string(logsBz),
-		partitionID,
-	).Error
+	dbTx := &models.Tx{
+		Hash:        common.HexToHash(tx.TxHash),
+		Height:      uint64(tx.Height),
+		Success:     tx.Successful(),
+		Messages:    msgsBz,
+		Memo:        tx.Body.Memo,
+		Signatures:  strings.Join(sigs, ","),
+		SignerInfos: sigInfoBz,
+		Fee:         string(feeBz),
+		GasWanted:   uint64(tx.GasWanted),
+		GasUsed:     uint64(tx.GasUsed),
+		RawLog:      tx.RawLog,
+		Logs:        string(logsBz),
+	}
+
+	err = db.Db.Table((&models.Tx{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "hash"}},
+		UpdateAll: true,
+	}, clause.OnConflict{
+		Columns:   []clause.Column{{Name: "height"}, {Name: "tx_index"}},
+		UpdateAll: true,
+	}).Create(dbTx).Error
 	return err
 }
 
