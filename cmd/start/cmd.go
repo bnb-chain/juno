@@ -1,6 +1,7 @@
 package start
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"sync"
@@ -122,7 +123,7 @@ func enqueueMissingBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
 	// Get the latest height
 	latestBlockHeight := mustGetLatestHeight(ctx)
 
-	lastDbBlockHeight, err := ctx.Database.GetLastBlockHeight()
+	lastDbBlockHeight, err := ctx.Database.GetLastBlockHeight(context.TODO())
 	if err != nil {
 		log.Errorw("failed to get last block height from database", "error", err)
 	}
@@ -152,7 +153,7 @@ func enqueueMissingBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
 		}
 	} else {
 		log.Infow("syncing missing blocks...", "latest_block_height", latestBlockHeight)
-		for _, i := range ctx.Database.GetMissingHeights(startHeight, latestBlockHeight) {
+		for _, i := range ctx.Database.GetMissingHeights(context.TODO(), startHeight, latestBlockHeight) {
 			log.Debug("enqueueing missing block", "height", i)
 			exportQueue <- i
 		}
