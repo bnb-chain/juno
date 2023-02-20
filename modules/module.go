@@ -109,6 +109,11 @@ type AuthzMessageModule interface {
 	HandleMsgExec(index int, msgExec *authz.MsgExec, authzMsgIndex int, executedMsg sdk.Msg, tx *types.Tx) error
 }
 
-type CommonModule interface {
+//type CommonModule interface {
+//	PrepareTables()
+//}
+
+type EventModule interface {
+	HandleEvent(index int, event sdk.Event) error
 	PrepareTables()
 }
