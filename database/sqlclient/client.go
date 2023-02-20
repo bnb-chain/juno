@@ -1,4 +1,4 @@
-package mysql
+package sqlclient
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	databaseconfig "github.com/forbole/juno/v4/database/config"
 	"github.com/forbole/juno/v4/log"
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -23,12 +24,26 @@ func New(cfg *databaseconfig.Config) (*gorm.DB, error) {
 		cfg.DSN = secret
 	}
 
-	db, err := gorm.Open(mysql.Open(cfg.DSN),
-		&gorm.Config{
-			Logger:                                   &loggerAdaptor{slowThreshold: time.Duration(cfg.SlowThreshold)},
-			DisableForeignKeyConstraintWhenMigrating: true,
-		},
-	)
+	var db *gorm.DB
+	var err error
+	switch cfg.Type {
+	case databaseconfig.MySQL:
+		db, err = gorm.Open(mysql.Open(cfg.DSN),
+			&gorm.Config{
+				Logger:                                   &loggerAdaptor{slowThreshold: time.Duration(cfg.SlowThreshold)},
+				DisableForeignKeyConstraintWhenMigrating: true,
+			},
+		)
+	case databaseconfig.PostgreSQL:
+		db, err = gorm.Open(postgres.Open(cfg.DSN),
+			&gorm.Config{
+				Logger:                                   &loggerAdaptor{slowThreshold: time.Duration(cfg.SlowThreshold)},
+				DisableForeignKeyConstraintWhenMigrating: true,
+				SkipDefaultTransaction:                   true,
+			},
+		)
+	}
+
 	if err != nil {
 		log.Errorw("failed to open database", "err", err)
 		return nil, err

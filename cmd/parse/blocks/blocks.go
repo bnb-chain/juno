@@ -1,6 +1,7 @@
 package blocks
 
 import (
+	"context"
 	"fmt"
 
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
@@ -42,7 +43,7 @@ will be replaced with the data downloaded from the node.
 			end, _ := cmd.Flags().GetInt64(flagEnd)
 			force, _ := cmd.Flags().GetBool(flagForce)
 
-			lastDbBlockHeight, err := parseCtx.Database.GetLastBlockHeight()
+			lastDbBlockHeight, err := parseCtx.Database.GetLastBlockHeight(context.Background())
 			if err != nil {
 				return err
 			}

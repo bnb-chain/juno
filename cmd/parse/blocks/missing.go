@@ -1,6 +1,7 @@
 package blocks
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
@@ -30,12 +31,13 @@ func newMissingCmd(parseConfig *parsecmdtypes.Config) *cobra.Command {
 			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules)
 			worker := parser.NewWorker(workerCtx, nil, 0)
 
-			dbLastHeight, err := parseCtx.Database.GetLastBlockHeight()
+			ctx := context.Background()
+			dbLastHeight, err := parseCtx.Database.GetLastBlockHeight(ctx)
 			if err != nil {
 				return fmt.Errorf("error while getting DB last block height: %s", err)
 			}
 
-			for _, k := range parseCtx.Database.GetMissingHeights(startHeight, dbLastHeight) {
+			for _, k := range parseCtx.Database.GetMissingHeights(ctx, startHeight, dbLastHeight) {
 				err = worker.Process(k)
 				if err != nil {
 					return fmt.Errorf("error while re-fetching block %d: %s", k, err)

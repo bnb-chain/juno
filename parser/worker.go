@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gogo/protobuf/proto"
@@ -23,6 +24,8 @@ import (
 // Worker defines a job consumer that is responsible for getting and
 // aggregating block and associated data and exporting it to a database.
 type Worker struct {
+	ctx context.Context
+
 	index int
 
 	queue   types.HeightQueue
@@ -74,7 +77,7 @@ func (w Worker) Start() {
 // height and associated metadata and export it to a database if it does not exist yet. It returns an
 // error if any export process fails.
 func (w Worker) ProcessIfNotExists(height int64) error {
-	exists, err := w.db.HasBlock(height)
+	exists, err := w.db.HasBlock(w.ctx, height)
 	if err != nil {
 		return fmt.Errorf("error while searching for block: %s", err)
 	}
@@ -173,7 +176,7 @@ func (w Worker) SaveValidators(vals []*tmtypes.Validator) error {
 		validators[index] = types.NewValidator(consAddr, consPubKey)
 	}
 
-	err := w.db.SaveValidators(validators)
+	err := w.db.SaveValidators(w.ctx, validators)
 	if err != nil {
 		return fmt.Errorf("error while saving validators: %s", err)
 	}
@@ -201,7 +204,7 @@ func (w Worker) ExportBlock(
 	}
 
 	// Save the block
-	err = w.db.SaveBlock(types.NewBlockFromTmBlock(b, sumGasTxs(txs)))
+	err = w.db.SaveBlock(w.ctx, types.NewBlockFromTmBlock(b, sumGasTxs(txs)))
 	if err != nil {
 		return fmt.Errorf("failed to persist block: %s", err)
 	}
@@ -252,7 +255,7 @@ func (w Worker) ExportCommit(commit *tmtypes.Commit, vals *tmctypes.ResultValida
 		))
 	}
 
-	err := w.db.SaveCommitSignatures(signatures)
+	err := w.db.SaveCommitSignatures(w.ctx, signatures)
 	if err != nil {
 		return fmt.Errorf("error while saving commit signatures: %s", err)
 	}
@@ -263,7 +266,7 @@ func (w Worker) ExportCommit(commit *tmtypes.Commit, vals *tmctypes.ResultValida
 // saveTx accepts the transaction and persists it inside the database.
 // An error is returned if the write fails.
 func (w Worker) saveTx(tx *types.Tx) error {
-	err := w.db.SaveTx(tx)
+	err := w.db.SaveTx(w.ctx, tx)
 	if err != nil {
 		return fmt.Errorf("failed to handle transaction with hash %s: %s", tx.TxHash, err)
 	}
@@ -351,10 +354,10 @@ func (w Worker) ExportTxs(txs []*types.Tx) error {
 		}
 	}
 
-	totalBlocks := w.db.GetTotalBlocks()
+	totalBlocks := w.db.GetTotalBlocks(w.ctx)
 	log.DbBlockCount.WithLabelValues("total_blocks_in_db").Set(float64(totalBlocks))
 
-	dbLatestHeight, err := w.db.GetLastBlockHeight()
+	dbLatestHeight, err := w.db.GetLastBlockHeight(w.ctx)
 	if err != nil {
 		return err
 	}
