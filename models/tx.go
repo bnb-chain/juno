@@ -8,7 +8,7 @@ type Tx struct {
 	ID uint64 `gorm:"column:id;primaryKey"`
 
 	Hash      common.Hash `gorm:"column:hash;type:BINARY(32);uniqueIndex:idx_hash"`
-	Height    uint64      `gorm:"column:height;uniqueIndex:idx_height_tx_index,priority:1"`
+	Height    uint64      `gorm:"height;uniqueIndex:idx_height_tx_index,priority:1"`
 	BlockHash common.Hash `gorm:"column:block_hash;type:BINARY(32)"`
 	TxIndex   uint32      `gorm:"column:tx_index;uniqueIndex:idx_height_tx_index,priority:2"`
 

@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/forbole/juno/v4/common"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 type PartSetHeader struct {
@@ -44,6 +45,30 @@ type Block struct {
 
 func (*Block) TableName() string {
 	return "blocks"
+}
+
+// NewBlockFromTmBlock builds a new Block instance from a given ResultBlock object
+func NewBlockFromTmBlock(blk *tmctypes.ResultBlock, totalGas uint64) *Block {
+	return &Block{
+		BlockID: BlockID{
+			Hash: common.HexToHash(blk.Block.Hash().String()),
+		},
+		Header: Header{
+			uint64(blk.Block.Height),
+			common.HexToHash(blk.Block.Header.LastCommitHash.String()),
+			common.HexToHash(blk.Block.Header.DataHash.String()),
+			common.HexToHash(blk.Block.Header.ValidatorsHash.String()),
+			common.HexToHash(blk.Block.Header.NextValidatorsHash.String()),
+			common.HexToHash(blk.Block.Header.ConsensusHash.String()),
+			common.HexToHash(blk.Block.Header.AppHash.String()),
+			common.HexToHash(blk.Block.Header.LastResultsHash.String()),
+			common.HexToHash(blk.Block.Header.EvidenceHash.String()),
+			common.HexToAddress(blk.Block.Header.ProposerAddress.String()),
+			uint64(blk.Block.Time.Unix()),
+		},
+		NumTxs:   len(blk.Block.Txs),
+		TotalGas: totalGas,
+	}
 }
 
 type Genesis struct {

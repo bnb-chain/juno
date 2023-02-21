@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -12,11 +11,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
+	"github.com/gogo/protobuf/proto"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
@@ -164,7 +165,7 @@ func (w Worker) HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[strin
 // consensus public key. An error is returned if the public key cannot be Bech32
 // encoded or if the DB write fails.
 func (w Worker) SaveValidators(vals []*tmtypes.Validator) error {
-	var validators = make([]*types.Validator, len(vals))
+	var validators = make([]*models.Validator, len(vals))
 	for index, val := range vals {
 		consAddr := sdk.ConsAddress(val.Address).String()
 
@@ -173,7 +174,8 @@ func (w Worker) SaveValidators(vals []*tmtypes.Validator) error {
 			return fmt.Errorf("failed to convert validator public key for validators %s: %s", consAddr, err)
 		}
 
-		validators[index] = types.NewValidator(consAddr, consPubKey)
+		//validators[index] = types.NewValidator(consAddr, consPubKey)
+		validators[index] = models.NewValidator(consAddr, consPubKey)
 	}
 
 	err := w.db.SaveValidators(w.ctx, validators)
@@ -204,16 +206,17 @@ func (w Worker) ExportBlock(
 	}
 
 	// Save the block
-	err = w.db.SaveBlock(w.ctx, types.NewBlockFromTmBlock(b, sumGasTxs(txs)))
+	err = w.db.SaveBlock(w.ctx, models.NewBlockFromTmBlock(b, sumGasTxs(txs)))
 	if err != nil {
 		return fmt.Errorf("failed to persist block: %s", err)
 	}
 
+	//currently no need
 	// Save the commits
-	err = w.ExportCommit(b.Block.LastCommit, vals)
-	if err != nil {
-		return err
-	}
+	//err = w.ExportCommit(b.Block.LastCommit, vals)
+	//if err != nil {
+	//	return err
+	//}
 
 	// Call the block handlers
 	for _, module := range w.modules {

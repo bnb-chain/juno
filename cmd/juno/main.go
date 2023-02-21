@@ -11,13 +11,18 @@ import (
 	"github.com/forbole/juno/v4/cmd"
 )
 
+const (
+	TomlConfigType = "toml"
+	YamlConfigType = "yaml"
+)
+
 func main() {
 	// JunoConfig the runner
 	config := cmd.NewConfig("juno").
 		WithParseConfig(types.NewConfig().
 			WithRegistrar(registrar.NewDefaultRegistrar(
 				messages.CosmosMessageAddressesParser,
-			)),
+			)).WithFileType(TomlConfigType),
 		)
 
 	// Run the commands and panic on any error

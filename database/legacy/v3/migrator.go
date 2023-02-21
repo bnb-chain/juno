@@ -1,10 +1,10 @@
 package v3
 
 import (
+	"github.com/forbole/juno/v4/database/postgresql"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/forbole/juno/v4/database"
-	"github.com/forbole/juno/v4/database/postgresql"
 )
 
 var _ database.Migrator = &Migrator{}
@@ -16,6 +16,7 @@ type Migrator struct {
 
 func NewMigrator(db *postgresql.Database) *Migrator {
 	return &Migrator{
-		SQL: db.SQL,
+		//TODO adapt migrator
+		//SQL: db.SQL,
 	}
 }

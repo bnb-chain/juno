@@ -88,3 +88,10 @@ type ValidatorSigningInfo struct {
 func (*ValidatorSigningInfo) TableName() string {
 	return "validator_signing_infos"
 }
+
+func NewValidator(ConsensusAddress string, ConsensusPubkey string) *Validator {
+	return &Validator{
+		ConsensusAddress: ConsensusAddress,
+		ConsensusPubkey:  ConsensusPubkey,
+	}
+}

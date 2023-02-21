@@ -10,6 +10,7 @@ type Config struct {
 	name        string
 	initConfig  *initcmd.Config
 	parseConfig *parsecmd.Config
+	fileType    string
 }
 
 // NewConfig allows to build a new Config instance

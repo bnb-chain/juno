@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/naoina/toml"
 	"io/ioutil"
 
 	"gopkg.in/yaml.v3"
@@ -17,6 +18,16 @@ func DefaultConfigParser(configData []byte) (Config, error) {
 		bytes: configData,
 	}
 	err := yaml.Unmarshal(configData, &cfg)
+	return cfg, err
+}
+
+// TomlConfigParser attempts to read and parse a Juno config from the given string bytes.
+// An error reading or parsing the config results in a panic.
+func TomlConfigParser(configData []byte) (Config, error) {
+	var cfg = Config{
+		bytes: configData,
+	}
+	err := toml.Unmarshal(configData, &cfg)
 	return cfg, err
 }
 

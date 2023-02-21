@@ -20,7 +20,7 @@ func ReadConfigPreRunE(cfg *Config) types.CobraCmdFunc {
 
 // ReadConfig allows to read the configuration using the provided cfg
 func ReadConfig(cfg *Config) (config.Config, error) {
-	file := config.GetConfigFilePath()
+	file := config.GetConfigFilePath(cfg.fileType)
 
 	// Make sure the path exists
 	if _, err := os.Stat(file); os.IsNotExist(err) {
@@ -28,7 +28,7 @@ func ReadConfig(cfg *Config) (config.Config, error) {
 	}
 
 	// Read the config
-	return config.Read(file, cfg.GetConfigParser())
+	return config.Read(file, cfg.GetConfigParser(cfg.fileType))
 }
 
 // UpdatedGlobalCfg parses the configuration file using the provided configuration and sets the
