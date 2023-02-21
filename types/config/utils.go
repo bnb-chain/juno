@@ -9,12 +9,17 @@ var (
 	HomePath = ""
 )
 
+const (
+	TomlConfigType = "toml"
+	YamlConfigType = "yaml"
+)
+
 // GetConfigFilePath returns the path to the configuration file given the executable name
-func GetConfigFilePath(fileType string) string {
-	switch fileType {
-	case "toml":
+func GetConfigFilePath(configType string) string {
+	switch configType {
+	case TomlConfigType:
 		return path.Join(HomePath, "config.toml")
-	case "yaml":
+	case YamlConfigType:
 		return path.Join(HomePath, "config.yaml")
 	}
 	return path.Join(HomePath, "config.yaml")

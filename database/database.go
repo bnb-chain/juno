@@ -6,18 +6,20 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/forbole/juno/v4/models"
-	"github.com/forbole/juno/v4/types"
 	"strings"
 
+	"github.com/forbole/juno/v4/models"
+	"github.com/forbole/juno/v4/types"
+
 	"github.com/cosmos/cosmos-sdk/simapp/params"
+	"github.com/lib/pq"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
 	"github.com/forbole/juno/v4/common"
 	databaseconfig "github.com/forbole/juno/v4/database/config"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/types/config"
-	"github.com/lib/pq"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // Database represents an abstract database that can be used to save data inside it
@@ -125,7 +127,7 @@ func (db *Impl) createPartitionIfNotExists(table string, partitionID int64) erro
 // -------------------------------------------------------------------------------------------------------------------
 
 func (db *Impl) PrepareTables(ctx context.Context) error {
-	
+
 	//TODO need optimize
 
 	db.Db.Migrator().AutoMigrate(&models.Account{})
@@ -151,45 +153,37 @@ func (db *Impl) PrepareTables(ctx context.Context) error {
 
 // HasBlock implements database.Database
 func (db *Impl) HasBlock(ctx context.Context, height int64) (bool, error) {
-	//var res bool
-
-	var block models.Block
-	if err := db.Db.Table("blocks").Where("height = ?", height).
-		First(&block).
-		Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return false, nil
-		}
-		log.Errorf("Other DB error: %s", err.Error())
-		return false, err
-	}
-	return true, nil
+	var res bool
+	err := db.Db.Raw(`SELECT EXISTS(SELECT 1 FROM blocks WHERE height = ?);`, height).Scan(&res).Error
+	return res, err
 }
 
 // GetLastBlockHeight returns the last block height stored inside the database
 func (db *Impl) GetLastBlockHeight(ctx context.Context) (int64, error) {
 	var height int64
 
-	err := db.Db.Table((&models.Block{}).TableName()).Select("height").Order("height ASC").Scan(&height).Error
+	err := db.Db.Table((&models.Block{}).TableName()).Select("height").Order("height DESC").Scan(&height).Error
+	if errIsNotFound(err) {
+		return 0, err
+	}
 
 	return height, err
 }
 
 // GetMissingHeights returns a slice of missing block heights between startHeight and endHeight
 func (db *Impl) GetMissingHeights(ctx context.Context, startHeight, endHeight int64) []int64 {
-	//var result []int64
-	//stmt := `SELECT generate_series($1::int,$2::int) EXCEPT SELECT height FROM blocks ORDER BY 1;`
-	//err := db.Db.Select(&result, stmt, startHeight, endHeight)
-	//if err != nil {
-	//	return nil
-	//}
-	//
-	//if len(result) == 0 {
-	//	return nil
-	//}
-	//
-	//return result
-	return nil
+	var result []int64
+	stmt := `SELECT generate_series($1::int,$2::int) EXCEPT SELECT height FROM blocks ORDER BY 1;`
+	err := db.Db.Select(&result, stmt, startHeight, endHeight)
+	if err != nil {
+		return nil
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
 }
 
 // SaveBlock implements database.Database
@@ -295,16 +289,10 @@ func (db *Impl) saveTxInsidePartition(tx *types.Tx, partitionID int64) error {
 
 // HasValidator implements database.Database
 func (db *Impl) HasValidator(ctx context.Context, addr string) (bool, error) {
-	var validator models.Validator
-
-	if err := db.Db.Table((&models.Validator{}).TableName()).Where("consensus_address = ?", addr).First(&validator).
-		Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
+	var res bool
+	stmt := `SELECT EXISTS(SELECT 1 FROM validator WHERE consensus_address = ?);`
+	err := db.Db.Raw(stmt, addr).Scan(&res).Error
+	return res, err
 }
 
 // SaveValidators implements database.Database

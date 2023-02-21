@@ -32,7 +32,7 @@ func RunMigration(parseConfig *parsecmdtypes.Config) error {
 		return fmt.Errorf("error while serializing config: %s", err)
 	}
 
-	err = ioutil.WriteFile(config.GetConfigFilePath("yaml"), bz, 0600)
+	err = ioutil.WriteFile(config.GetConfigFilePath(config.YamlConfigType), bz, 0600)
 	if err != nil {
 		return fmt.Errorf("error while writing v4 config: %s", err)
 	}

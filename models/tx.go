@@ -13,16 +13,16 @@ type Tx struct {
 	TxIndex   uint32      `gorm:"column:tx_index;uniqueIndex:idx_height_tx_index,priority:2"`
 
 	Success     bool   `gorm:"column:success"`
-	Messages    string `gorm:"column:messages;type:json;not null"`
+	Messages    string `gorm:"column:messages;type:json;not null;default:(JSON_ARRAY())"`
 	Memo        string `gorm:"column:memo"`
 	Signatures  string `gorm:"column:signatures"`
-	SignerInfos string `gorm:"column:signer_infos;type:json;not null"`
-	Fee         string `gorm:"column:fee;type:json;not null"`
+	SignerInfos string `gorm:"column:signer_infos;type:json;not null;default:(JSON_ARRAY())"`
+	Fee         string `gorm:"column:fee;type:json;not null;default:(JSON_ARRAY())"`
 
 	GasWanted uint64 `gorm:"column:gas_wanted"`
 	GasUsed   uint64 `gorm:"column:gas_used"`
 	RawLog    string `gorm:"column:raw_log"`
-	Logs      string `gorm:"column:logs;type:json"`
+	Logs      string `gorm:"column:logs;type:json;not null;default:(JSON_ARRAY())"`
 
 	// Timestamp uint64 `gorm:"column:timestamp"` ?
 }

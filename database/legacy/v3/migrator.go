@@ -1,8 +1,9 @@
 package v3
 
 import (
-	"github.com/forbole/juno/v4/database/postgresql"
 	"github.com/jmoiron/sqlx"
+
+	"github.com/forbole/juno/v4/database/postgresql"
 
 	"github.com/forbole/juno/v4/database"
 )

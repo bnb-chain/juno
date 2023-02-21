@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/cosmos/cosmos-sdk/simapp"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/database/builder"
 	"github.com/forbole/juno/v4/modules/registrar"
@@ -53,9 +54,9 @@ func (cfg *Config) WithConfigParser(p config.Parser) *Config {
 func (cfg *Config) GetConfigParser(fileType string) config.Parser {
 	if cfg.configParser == nil {
 		switch fileType {
-		case "yaml":
+		case config.YamlConfigType:
 			return config.DefaultConfigParser
-		case "toml":
+		case config.TomlConfigType:
 			return config.TomlConfigParser
 		}
 		return config.DefaultConfigParser

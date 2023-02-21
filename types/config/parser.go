@@ -2,8 +2,9 @@ package config
 
 import (
 	"fmt"
-	"github.com/naoina/toml"
 	"io/ioutil"
+
+	"github.com/naoina/toml"
 
 	"gopkg.in/yaml.v3"
 )

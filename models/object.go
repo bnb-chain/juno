@@ -8,9 +8,9 @@ type Object struct {
 	BucketName           string         `gorm:"bucket_name;type:varchar(63)"` // BucketName length between 3 and 63
 	ObjectName           string         `gorm:"object_name;type:varchar(63)"` // BucketName length between 3 and 63
 	ObjectID             int64          `gorm:"object_id;type:int;primaryKey"`
-	PayloadSize          string         `gorm:"payload_size";type:varchar(20)`
+	PayloadSize          string         `gorm:"payload_size;type:varchar(20)"`
 	IsPublic             bool           `gorm:"is_public;type:tinyint(1)"`
-	ContentType          string         `gorm:"content_type;typevarchar(20)"`
+	ContentType          string         `gorm:"content_type;type:varchar(20)"`
 	CreateAt             int64          `gorm:"create_at;type:bigint(64)"`
 	ObjectStatus         int            `gorm:"object_status;type:int"`
 	RedundancyType       int            `gorm:"redundancy_type;type:int"`
@@ -21,5 +21,5 @@ type Object struct {
 }
 
 func (*Object) TableName() string {
-	return "object"
+	return "objects"
 }
