@@ -1,8 +1,54 @@
 package models
 
+import (
+	"database/sql/driver"
+	"fmt"
+
+	"github.com/forbole/juno/v4/common"
+)
+
+const PubkeyLength = 64
+
+type Pubkey [PubkeyLength]byte
+
+// SetBytes sets the pubkey to the value of b.
+// If b is larger than len(k), b will be cropped from the left.
+func (k *Pubkey) SetBytes(b []byte) {
+	if len(b) > len(k) {
+		b = b[len(b)-PubkeyLength:]
+	}
+	copy(k[PubkeyLength-len(b):], b)
+}
+
+func BytesToPubkey(b []byte) Pubkey {
+	var k Pubkey
+	(&k).SetBytes(b)
+	return k
+}
+
+// Scan implements Scanner for database/sql.
+func (k *Pubkey) Scan(src interface{}) error {
+	srcB, ok := src.([]byte)
+	if !ok {
+		return fmt.Errorf("can't scan %T into Pubkey", src)
+	}
+	if len(srcB) != PubkeyLength {
+		return fmt.Errorf("can't scan []byte of len %d into Pubkey, want %d", len(srcB), PubkeyLength)
+	}
+	copy(k[:], srcB)
+	return nil
+}
+
+// Value implements valuer for database/sql.
+func (k Pubkey) Value() (driver.Value, error) {
+	return k[:], nil
+}
+
 type Validator struct {
-	ConsensusAddress string `gorm:"column:consensus_address;primaryKey"`
-	ConsensusPubkey  string `gorm:"column:consensus_pubkey;type:varchar(63);uniqueIndex:idx_pubkey"` //not null unique
+	ID uint64 `gorm:"column:id;primaryKey"`
+
+	ConsensusAddress common.Address `gorm:"column:consensus_address;type:binary(20);not null;uniqueIndex:idx_address"`
+	ConsensusPubkey  Pubkey         `gorm:"column:consensus_pubkey;type:binary(64);not null;uniqueIndex:idx_pubkey"`
 }
 
 func (*Validator) TableName() string {
@@ -11,12 +57,14 @@ func (*Validator) TableName() string {
 
 // ValidatorInfo is managed by upgrade module
 type ValidatorInfo struct {
-	ValidatorAddress    string `gorm:"column:validator_address;primaryKey"` // refer validator(consensus_address)
-	OperatorAddress     string `gorm:"column:operator_address"`
-	SelfDelegateAddress string `gorm:"column:self_delegate_address"` // refer account(addr)
-	MaxChangeRate       string `gorm:"column:max_change_rate"`
-	MaxRate             string `gorm:"column:max_rate"`
-	Height              uint64 `gorm:"column:height;index:idx_height"`
+	ID uint64 `gorm:"column:id;primaryKey"`
+
+	ValidatorAddress    common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
+	OperatorAddress     common.Address `gorm:"column:operator_address"`
+	SelfDelegateAddress common.Address `gorm:"column:self_delegate_address"` // refer account(addr)
+	MaxChangeRate       string         `gorm:"column:max_change_rate"`
+	MaxRate             string         `gorm:"column:max_rate"`
+	Height              uint64         `gorm:"column:height;index:idx_height"`
 }
 
 func (*ValidatorInfo) TableName() string {
@@ -25,14 +73,16 @@ func (*ValidatorInfo) TableName() string {
 
 // ValidatorDescription is managed by upgrade module
 type ValidatorDescription struct {
-	ValidatorAddress string `gorm:"column:validator_address;primaryKey"` // refer validator(consensus_address)
-	Moniker          string `gorm:"column:moniker"`
-	Identity         string `gorm:"column:identity"`
-	AvatarUrl        string `gorm:"column:avatar_url"`
-	Website          string `gorm:"column:website"`
-	SecurityContact  string `gorm:"column:security_contact"`
-	Details          string `gorm:"column:details"`
-	Height           uint64 `gorm:"column:height;index:idx_height"`
+	ID uint64 `gorm:"column:id;primaryKey"`
+
+	ValidatorAddress common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
+	Moniker          string         `gorm:"column:moniker"`
+	Identity         string         `gorm:"column:identity"`
+	AvatarUrl        string         `gorm:"column:avatar_url"`
+	Website          string         `gorm:"column:website"`
+	SecurityContact  string         `gorm:"column:security_contact"`
+	Details          string         `gorm:"column:details"`
+	Height           uint64         `gorm:"column:height;index:idx_height"`
 }
 
 func (*ValidatorDescription) TableName() string {
@@ -41,10 +91,12 @@ func (*ValidatorDescription) TableName() string {
 
 // ValidatorCommission is managed by upgrade module
 type ValidatorCommission struct {
-	ValidatorAddress  string  `gorm:"column:validator_address;primaryKey"` // refer validator(consensus_address)
-	Commission        float64 `gorm:"column:commission"`
-	MinSelfDelegation uint64  `gorm:"column:min_self_delegation"`
-	Height            uint64  `gorm:"column:height;index:idx_height"`
+	ID uint64 `gorm:"column:id;primaryKey"`
+
+	ValidatorAddress  common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
+	Commission        float64        `gorm:"column:commission"`
+	MinSelfDelegation uint64         `gorm:"column:min_self_delegation"`
+	Height            uint64         `gorm:"column:height;index:idx_height"`
 }
 
 func (*ValidatorCommission) TableName() string {
@@ -53,9 +105,11 @@ func (*ValidatorCommission) TableName() string {
 
 // ValidatorVotingPower is managed by staking module
 type ValidatorVotingPower struct {
-	ValidatorAddress string `gorm:"column:validator_address;primaryKey"` // refer validator(consensus_address)
-	VotingPower      uint64 `gorm:"column:voting_power"`
-	Height           uint64 `gorm:"column:height;index:idx_height"`
+	ID uint64 `gorm:"column:id;primaryKey"`
+
+	ValidatorAddress common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
+	VotingPower      uint64         `gorm:"column:voting_power"`
+	Height           uint64         `gorm:"column:height;index:idx_height"`
 }
 
 func (*ValidatorVotingPower) TableName() string {
@@ -64,10 +118,12 @@ func (*ValidatorVotingPower) TableName() string {
 
 // ValidatorStatus is managed by staking and gov module
 type ValidatorStatus struct {
-	ValidatorAddress string `gorm:"column:validator_address;primaryKey"` // refer validator(consensus_address)
-	Status           int    `gorm:"column:status"`
-	Jailed           bool   `gorm:"column:jailed"`
-	Height           uint64 `gorm:"column:height;index:idx_height"`
+	ID uint64 `gorm:"column:id;primaryKey"`
+
+	ValidatorAddress common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
+	Status           int            `gorm:"column:status"`
+	Jailed           bool           `gorm:"column:jailed"`
+	Height           uint64         `gorm:"column:height;index:idx_height"`
 }
 
 func (*ValidatorStatus) TableName() string {
@@ -76,20 +132,22 @@ func (*ValidatorStatus) TableName() string {
 
 // ValidatorSigningInfo is managed by slashing module
 type ValidatorSigningInfo struct {
-	ValidatorAddress    string `gorm:"column:validator_address;primaryKey"` // refer validator(consensus_address)
-	StartHeight         uint64 `gorm:"column:start_height"`                 // not null
-	IndexOffset         uint64 `gorm:"column:index_offset"`                 // not null
-	JailedUntil         uint64 `gorm:"column:jailed_until"`
-	Tombstoned          bool   `gorm:"column:tombstoned"`
-	MissedBlocksCounter uint64 `gorm:"column:missed_blocks_counter"`
-	Height              uint64 `gorm:"column:height;index:idx_height"`
+	ID uint64 `gorm:"column:id;primaryKey"`
+
+	ValidatorAddress    common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
+	StartHeight         uint64         `gorm:"column:start_height"`                                                       // not null
+	IndexOffset         uint64         `gorm:"column:index_offset"`                                                       // not null
+	JailedUntil         uint64         `gorm:"column:jailed_until"`
+	Tombstoned          bool           `gorm:"column:tombstoned"`
+	MissedBlocksCounter uint64         `gorm:"column:missed_blocks_counter"`
+	Height              uint64         `gorm:"column:height;index:idx_height"`
 }
 
 func (*ValidatorSigningInfo) TableName() string {
 	return "validator_signing_infos"
 }
 
-func NewValidator(ConsensusAddress string, ConsensusPubkey string) *Validator {
+func NewValidator(ConsensusAddress common.Address, ConsensusPubkey Pubkey) *Validator {
 	return &Validator{
 		ConsensusAddress: ConsensusAddress,
 		ConsensusPubkey:  ConsensusPubkey,

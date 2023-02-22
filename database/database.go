@@ -8,24 +8,23 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/forbole/juno/v4/models"
-	"github.com/forbole/juno/v4/types"
-
 	"github.com/cosmos/cosmos-sdk/simapp/params"
-	"github.com/lib/pq"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-
 	"github.com/forbole/juno/v4/common"
 	databaseconfig "github.com/forbole/juno/v4/database/config"
 	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/models"
+	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
+	"github.com/lib/pq"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 // Database represents an abstract database that can be used to save data inside it
 type Database interface {
 	// PrepareTables create tables
-	PrepareTables(ctx context.Context) error
+	PrepareTables(ctx context.Context, tables []schema.Tabler) error
 
 	// HasBlock tells whether the database has already stored the block having the given height.
 	// An error is returned if the operation fails.
@@ -50,6 +49,10 @@ type Database interface {
 	// SaveTx will be called to save each transaction contained inside a block.
 	// An error is returned if the operation fails.
 	SaveTx(ctx context.Context, tx *types.Tx) error
+
+	// SaveAccount will be called to save each account contained inside a tx.
+	// An error is returned if the operation fails.
+	SaveAccount(ctx context.Context, account *models.Account) error
 
 	// HasValidator returns true if a given validator by consensus address exists.
 	// An error is returned if the operation fails.
@@ -126,27 +129,20 @@ func (db *Impl) createPartitionIfNotExists(table string, partitionID int64) erro
 
 // -------------------------------------------------------------------------------------------------------------------
 
-func (db *Impl) PrepareTables(ctx context.Context) error {
+func (db *Impl) PrepareTables(ctx context.Context, tables []schema.Tabler) error {
+	q := db.Db.WithContext(ctx)
+	m := db.Db.Migrator()
 
-	//TODO need optimize
+	for _, t := range tables {
+		if m.HasTable(t.TableName()) {
+			return nil
+		}
 
-	db.Db.Migrator().AutoMigrate(&models.Account{})
-	db.Db.Migrator().AutoMigrate(&models.Block{})
-	db.Db.Migrator().AutoMigrate(&models.Tx{})
-
-	//block_syncer tables
-	db.Db.Migrator().AutoMigrate(&models.Bucket{})
-	db.Db.Migrator().AutoMigrate(&models.Group{})
-	db.Db.Migrator().AutoMigrate(&models.Object{})
-
-	//validator tables
-	db.Db.Migrator().AutoMigrate(&models.Validator{})
-	db.Db.Migrator().AutoMigrate(&models.ValidatorInfo{})
-	db.Db.Migrator().AutoMigrate(&models.ValidatorDescription{})
-	db.Db.Migrator().AutoMigrate(&models.ValidatorCommission{})
-	db.Db.Migrator().AutoMigrate(&models.ValidatorVotingPower{})
-	db.Db.Migrator().AutoMigrate(&models.ValidatorStatus{})
-	db.Db.Migrator().AutoMigrate(&models.ValidatorSigningInfo{})
+		if err := q.Table(t.TableName()).AutoMigrate(t); err != nil {
+			log.Errorw("create table failed", "table", t.TableName(), "err", err)
+			return err
+		}
+	}
 
 	return nil
 }
@@ -164,7 +160,7 @@ func (db *Impl) GetLastBlockHeight(ctx context.Context) (int64, error) {
 
 	err := db.Db.Table((&models.Block{}).TableName()).Select("height").Order("height DESC").Scan(&height).Error
 	if errIsNotFound(err) {
-		return 0, err
+		return 0, nil
 	}
 
 	return height, err
@@ -211,22 +207,6 @@ func (db *Impl) GetTotalBlocks(ctx context.Context) int64 {
 
 // SaveTx implements database.Database
 func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
-	var partitionID int64
-
-	partitionSize := config.Cfg.Database.PartitionSize
-	if partitionSize > 0 {
-		partitionID = tx.Height / partitionSize
-		err := db.createPartitionIfNotExists("transaction", partitionID)
-		if err != nil {
-			return err
-		}
-	}
-
-	return db.saveTxInsidePartition(tx, partitionID)
-}
-
-// saveTxInsidePartition stores the given transaction inside the partition having the given id
-func (db *Impl) saveTxInsidePartition(tx *types.Tx, partitionID int64) error {
 	var sigs = make([]string, len(tx.Signatures))
 	for index, sig := range tx.Signatures {
 		sigs[index] = base64.StdEncoding.EncodeToString(sig)
@@ -287,11 +267,20 @@ func (db *Impl) saveTxInsidePartition(tx *types.Tx, partitionID int64) error {
 	return err
 }
 
+// SaveAccount implements database.Database
+func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error {
+	err := db.Db.Table((&models.Account{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "address"}},
+		DoUpdates: []clause.Assignment{{Column: clause.Column{Name: "tx_count"}, Value: "tx_count+1"}}, // TODO renee verify
+	}).Create(account).Error
+	return err
+}
+
 // HasValidator implements database.Database
 func (db *Impl) HasValidator(ctx context.Context, addr string) (bool, error) {
 	var res bool
 	stmt := `SELECT EXISTS(SELECT 1 FROM validator WHERE consensus_address = ?);`
-	err := db.Db.Raw(stmt, addr).Scan(&res).Error
+	err := db.Db.Raw(stmt, addr).WithContext(ctx).Scan(&res).Error
 	return res, err
 }
 
@@ -301,13 +290,8 @@ func (db *Impl) SaveValidators(ctx context.Context, validators []*models.Validat
 		return nil
 	}
 
-	err := db.Db.Table((&models.Validator{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "consensus_address"}},
-		DoNothing: true,
-	}, clause.OnConflict{
-		Columns:   []clause.Column{{Name: "consensus_pubkey"}},
-		DoNothing: true,
-	}).Create(validators).Error
+	err := db.Db.Table((&models.Validator{}).TableName()).WithContext(ctx).
+		Clauses(clause.OnConflict{DoNothing: true}).Save(validators).Error
 
 	return err
 }
@@ -330,7 +314,7 @@ func (db *Impl) SaveCommitSignatures(ctx context.Context, signatures []*types.Co
 
 	stmt = stmt[:len(stmt)-1]
 	stmt += " ON CONFLICT (validator_address, timestamp) DO NOTHING"
-	err := db.Db.Exec(stmt, sparams...).Error
+	err := db.Db.WithContext(ctx).Exec(stmt, sparams...).Error
 	return err
 }
 

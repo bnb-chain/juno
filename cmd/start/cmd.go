@@ -30,13 +30,23 @@ func NewStartCmd(cmdCfg *parsecmdtypes.Config) *cobra.Command {
 		Short:   "Start parsing the blockchain data",
 		PreRunE: parsecmdtypes.ReadConfigPreRunE(cmdCfg),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			context, err := parsecmdtypes.GetParserContext(config.Cfg, cmdCfg)
+			ctx, err := parsecmdtypes.GetParserContext(config.Cfg, cmdCfg)
 			if err != nil {
 				return err
 			}
 
+			// Prepare tables
+			for _, module := range ctx.Modules {
+				if module, ok := module.(modules.PrepareTablesModule); ok {
+					err = module.PrepareTables()
+					if err != nil {
+						return err
+					}
+				}
+			}
+
 			// Run all the additional operations
-			for _, module := range context.Modules {
+			for _, module := range ctx.Modules {
 				if module, ok := module.(modules.AdditionalOperationsModule); ok {
 					err = module.RunAdditionalOperations()
 					if err != nil {
@@ -45,7 +55,7 @@ func NewStartCmd(cmdCfg *parsecmdtypes.Config) *cobra.Command {
 				}
 			}
 
-			return startParsing(context)
+			return startParsing(ctx)
 		},
 	}
 }

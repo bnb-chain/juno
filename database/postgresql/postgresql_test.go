@@ -45,11 +45,11 @@ func (suite *DbTestSuite) SetupTest() {
 	suite.Require().True(ok)
 
 	// Delete the public schema
-	_, err = bigDipperDb.SQL.Exec(`DROP SCHEMA public CASCADE;`)
+	err = bigDipperDb.Db.Exec(`DROP SCHEMA public CASCADE;`).Error
 	suite.Require().NoError(err)
 
 	// Re-create the schema
-	_, err = bigDipperDb.SQL.Exec(`CREATE SCHEMA public;`)
+	err = bigDipperDb.Db.Exec(`CREATE SCHEMA public;`).Error
 	suite.Require().NoError(err)
 
 	dirPath := path.Join(".")
@@ -67,7 +67,7 @@ func (suite *DbTestSuite) SetupTest() {
 		commentsRegExp := regexp.MustCompile(`/\*.*\*/`)
 		requests := strings.Split(string(file), ";")
 		for _, request := range requests {
-			_, err := bigDipperDb.SQL.Exec(commentsRegExp.ReplaceAllString(request, ""))
+			err := bigDipperDb.Db.Exec(commentsRegExp.ReplaceAllString(request, "")).Error
 			suite.Require().NoError(err)
 		}
 	}

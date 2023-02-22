@@ -36,6 +36,11 @@ func (m Modules) FindByName(name string) (module Module, found bool) {
 
 // --------------------------------------------------------------------------------------------------------------------
 
+type PrepareTablesModule interface {
+	// PrepareTables creates tables required by the module.
+	PrepareTables() error
+}
+
 type AdditionalOperationsModule interface {
 	// RunAdditionalOperations runs all the additional operations required by the module.
 	// This is the perfect place where to initialize all the operations that subscribe to websockets or other
@@ -109,11 +114,6 @@ type AuthzMessageModule interface {
 	HandleMsgExec(index int, msgExec *authz.MsgExec, authzMsgIndex int, executedMsg sdk.Msg, tx *types.Tx) error
 }
 
-//type CommonModule interface {
-//	PrepareTables()
-//}
-
 type EventModule interface {
 	HandleEvent(index int, event sdk.Event) error
-	PrepareTables()
 }
