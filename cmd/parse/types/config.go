@@ -35,6 +35,7 @@ func NewParseConfigFromToml(tomlConfig *tomlconfig.TomlConfig) config.Config {
 	nodeDetails.RPC = tomlConfig.Node.RPC
 	nodeDetails.GRPC = tomlConfig.Node.GRPC
 	nodeConfig.Details = nodeDetails
+	config.Node = *nodeConfig
 
 	return config
 
