@@ -8,16 +8,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/simapp/params"
-	"github.com/forbole/juno/v4/common"
-	databaseconfig "github.com/forbole/juno/v4/database/config"
-	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/types"
-	"github.com/forbole/juno/v4/types/config"
+
+	"github.com/cosmos/cosmos-sdk/simapp/params"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/forbole/juno/v4/common"
+	databaseconfig "github.com/forbole/juno/v4/database/config"
+	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/types/config"
 )
 
 // Database represents an abstract database that can be used to save data inside it
@@ -55,7 +57,7 @@ type Database interface {
 
 	// SaveValidators stores a list of validators if they do not already exist.
 	// An error is returned if the operation fails.
-	SaveValidators(ctx context.Context, validators []*types.Validator) error
+	SaveValidators(ctx context.Context, validators []*models.Validator) error
 
 	// SaveCommitSignatures stores a  slice of validator commit signatures.
 	// An error is returned if the operation fails.
@@ -125,37 +127,53 @@ func (db *Impl) createPartitionIfNotExists(table string, partitionID int64) erro
 // -------------------------------------------------------------------------------------------------------------------
 
 func (db *Impl) PrepareTables(ctx context.Context) error {
+
+	//TODO need optimize
+
+	db.Db.Migrator().AutoMigrate(&models.Account{})
+	db.Db.Migrator().AutoMigrate(&models.Block{})
+	db.Db.Migrator().AutoMigrate(&models.Tx{})
+
+	//block_syncer tables
+	db.Db.Migrator().AutoMigrate(&models.Bucket{})
+	db.Db.Migrator().AutoMigrate(&models.Group{})
+	db.Db.Migrator().AutoMigrate(&models.Object{})
+
+	//validator tables
+	db.Db.Migrator().AutoMigrate(&models.Validator{})
+	db.Db.Migrator().AutoMigrate(&models.ValidatorInfo{})
+	db.Db.Migrator().AutoMigrate(&models.ValidatorDescription{})
+	db.Db.Migrator().AutoMigrate(&models.ValidatorCommission{})
+	db.Db.Migrator().AutoMigrate(&models.ValidatorVotingPower{})
+	db.Db.Migrator().AutoMigrate(&models.ValidatorStatus{})
+	db.Db.Migrator().AutoMigrate(&models.ValidatorSigningInfo{})
+
 	return nil
 }
 
 // HasBlock implements database.Database
 func (db *Impl) HasBlock(ctx context.Context, height int64) (bool, error) {
 	var res bool
-	err := db.Db.Raw(`SELECT EXISTS(SELECT 1 FROM blocks WHERE height = $1);`, height).Scan(&res).Error
+	err := db.Db.Raw(`SELECT EXISTS(SELECT 1 FROM blocks WHERE height = ?);`, height).Scan(&res).Error
 	return res, err
 }
 
 // GetLastBlockHeight returns the last block height stored inside the database
 func (db *Impl) GetLastBlockHeight(ctx context.Context) (int64, error) {
-	stmt := `SELECT height FROM block ORDER BY height DESC LIMIT 1;`
-
 	var height int64
-	err := db.Db.Raw(stmt).Scan(&height).Error
-	if err != nil {
-		if errIsNotFound(err) {
-			// If no rows stored in block table, return 0 as height
-			return 0, nil
-		}
-		return 0, fmt.Errorf("error while getting last block height, error: %s", err)
+
+	err := db.Db.Table((&models.Block{}).TableName()).Select("height").Order("height DESC").Scan(&height).Error
+	if errIsNotFound(err) {
+		return 0, err
 	}
 
-	return height, nil
+	return height, err
 }
 
 // GetMissingHeights returns a slice of missing block heights between startHeight and endHeight
 func (db *Impl) GetMissingHeights(ctx context.Context, startHeight, endHeight int64) []int64 {
 	var result []int64
-	stmt := `SELECT generate_series($1::int,$2::int) EXCEPT SELECT height FROM block ORDER BY 1;`
+	stmt := `SELECT generate_series($1::int,$2::int) EXCEPT SELECT height FROM blocks ORDER BY 1;`
 	err := db.Db.Select(&result, stmt, startHeight, endHeight)
 	if err != nil {
 		return nil
@@ -183,7 +201,7 @@ func (db *Impl) SaveBlock(ctx context.Context, block *models.Block) error {
 // GetTotalBlocks implements database.Database
 func (db *Impl) GetTotalBlocks(ctx context.Context) int64 {
 	var blockCount int64
-	err := db.Db.Raw(`SELECT count(*) FROM block;`).Scan(&blockCount)
+	err := db.Db.Table((&models.Block{}).TableName()).Count(&blockCount).Error
 	if err != nil {
 		return 0
 	}
@@ -272,30 +290,25 @@ func (db *Impl) saveTxInsidePartition(tx *types.Tx, partitionID int64) error {
 // HasValidator implements database.Database
 func (db *Impl) HasValidator(ctx context.Context, addr string) (bool, error) {
 	var res bool
-	stmt := `SELECT EXISTS(SELECT 1 FROM validator WHERE consensus_address = $1);`
+	stmt := `SELECT EXISTS(SELECT 1 FROM validator WHERE consensus_address = ?);`
 	err := db.Db.Raw(stmt, addr).Scan(&res).Error
 	return res, err
 }
 
 // SaveValidators implements database.Database
-func (db *Impl) SaveValidators(ctx context.Context, validators []*types.Validator) error {
+func (db *Impl) SaveValidators(ctx context.Context, validators []*models.Validator) error {
 	if len(validators) == 0 {
 		return nil
 	}
 
-	stmt := `INSERT INTO validator (consensus_address, consensus_pubkey) VALUES `
+	err := db.Db.Table((&models.Validator{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "consensus_address"}},
+		DoNothing: true,
+	}, clause.OnConflict{
+		Columns:   []clause.Column{{Name: "consensus_pubkey"}},
+		DoNothing: true,
+	}).Create(validators).Error
 
-	var vparams []interface{}
-	for i, val := range validators {
-		vi := i * 2
-
-		stmt += fmt.Sprintf("($%d, $%d),", vi+1, vi+2)
-		vparams = append(vparams, val.ConsAddr, val.ConsPubKey)
-	}
-
-	stmt = stmt[:len(stmt)-1] // Remove trailing ,
-	stmt += " ON CONFLICT DO NOTHING"
-	err := db.Db.Exec(stmt, vparams...).Error
 	return err
 }
 

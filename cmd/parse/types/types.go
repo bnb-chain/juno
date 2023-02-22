@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/cosmos/cosmos-sdk/simapp"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/database/builder"
 	"github.com/forbole/juno/v4/modules/registrar"
@@ -15,6 +16,7 @@ type Config struct {
 	encodingConfigBuilder EncodingConfigBuilder
 	setupCfg              SdkConfigSetup
 	buildDb               database.Builder
+	fileType              string
 }
 
 // NewConfig allows to build a new Config instance
@@ -25,6 +27,12 @@ func NewConfig() *Config {
 // WithRegistrar sets the modules registrar to be used
 func (cfg *Config) WithRegistrar(r registrar.Registrar) *Config {
 	cfg.registrar = r
+	return cfg
+}
+
+// WithFileType sets the modules registrar to be used
+func (cfg *Config) WithFileType(fileType string) *Config {
+	cfg.fileType = fileType
 	return cfg
 }
 
@@ -43,8 +51,14 @@ func (cfg *Config) WithConfigParser(p config.Parser) *Config {
 }
 
 // GetConfigParser returns the configuration parser to be used
-func (cfg *Config) GetConfigParser() config.Parser {
+func (cfg *Config) GetConfigParser(fileType string) config.Parser {
 	if cfg.configParser == nil {
+		switch fileType {
+		case config.YamlConfigType:
+			return config.DefaultConfigParser
+		case config.TomlConfigType:
+			return config.TomlConfigParser
+		}
 		return config.DefaultConfigParser
 	}
 	return cfg.configParser

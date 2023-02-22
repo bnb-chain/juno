@@ -34,7 +34,7 @@ func NewInitCmd(cfg *Config) *cobra.Command {
 			}
 
 			// Get the config file
-			configFilePath := config.GetConfigFilePath()
+			configFilePath := config.GetConfigFilePath(config.YamlConfigType)
 			file, _ := os.Stat(configFilePath)
 
 			// Check if the file exists and replace is false
