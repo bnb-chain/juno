@@ -1,1 +1,1 @@
-package toml
+package tomlconfig
