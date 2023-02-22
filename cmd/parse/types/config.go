@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	tomlconfig "github.com/forbole/juno/v4/cmd/migrate/toml"
+	nodeconfig "github.com/forbole/juno/v4/node/config"
+	"github.com/forbole/juno/v4/node/remote"
 	"github.com/forbole/juno/v4/types/config"
 
 	"github.com/spf13/cobra"
@@ -18,9 +21,33 @@ func ReadConfigPreRunE(cfg *Config) types.CobraCmdFunc {
 	}
 }
 
+func NewParseConfigFromToml(tomlConfig *tomlconfig.TomlConfig) config.Config {
+	config := config.Config{}
+	config.Chain = tomlConfig.Chain
+	config.Parser = tomlConfig.Parser
+	config.Database = tomlConfig.Database
+	config.Logging = tomlConfig.Logging
+
+	nodeConfig := &nodeconfig.Config{}
+	nodeConfig.Type = tomlConfig.Node.Type
+
+	var nodeDetails = new(remote.Details)
+	nodeDetails.RPC = tomlConfig.Node.RPC
+	nodeDetails.GRPC = tomlConfig.Node.GRPC
+	nodeConfig.Details = nodeDetails
+
+	return config
+
+}
+
 // ReadConfig allows to read the configuration using the provided cfg
 func ReadConfig(cfg *Config) (config.Config, error) {
 	file := config.GetConfigFilePath(cfg.fileType)
+
+	//if tomlConfig exist
+	if cfg.tomlConfig != nil {
+		return NewParseConfigFromToml(cfg.tomlConfig), nil
+	}
 
 	// Make sure the path exists
 	if _, err := os.Stat(file); os.IsNotExist(err) {
