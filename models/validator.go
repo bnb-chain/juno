@@ -2,7 +2,7 @@ package models
 
 type Validator struct {
 	ConsensusAddress string `gorm:"column:consensus_address;primaryKey"`
-	ConsensusPubkey  string `gorm:"column:consensus_pubkey;type:varchar(63);uniqueIndex:idx_pubkey"` //not null unique
+	ConsensusPubkey  string `gorm:"column:consensus_pubkey;type:varchar(128);uniqueIndex:idx_pubkey"` //not null unique
 }
 
 func (*Validator) TableName() string {

@@ -43,13 +43,13 @@ func NewParseConfigFromToml(tomlConfig *tomlconfig.TomlConfig) config.Config {
 
 // ReadConfig allows to read the configuration using the provided cfg
 func ReadConfig(cfg *Config) (config.Config, error) {
-	file := config.GetConfigFilePath(cfg.fileType)
-
 	//if tomlConfig exist
 	if cfg.tomlConfig != nil {
 		return NewParseConfigFromToml(cfg.tomlConfig), nil
 	}
 
+	file := config.GetConfigFilePath(cfg.fileType)
+	
 	// Make sure the path exists
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return config.Config{}, fmt.Errorf("config file does not exist (%s). Make sure you have run the init command", file)
