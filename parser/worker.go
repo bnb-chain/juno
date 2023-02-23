@@ -9,6 +9,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
+	"github.com/gogo/protobuf/proto"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
+
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
@@ -19,9 +23,6 @@ import (
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
 	"github.com/forbole/juno/v4/utils/syncutils"
-	"github.com/gogo/protobuf/proto"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 // Worker defines a job consumer that is responsible for getting and
@@ -232,14 +233,15 @@ func (w Worker) ExportBlock(
 	}
 
 	// Export the transactions and accounts
-	return syncutils.BatchRun(
-		func() error {
-			return w.ExportTxs(txs)
-		},
-		func() error {
-			return w.ExportAccounts(txs)
-		},
-	)
+	//return syncutils.BatchRun(
+	//	func() error {
+	//		return w.ExportTxs(txs)
+	//	},
+	//	func() error {
+	//		return w.ExportAccounts(txs)
+	//	},
+	//)
+	return nil
 }
 
 // ExportCommit accepts a block commitment and a corresponding set of
