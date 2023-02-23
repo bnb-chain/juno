@@ -2,10 +2,12 @@ package object
 
 import (
 	"context"
+
+	"gorm.io/gorm/schema"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
-	"gorm.io/gorm/schema"
 )
 
 const (

@@ -9,16 +9,17 @@ import (
 	"strings"
 
 	"github.com/bnb-chain/greenfield/app/params"
+	"github.com/lib/pq"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
+
 	"github.com/forbole/juno/v4/common"
 	databaseconfig "github.com/forbole/juno/v4/database/config"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
-	"github.com/lib/pq"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-	"gorm.io/gorm/schema"
 )
 
 // Database represents an abstract database that can be used to save data inside it
@@ -42,6 +43,9 @@ type Database interface {
 	// An error is returned if the operation fails.
 	// NOTE. For each transaction inside txs, SaveTx will be called as well.
 	SaveBlock(ctx context.Context, block *models.Block) error
+
+	// SaveBlockLight save part data of SaveBlock, currently used for blocksyncer
+	SaveBlockLight(ctx context.Context, block *models.Block) error
 
 	// GetTotalBlocks returns total number of blocks stored in database.
 	GetTotalBlocks(ctx context.Context) int64
@@ -168,6 +172,19 @@ func (db *Impl) GetLastBlockHeight(ctx context.Context) (uint64, error) {
 
 // SaveBlock implements database.Database
 func (db *Impl) SaveBlock(ctx context.Context, block *models.Block) error {
+	err := db.Db.Table((&models.Block{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "hash"}},
+		UpdateAll: true,
+	}, clause.OnConflict{
+		Columns:   []clause.Column{{Name: "height"}},
+		UpdateAll: true,
+	}).Create(block).Error
+	return err
+}
+
+// SaveBlockLight implements database.Database
+// TODO only save property blocksyncer needs
+func (db *Impl) SaveBlockLight(ctx context.Context, block *models.Block) error {
 	err := db.Db.Table((&models.Block{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "hash"}},
 		UpdateAll: true,

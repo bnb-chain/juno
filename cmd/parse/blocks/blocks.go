@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/parser"
+	"github.com/forbole/juno/v4/parser/explorer"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -35,8 +37,9 @@ will be replaced with the data downloaded from the node.
 				return err
 			}
 
-			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules)
-			worker := parser.NewWorker(workerCtx, nil, 0, false)
+			commonIndexer := parser.NewCommonIndexer(parseCtx)
+			indexer := &explorer.Indexer{CommonIndexer: commonIndexer}
+			worker := parser.NewWorker(indexer, nil, 0, false, config.ExplorerWorkerType)
 
 			// Get the flag values
 			start, _ := cmd.Flags().GetInt64(flagStart)
@@ -68,7 +71,7 @@ will be replaced with the data downloaded from the node.
 			log.Infow("getting blocks and transactions", "start height", startHeight, "end height", endHeight)
 			for k := startHeight; k <= uint64(endHeight); k++ {
 				if force {
-					err = worker.Process(k)
+					err = worker.Indexer.ProcessBlock(k)
 				} else {
 					err = worker.ProcessIfNotExists(k)
 				}

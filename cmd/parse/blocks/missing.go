@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/spf13/cobra"
+
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
 	"github.com/forbole/juno/v4/parser"
+	"github.com/forbole/juno/v4/parser/explorer"
 	"github.com/forbole/juno/v4/types/config"
-	"github.com/spf13/cobra"
 )
 
 // newMissingCmd returns a Cobra command that allows to fix missing blocks in database
@@ -28,8 +30,9 @@ func newMissingCmd(parseConfig *parsecmdtypes.Config) *cobra.Command {
 				return err
 			}
 
-			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules)
-			worker := parser.NewWorker(workerCtx, nil, 0, false)
+			commonIndexer := parser.NewCommonIndexer(parseCtx)
+			indexer := &explorer.Indexer{CommonIndexer: commonIndexer}
+			worker := parser.NewWorker(indexer, nil, 0, false, config.ExplorerWorkerType)
 
 			ctx := context.Background()
 			dbLastHeight, err := parseCtx.Database.GetLastBlockHeight(ctx)
@@ -38,7 +41,7 @@ func newMissingCmd(parseConfig *parsecmdtypes.Config) *cobra.Command {
 			}
 
 			for _, k := range parseCtx.Database.GetMissingHeights(ctx, startHeight, dbLastHeight) {
-				err = worker.Process(k)
+				err = worker.Indexer.ProcessBlock(k)
 				if err != nil {
 					return fmt.Errorf("error while re-fetching block %d: %s", k, err)
 				}

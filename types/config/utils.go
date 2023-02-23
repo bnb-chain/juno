@@ -10,8 +10,10 @@ var (
 )
 
 const (
-	TomlConfigType = "toml"
-	YamlConfigType = "yaml"
+	TomlConfigType        = "toml"
+	YamlConfigType        = "yaml"
+	BlockSyncerWorkerType = "blocksyncer"
+	ExplorerWorkerType    = "explorer"
 )
 
 // GetConfigFilePath returns the path to the configuration file given the executable name

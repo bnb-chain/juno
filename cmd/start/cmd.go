@@ -8,15 +8,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-co-op/gocron"
+	"github.com/spf13/cobra"
+
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/parser"
+	"github.com/forbole/juno/v4/parser/blocksyncer"
+	"github.com/forbole/juno/v4/parser/explorer"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
-	"github.com/go-co-op/gocron"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -84,7 +87,16 @@ func startParsing(ctx *parser.Context) error {
 	// Create workers
 	workers := make([]parser.Worker, cfg.Workers)
 	for i := range workers {
-		workers[i] = parser.NewWorker(ctx, exportQueue, i, cfg.ConcurrentSync)
+
+		commonIndexer := parser.NewCommonIndexer(ctx)
+		switch cfg.WorkerType {
+		case config.BlockSyncerWorkerType:
+			indexer := &blocksyncer.Indexer{CommonIndexer: commonIndexer}
+			workers[i] = parser.NewWorker(indexer, exportQueue, i, cfg.ConcurrentSync, cfg.WorkerType)
+		case config.ExplorerWorkerType:
+			indexer := &explorer.Indexer{CommonIndexer: commonIndexer}
+			workers[i] = parser.NewWorker(indexer, exportQueue, i, cfg.ConcurrentSync, cfg.WorkerType)
+		}
 	}
 
 	waitGroup.Add(1)

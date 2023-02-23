@@ -1,16 +1,56 @@
 package object
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
-type ObjectModule struct {
+func (m *Module) HandleEvent(index int, event sdk.Event) error {
+	eventType, err := eventutil.GetEventType(event)
+	if err == nil {
+		switch eventType {
+		case eventutil.EventCreateObject:
+			handleEventCreateObject(event)
+		case eventutil.EventCancelCreateObject:
+			handleEventCancelCreateObject(event)
+		case eventutil.EventSealObject:
+			handleEventSealObject(event)
+		case eventutil.EventCopyObject:
+			handleEventCopyObject(event)
+		case eventutil.EventDeleteObject:
+			handleEventDeleteObject(event)
+		case eventutil.EventRejectSealObject:
+			handleEventRejectSealObject(event)
+		default:
+			return nil
+		}
+	}
+	return err
 }
 
-func (bucket *ObjectModule) HandleEvent(index int, event sdk.Event) error {
-	return nil
+func handleEventCreateObject(event sdk.Event) {
+	fmt.Println("handleEventCreateObject")
 }
 
-func (bucket *ObjectModule) PrepareTables() {
+func handleEventCancelCreateObject(event sdk.Event) {
+	fmt.Println("handleEventCancelCreateObject")
+}
 
+func handleEventSealObject(event sdk.Event) {
+	fmt.Println("handleEventSealObject")
+}
+
+func handleEventCopyObject(event sdk.Event) {
+	fmt.Println("handleEventCopyObject")
+}
+
+func handleEventDeleteObject(event sdk.Event) {
+	fmt.Println("handleEventDeleteObject")
+}
+
+func handleEventRejectSealObject(event sdk.Event) {
+	fmt.Println("handleEventRejectSealObject")
 }
