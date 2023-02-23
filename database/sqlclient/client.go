@@ -4,17 +4,36 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"os"
 	"time"
 
-	databaseconfig "github.com/forbole/juno/v4/database/config"
-	"github.com/forbole/juno/v4/log"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	databaseconfig "github.com/forbole/juno/v4/database/config"
+	"github.com/forbole/juno/v4/log"
+)
+
+const (
+	// BlockSyncerDsn dsn environment constants
+	BlockSyncerDsn = "BLOCK_SYNCER_DSN"
 )
 
 func New(cfg *databaseconfig.Config) (*gorm.DB, error) {
+	var dsnForDB string
+	dsnForDB = cfg.DSN
+
+	dsn, errOfEnv := getDBConfigFromEnv(BlockSyncerDsn)
+	if errOfEnv != nil {
+		log.Warn("load block syncer db config from ENV failed, try to use config from file")
+	} else {
+		log.Infof("Using DB config from ENV")
+		dsnForDB = dsn
+	}
+
 	if cfg.Secrets != nil {
 		secret, err := databaseconfig.GetString(cfg.Secrets)
 		if err != nil {
@@ -28,14 +47,14 @@ func New(cfg *databaseconfig.Config) (*gorm.DB, error) {
 	var err error
 	switch cfg.Type {
 	case databaseconfig.MySQL:
-		db, err = gorm.Open(mysql.Open(cfg.DSN),
+		db, err = gorm.Open(mysql.Open(dsnForDB),
 			&gorm.Config{
 				Logger:                                   &loggerAdaptor{slowThreshold: time.Duration(cfg.SlowThreshold)},
 				DisableForeignKeyConstraintWhenMigrating: true,
 			},
 		)
 	case databaseconfig.PostgreSQL:
-		db, err = gorm.Open(postgres.Open(cfg.DSN),
+		db, err = gorm.Open(postgres.Open(dsnForDB),
 			&gorm.Config{
 				Logger:                                   &loggerAdaptor{slowThreshold: time.Duration(cfg.SlowThreshold)},
 				DisableForeignKeyConstraintWhenMigrating: true,
@@ -109,4 +128,12 @@ func (la *loggerAdaptor) Trace(ctx context.Context, begin time.Time, fc func() (
 		strSql, rows := fc()
 		log.CtxWarnw(ctx, "slow sql", "elapsed", elapsed, "sql", strSql, "rows", rows)
 	}
+}
+
+func getDBConfigFromEnv(dsn string) (string, error) {
+	dsnVal, ok := os.LookupEnv(dsn)
+	if !ok {
+		return "", fmt.Errorf("dsn %s config is not set in environment", dsnVal)
+	}
+	return dsnVal, nil
 }
