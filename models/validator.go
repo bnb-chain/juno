@@ -48,7 +48,7 @@ type Validator struct {
 	ID uint64 `gorm:"column:id;primaryKey"`
 
 	ConsensusAddress common.Address `gorm:"column:consensus_address;type:binary(20);not null;uniqueIndex:idx_address"`
-	ConsensusPubkey  Pubkey         `gorm:"column:consensus_pubkey;type:binary(128);not null;uniqueIndex:idx_pubkey"`
+	ConsensusPubkey  Pubkey         `gorm:"column:consensus_pubkey;type:binary(64);not null;uniqueIndex:idx_pubkey"`
 }
 
 func (*Validator) TableName() string {
