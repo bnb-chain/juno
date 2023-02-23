@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
+	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/parser"
 	"github.com/forbole/juno/v4/types/config"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -33,8 +33,8 @@ You can specify a custom height range by using the %s and %s flags.
 			worker := parser.NewWorker(workerCtx, nil, 0)
 
 			// Get the flag values
-			start, _ := cmd.Flags().GetInt64(flagStart)
-			end, _ := cmd.Flags().GetInt64(flagEnd)
+			start, _ := cmd.Flags().GetUint64(flagStart)
+			end, _ := cmd.Flags().GetUint64(flagEnd)
 
 			// Get the start height, default to the config's height; use flagStart if set
 			startHeight := config.Cfg.Parser.StartHeight
@@ -43,19 +43,20 @@ You can specify a custom height range by using the %s and %s flags.
 			}
 
 			// Get the end height, default to the node latest height; use flagEnd if set
-			endHeight, err := parseCtx.Node.LatestHeight()
+			latestHeight, err := parseCtx.Node.LatestHeight()
 			if err != nil {
 				return fmt.Errorf("error while getting chain latest block height: %s", err)
 			}
+
+			endHeight := uint64(latestHeight)
 			if end > 0 {
 				endHeight = end
 			}
 
-			log.Info().Int64("start height", startHeight).Int64("end height", endHeight).
-				Msg("getting transactions...")
+			log.Infow("getting transactions...", "start height", startHeight, "end height", endHeight)
 			for k := startHeight; k <= endHeight; k++ {
-				log.Info().Int64("height", k).Msg("processing transactions...")
-				err = worker.ProcessTransactions(k)
+				log.Infow("processing transactions...", "height", k)
+				err = worker.ProcessTransactions(int64(k))
 				if err != nil {
 					return fmt.Errorf("error while re-fetching transactions of height %d: %s", k, err)
 				}
@@ -65,8 +66,8 @@ You can specify a custom height range by using the %s and %s flags.
 		},
 	}
 
-	cmd.Flags().Int64(flagStart, 0, "Height from which to start fetching missing transactions. If 0, the start height inside the config file will be used instead")
-	cmd.Flags().Int64(flagEnd, 0, "Height at which to finish fetching missing transactions. If 0, the latest height available inside the node will be used instead")
+	cmd.Flags().Uint64(flagStart, 0, "Height from which to start fetching missing transactions. If 0, the start height inside the config file will be used instead")
+	cmd.Flags().Uint64(flagEnd, 0, "Height at which to finish fetching missing transactions. If 0, the latest height available inside the node will be used instead")
 
 	return cmd
 }

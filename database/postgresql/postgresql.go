@@ -1,6 +1,8 @@
 package postgresql
 
 import (
+	"context"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/database/sqlclient"
 )
@@ -28,4 +30,20 @@ var _ database.Database = &Database{}
 // for data aggregation and exporting.
 type Database struct {
 	database.Impl
+}
+
+// GetMissingHeights returns a slice of missing block heights between startHeight and endHeight
+func (db *Database) GetMissingHeights(ctx context.Context, startHeight, endHeight uint64) []uint64 {
+	var result []uint64
+	stmt := `SELECT generate_series($1::int,$2::int) EXCEPT SELECT height FROM blocks ORDER BY 1;`
+	err := db.Db.Select(&result, stmt, startHeight, endHeight)
+	if err != nil {
+		return nil
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
 }

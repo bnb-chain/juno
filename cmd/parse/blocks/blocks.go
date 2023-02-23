@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
+	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/parser"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -50,13 +50,13 @@ will be replaced with the data downloaded from the node.
 
 			// Compare start height from config file and last block height in database
 			// and set higher block as start height
-			startHeight := utils.MaxInt64(config.Cfg.Parser.StartHeight, lastDbBlockHeight)
+			startHeight := utils.MaxUint64(config.Cfg.Parser.StartHeight, lastDbBlockHeight)
 
 			if start > 0 {
-				startHeight = start
+				startHeight = uint64(start)
 			}
 
-			// Get the end height, default to the node latest height; use flagEnd if set
+			// Get the end height, default to the node the latest height; use flagEnd if set
 			endHeight, err := parseCtx.Node.LatestHeight()
 			if err != nil {
 				return fmt.Errorf("error while getting chain latest block height: %s", err)
@@ -65,9 +65,8 @@ will be replaced with the data downloaded from the node.
 				endHeight = end
 			}
 
-			log.Info().Int64("start height", startHeight).Int64("end height", endHeight).
-				Msg("getting blocks and transactions")
-			for k := startHeight; k <= endHeight; k++ {
+			log.Infow("getting blocks and transactions", "start height", startHeight, "end height", endHeight)
+			for k := startHeight; k <= uint64(endHeight); k++ {
 				if force {
 					err = worker.Process(k)
 				} else {

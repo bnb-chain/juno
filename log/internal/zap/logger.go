@@ -246,8 +246,11 @@ func (zl *logger) getMetaInfo(ctx context.Context) []zap.Field {
 		return nil
 	}
 
-	s := ctx.Value("trace_id").(string)
-	return []zap.Field{zap.String("trace_id", s)}
+	s, ok := ctx.Value("trace_id").(string)
+	if ok {
+		return []zap.Field{zap.String("trace_id", s)}
+	}
+	return []zap.Field{}
 }
 
 func (zl *logger) getMessage(template string, fmtArgs []interface{}) string {

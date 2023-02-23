@@ -79,7 +79,7 @@ func (w Worker) Start() {
 // ProcessIfNotExists defines the job consumer workflow. It will fetch a block for a given
 // height and associated metadata and export it to a database if it does not exist yet. It returns an
 // error if any export process fails.
-func (w Worker) ProcessIfNotExists(height int64) error {
+func (w Worker) ProcessIfNotExists(height uint64) error {
 	exists, err := w.db.HasBlock(w.ctx, height)
 	if err != nil {
 		return fmt.Errorf("error while searching for block: %s", err)
@@ -95,7 +95,7 @@ func (w Worker) ProcessIfNotExists(height int64) error {
 
 // Process fetches  a block for a given height and associated metadata and export it to a database.
 // It returns an error if any export process fails.
-func (w Worker) Process(height int64) error {
+func (w Worker) Process(height uint64) error {
 	if height == 0 {
 		cfg := config.Cfg.Parser
 
@@ -109,12 +109,12 @@ func (w Worker) Process(height int64) error {
 
 	log.Debugw("processing block", "height", height)
 
-	block, err := w.node.Block(height)
+	block, err := w.node.Block(int64(height))
 	if err != nil {
 		return fmt.Errorf("failed to get block from node: %s", err)
 	}
 
-	events, err := w.node.BlockResults(height)
+	events, err := w.node.BlockResults(int64(height))
 	if err != nil {
 		return fmt.Errorf("failed to get block results from node: %s", err)
 	}
@@ -124,7 +124,7 @@ func (w Worker) Process(height int64) error {
 		return fmt.Errorf("failed to get transactions for block: %s", err)
 	}
 
-	vals, err := w.node.Validators(height)
+	vals, err := w.node.Validators(int64(height))
 	if err != nil {
 		return fmt.Errorf("failed to get validators for block: %s", err)
 	}
