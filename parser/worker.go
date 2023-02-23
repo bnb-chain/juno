@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
+	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
@@ -17,6 +18,7 @@ import (
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
+	"github.com/forbole/juno/v4/utils/syncutils"
 	"github.com/gogo/protobuf/proto"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -143,7 +145,14 @@ func (w Worker) ProcessTransactions(height int64) error {
 		return fmt.Errorf("failed to get transactions for block: %s", err)
 	}
 
-	return w.ExportTxs(txs)
+	return syncutils.BatchRun(
+		func() error {
+			return w.ExportTxs(txs)
+		},
+		func() error {
+			return w.ExportAccounts(txs)
+		},
+	)
 }
 
 // HandleGenesis accepts a GenesisDoc and calls all the registered genesis handlers
@@ -169,13 +178,7 @@ func (w Worker) SaveValidators(vals []*tmtypes.Validator) error {
 	for index, val := range vals {
 		consAddr := sdk.ConsAddress(val.Address).String()
 
-		consPubKey, err := types.ConvertValidatorPubKeyToBech32String(val.PubKey)
-		if err != nil {
-			return fmt.Errorf("failed to convert validator public key for validators %s: %s", consAddr, err)
-		}
-
-		//validators[index] = types.NewValidator(consAddr, consPubKey)
-		validators[index] = models.NewValidator(consAddr, consPubKey)
+		validators[index] = models.NewValidator(common.HexToAddress(consAddr), models.BytesToPubkey(val.PubKey.Bytes()))
 	}
 
 	err := w.db.SaveValidators(w.ctx, validators)
@@ -188,7 +191,7 @@ func (w Worker) SaveValidators(vals []*tmtypes.Validator) error {
 
 // ExportBlock accepts a finalized block and a corresponding set of transactions
 // and persists them to the database along with attributable metadata. An error
-// is returned if the write fails.
+// is returned if write fails.
 func (w Worker) ExportBlock(
 	b *tmctypes.ResultBlock, r *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators,
 ) error {
@@ -228,13 +231,20 @@ func (w Worker) ExportBlock(
 		}
 	}
 
-	// Export the transactions
-	return w.ExportTxs(txs)
+	// Export the transactions and accounts
+	return syncutils.BatchRun(
+		func() error {
+			return w.ExportTxs(txs)
+		},
+		func() error {
+			return w.ExportAccounts(txs)
+		},
+	)
 }
 
 // ExportCommit accepts a block commitment and a corresponding set of
 // validators for the commitment and persists them to the database. An error is
-// returned if any write fails or if there is any missing aggregated data.
+// returned if any write fails or if there is any missed aggregated data.
 func (w Worker) ExportCommit(commit *tmtypes.Commit, vals *tmctypes.ResultValidators) error {
 	var signatures []*types.CommitSig
 	for _, commitSig := range commit.Signatures {
@@ -267,7 +277,7 @@ func (w Worker) ExportCommit(commit *tmtypes.Commit, vals *tmctypes.ResultValida
 }
 
 // saveTx accepts the transaction and persists it inside the database.
-// An error is returned if the write fails.
+// An error is returned if write fails.
 func (w Worker) saveTx(tx *types.Tx) error {
 	err := w.db.SaveTx(w.ctx, tx)
 	if err != nil {
@@ -327,7 +337,7 @@ func (w Worker) handleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 }
 
 // ExportTxs accepts a slice of transactions and persists then inside the database.
-// An error is returned if the write fails.
+// An error is returned if write fails.
 func (w Worker) ExportTxs(txs []*types.Tx) error {
 	// handle all transactions inside the block
 	for _, tx := range txs {
@@ -366,5 +376,30 @@ func (w Worker) ExportTxs(txs []*types.Tx) error {
 	}
 	log.DbLatestHeight.WithLabelValues("db_latest_height").Set(float64(dbLatestHeight))
 
+	return nil
+}
+
+// ExportAccounts accepts a slice of transactions and persists accounts inside the database.
+// An error is returned if write fails.
+func (w Worker) ExportAccounts(txs []*types.Tx) error {
+	// save account
+	for _, tx := range txs {
+		for _, l := range tx.Logs {
+			for _, event := range l.Events {
+				for _, attr := range event.Attributes {
+					if common.IsHexAddress(attr.Value) {
+						account := &models.Account{
+							Address: common.HexToAddress(attr.Value),
+							TxCount: 1,
+						}
+						err := w.db.SaveAccount(context.TODO(), account)
+						if err != nil {
+							return fmt.Errorf("error while storing account: %s", err)
+						}
+					}
+				}
+			}
+		}
+	}
 	return nil
 }

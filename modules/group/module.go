@@ -1,8 +1,11 @@
 package group
 
 import (
+	"context"
+	"github.com/forbole/juno/v4/database"
+	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
-	"github.com/forbole/juno/v4/types/config"
+	"gorm.io/gorm/schema"
 )
 
 const (
@@ -10,36 +13,28 @@ const (
 )
 
 var (
-	_ modules.Module = &Module{}
+	_ modules.Module              = &Module{}
+	_ modules.PrepareTablesModule = &Module{}
 )
 
 // Module represents the telemetry module
 type Module struct {
+	db database.Database
 }
 
-// NewModule returns a new Module implementation
-func NewModule(cfg config.Config) *Module {
-	//bz, err := cfg.GetBytes()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//telemetryCfg, err := ParseConfig(bz)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//return &Module{
-	//	cfg: telemetryCfg,
-	//}
-	return nil
+// NewModule builds a new Module instance
+func NewModule(db database.Database) *Module {
+	return &Module{
+		db: db,
+	}
 }
 
 // Name implements modules.Module
-func (module *Module) Name() string {
+func (m *Module) Name() string {
 	return ModuleName
 }
 
-func (module *Module) PrepareTables() {
-
+// PrepareTables implements
+func (m *Module) PrepareTables() error {
+	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.Group{}})
 }

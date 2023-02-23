@@ -32,7 +32,7 @@ func (cfg *Config) WithRegistrar(r registrar.Registrar) *Config {
 	return cfg
 }
 
-// WithFileType sets the modules registrar to be used
+// WithFileType sets the config type to be used
 func (cfg *Config) WithFileType(fileType string) *Config {
 	cfg.fileType = fileType
 	return cfg

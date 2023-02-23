@@ -1,15 +1,12 @@
-package object
+package block
 
 import (
 	"context"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
 	"gorm.io/gorm/schema"
-)
-
-const (
-	ModuleName = "object"
 )
 
 var (
@@ -17,7 +14,7 @@ var (
 	_ modules.PrepareTablesModule = &Module{}
 )
 
-// Module represents the telemetry module
+// Module represents the basic module which is required by both explorer and storage-provider
 type Module struct {
 	db database.Database
 }
@@ -31,10 +28,15 @@ func NewModule(db database.Database) *Module {
 
 // Name implements modules.Module
 func (m *Module) Name() string {
-	return ModuleName
+	return "block"
 }
 
 // PrepareTables implements
 func (m *Module) PrepareTables() error {
-	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.Object{}})
+	return m.db.PrepareTables(context.TODO(), []schema.Tabler{
+		&models.Block{},
+		&models.AverageBlockTimeFromGenesis{},
+		&models.AverageBlockTimePerDay{},
+		&models.AverageBlockTimePerHour{},
+		&models.AverageBlockTimePerMinute{}})
 }

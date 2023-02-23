@@ -5,7 +5,6 @@ import (
 
 	"github.com/forbole/juno/v4/cmd"
 	"github.com/forbole/juno/v4/cmd/parse/types"
-
 	"github.com/forbole/juno/v4/modules/messages"
 	"github.com/forbole/juno/v4/modules/registrar"
 	"github.com/forbole/juno/v4/types/config"

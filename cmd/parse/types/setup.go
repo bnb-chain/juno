@@ -1,7 +1,6 @@
 package types
 
 import (
-	context2 "context"
 	"fmt"
 	"reflect"
 
@@ -29,10 +28,6 @@ func GetParserContext(cfg config.Config, parseConfig *Config) (*parser.Context, 
 	// Get the db
 	databaseCtx := database.NewContext(cfg.Database, &encodingConfig)
 	db, err := parseConfig.GetDBBuilder()(databaseCtx)
-	if err != nil {
-		return nil, err
-	}
-	err = db.PrepareTables(context2.TODO())
 	if err != nil {
 		return nil, err
 	}

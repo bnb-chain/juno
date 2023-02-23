@@ -2,6 +2,6 @@ package bucket
 
 import sdk "github.com/cosmos/cosmos-sdk/types"
 
-func (module *Module) HandleEvent(index int, event sdk.Event) error {
+func (m *Module) HandleEvent(index int, event sdk.Event) error {
 	return nil
 }

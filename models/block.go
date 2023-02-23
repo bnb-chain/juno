@@ -11,23 +11,23 @@ type PartSetHeader struct {
 }
 
 type BlockID struct {
-	Hash          common.Hash   `gorm:"column:hash;type:BINARY(32);uniqueIndex:idx_hash"`
+	Hash          common.Hash   `gorm:"column:hash;type:BINARY(32);not null;uniqueIndex:idx_hash"`
 	PartSetHeader PartSetHeader `gorm:"-"`
 }
 
 type Header struct {
-	Height             uint64      `gorm:"column:height;uniqueIndex:idx_height"`
-	LastCommitHash     common.Hash `gorm:"last_commit_hash"`     // commit from validators from the last block
-	DataHash           common.Hash `gorm:"data_hash"`            // transactions
-	ValidatorsHash     common.Hash `gorm:"validators_hash"`      // validators for the current block
-	NextValidatorsHash common.Hash `gorm:"next_validators_hash"` // validators for the next block
-	ConsensusHash      common.Hash `gorm:"consensus_hash"`       // consensus params for current block
-	AppHash            common.Hash `gorm:"app_hash"`             // state after txs from the previous block
+	Height             uint64      `gorm:"column:height;not null;uniqueIndex:idx_height"`
+	LastCommitHash     common.Hash `gorm:"last_commit_hash;type:BINARY(32)"`     // commit from validators from the last block
+	DataHash           common.Hash `gorm:"data_hash;type:BINARY(32)"`            // transactions
+	ValidatorsHash     common.Hash `gorm:"validators_hash;type:BINARY(32)"`      // validators for the current block
+	NextValidatorsHash common.Hash `gorm:"next_validators_hash;type:BINARY(32)"` // validators for the next block
+	ConsensusHash      common.Hash `gorm:"consensus_hash;type:BINARY(32)"`       // consensus params for current block
+	AppHash            common.Hash `gorm:"app_hash;type:BINARY(32)"`             // state after txs from the previous block
 	// root hash of all results from the txs from the previous block
 	// see `deterministicResponseDeliverTx` to understand which parts of a tx is hashed into here
-	LastResultsHash common.Hash `gorm:"last_results_hash"`
+	LastResultsHash common.Hash `gorm:"last_results_hash;type:BINARY(32)"`
 	// consensus info
-	EvidenceHash    common.Hash    `gorm:"evidence_hash"` // evidence included in the block
+	EvidenceHash    common.Hash    `gorm:"evidence_hash;type:BINARY(32)"` // evidence included in the block
 	ProposerAddress common.Address `gorm:"column:proposer_address;type:BINARY(20);index:idx_proposer_address"`
 
 	Timestamp uint64 `gorm:"column:timestamp"`
@@ -39,7 +39,7 @@ type Block struct {
 	BlockID
 	Header
 
-	NumTxs   int    `gorm:"column:num_txs"`
+	NumTxs   uint64 `gorm:"column:num_txs"`
 	TotalGas uint64 `gorm:"column:total_gas"`
 }
 
@@ -66,7 +66,7 @@ func NewBlockFromTmBlock(blk *tmctypes.ResultBlock, totalGas uint64) *Block {
 			common.HexToAddress(blk.Block.Header.ProposerAddress.String()),
 			uint64(blk.Block.Time.Unix()),
 		},
-		NumTxs:   len(blk.Block.Txs),
+		NumTxs:   uint64(len(blk.Block.Txs)),
 		TotalGas: totalGas,
 	}
 }

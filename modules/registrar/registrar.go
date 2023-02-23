@@ -6,9 +6,16 @@ import (
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
+	"github.com/forbole/juno/v4/modules/account"
+	"github.com/forbole/juno/v4/modules/block"
+	"github.com/forbole/juno/v4/modules/bucket"
+	"github.com/forbole/juno/v4/modules/group"
 	"github.com/forbole/juno/v4/modules/messages"
+	"github.com/forbole/juno/v4/modules/object"
 	"github.com/forbole/juno/v4/modules/pruning"
 	"github.com/forbole/juno/v4/modules/telemetry"
+	"github.com/forbole/juno/v4/modules/tx"
+	"github.com/forbole/juno/v4/modules/validator"
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types/config"
 )
@@ -77,6 +84,13 @@ func NewDefaultRegistrar(parser messages.MessageAddressesParser) *DefaultRegistr
 // BuildModules implements Registrar
 func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 	return modules.Modules{
+		account.NewModule(ctx.Database),
+		block.NewModule(ctx.Database),
+		tx.NewModule(ctx.Database),
+		validator.NewModule(ctx.Database),
+		bucket.NewModule(ctx.Database),
+		group.NewModule(ctx.Database),
+		object.NewModule(ctx.Database),
 		pruning.NewModule(ctx.JunoConfig, ctx.Database),
 		messages.NewModule(r.parser, ctx.EncodingConfig.Codec, ctx.Database),
 		telemetry.NewModule(ctx.JunoConfig),
