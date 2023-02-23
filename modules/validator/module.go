@@ -39,6 +39,6 @@ func (m *Module) PrepareTables() error {
 		&models.ValidatorDescription{},
 		&models.ValidatorCommission{},
 		&models.ValidatorVotingPower{},
-		&models.ValidatorInfo{},
+		&models.ValidatorStatus{},
 		&models.ValidatorSigningInfo{}})
 }

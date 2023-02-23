@@ -52,7 +52,7 @@ func FindAttributeByKey(event abci.Event, attrKey string) (abci.EventAttribute, 
 	return abci.EventAttribute{}, fmt.Errorf("no attribute with key %s found inside event with type %s", attrKey, event.Type)
 }
 
-func MaxInt64(a, b int64) int64 {
+func MaxUint64(a, b uint64) uint64 {
 	if a > b {
 		return a
 	}

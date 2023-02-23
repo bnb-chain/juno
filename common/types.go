@@ -426,3 +426,23 @@ func (ma *MixedcaseAddress) ValidChecksum() bool {
 func (ma *MixedcaseAddress) Original() string {
 	return ma.original
 }
+
+type Big big.Int
+
+func (i *Big) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New(fmt.Sprint("Failed to unmarshal Big value:", value))
+	}
+
+	i.Raw().SetBytes(bytes)
+	return nil
+}
+
+func (i Big) Value() (driver.Value, error) {
+	return i.Raw().Bytes(), nil
+}
+
+func (i *Big) Raw() *big.Int {
+	return (*big.Int)(i)
+}
