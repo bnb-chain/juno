@@ -3,6 +3,7 @@ package types
 import (
 	"github.com/cosmos/cosmos-sdk/simapp"
 
+	tomlconfig "github.com/forbole/juno/v4/cmd/migrate/toml"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/database/builder"
 	"github.com/forbole/juno/v4/modules/registrar"
@@ -17,6 +18,7 @@ type Config struct {
 	setupCfg              SdkConfigSetup
 	buildDb               database.Builder
 	fileType              string
+	tomlConfig            *tomlconfig.TomlConfig
 }
 
 // NewConfig allows to build a new Config instance
@@ -30,7 +32,7 @@ func (cfg *Config) WithRegistrar(r registrar.Registrar) *Config {
 	return cfg
 }
 
-// WithFileType sets the modules registrar to be used
+// WithFileType sets the config type to be used
 func (cfg *Config) WithFileType(fileType string) *Config {
 	cfg.fileType = fileType
 	return cfg
@@ -47,6 +49,12 @@ func (cfg *Config) GetRegistrar() registrar.Registrar {
 // WithConfigParser sets the configuration parser to be used
 func (cfg *Config) WithConfigParser(p config.Parser) *Config {
 	cfg.configParser = p
+	return cfg
+}
+
+// WithTomlConfig sets the tomlConfig
+func (cfg *Config) WithTomlConfig(tomlConfig *tomlconfig.TomlConfig) *Config {
+	cfg.tomlConfig = tomlConfig
 	return cfg
 }
 
