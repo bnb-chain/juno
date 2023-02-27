@@ -70,6 +70,14 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveMessage(ctx context.Context, msg *types.Message) error
 
+	// SaveBucket will be called to save each bucket contained inside a block.
+	// An error is returned if the operation fails.
+	SaveBucket(ctx context.Context, bucket *models.Bucket) error
+
+	// SaveObject will be called to save each object contained inside a block.
+	// An error is returned if the operation fails.
+	SaveObject(ctx context.Context, object *models.Object) error
+
 	// Close closes the connection to the database
 	Close()
 }
@@ -331,6 +339,22 @@ func (db *Impl) SaveMessage(ctx context.Context, msg *types.Message) error {
 	}
 
 	return db.saveMessageInsidePartition(msg, partitionID)
+}
+
+func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
+	err := db.Db.Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "bucket_id"}, {Name: "bucket_name"}},
+		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "read_quota", "payment_address", "removed"}),
+	}).Create(bucket).Error
+	return err
+}
+
+func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
+	err := db.Db.Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "object_id"}, {Name: "object_name"}},
+		DoUpdates: clause.AssignmentColumns([]string{"object_status", "removed"}),
+	}).Create(bucket).Error
+	return err
 }
 
 // saveMessageInsidePartition stores the given message inside the partition having the provided id

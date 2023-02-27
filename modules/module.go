@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 
@@ -116,4 +117,12 @@ type AuthzMessageModule interface {
 
 type EventModule interface {
 	HandleEvent(index int, event sdk.Event) error
+}
+
+type BucketModule interface {
+	HandleBucketEvent(ctx context.Context, index int, event sdk.Event) error
+}
+
+type ObjectModule interface {
+	HandleObjectEvent(ctx context.Context, index int, event sdk.Event) error
 }

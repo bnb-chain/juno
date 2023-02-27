@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -130,7 +131,8 @@ func (w Worker) Process(height int64) error {
 		return fmt.Errorf("failed to get validators for block: %s", err)
 	}
 
-	return w.ExportBlock(block, events, txs, vals)
+	//err1 := w.ExportBlock(block, events, txs, vals)
+	return w.ExportStorage(events)
 }
 
 // ProcessTransactions fetches transactions for a given height and stores them into the database.
@@ -404,4 +406,24 @@ func (w Worker) ExportAccounts(txs []*types.Tx) error {
 		}
 	}
 	return nil
+}
+
+func (w Worker) ExportStorage(ctx context.Context, event *tmctypes.ResultBlockResults) error {
+	txsResults := event.TxsResults
+	for _, txs := range txsResults {
+		for _, e := range txs.Events {
+			if strings.Contains(e.Type, "bnbchain.greenfield.storage") {
+				// Allow modules to handle the message
+				for _, module := range w.modules {
+					if eventModule, ok := module.(modules.BucketModule); ok {
+						err := eventModule.HandleBucketEvent(ctx, 0, e)
+						if err != nil {
+							log.Errorw("error while handling message", "module", module, "height", tx.Height,
+								"txHash", tx.TxHash, "msg", proto.MessageName(msg), "err", err)
+						}
+					}
+				}
+			}
+		}
+	}
 }
