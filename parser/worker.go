@@ -111,28 +111,33 @@ func (w Worker) Process(height int64) error {
 
 	log.Debugw("processing block", "height", height)
 
-	block, err := w.node.Block(height)
-	if err != nil {
-		return fmt.Errorf("failed to get block from node: %s", err)
-	}
+	//block, err := w.node.Block(height)
+	//if err != nil {
+	//	return fmt.Errorf("failed to get block from node: %s", err)
+	//}
 
 	events, err := w.node.BlockResults(height)
+	//for _, txs := range events.TxsResults {
+	//	for _, e := range txs.Events {
+	//		log.Infof("e.type: %v", e.Type)
+	//	}
+	//}
 	if err != nil {
 		return fmt.Errorf("failed to get block results from node: %s", err)
 	}
 
-	txs, err := w.node.Txs(block)
-	if err != nil {
-		return fmt.Errorf("failed to get transactions for block: %s", err)
-	}
-
-	vals, err := w.node.Validators(height)
-	if err != nil {
-		return fmt.Errorf("failed to get validators for block: %s", err)
-	}
+	//txs, err := w.node.Txs(block)
+	//if err != nil {
+	//	return fmt.Errorf("failed to get transactions for block: %s", err)
+	//}
+	//
+	//vals, err := w.node.Validators(height)
+	//if err != nil {
+	//	return fmt.Errorf("failed to get validators for block: %s", err)
+	//}
 
 	//err1 := w.ExportBlock(block, events, txs, vals)
-	return w.ExportStorage(events)
+	return w.ExportStorage(context.Background(), events)
 }
 
 // ProcessTransactions fetches transactions for a given height and stores them into the database.
@@ -416,14 +421,18 @@ func (w Worker) ExportStorage(ctx context.Context, event *tmctypes.ResultBlockRe
 				// Allow modules to handle the message
 				for _, module := range w.modules {
 					if eventModule, ok := module.(modules.BucketModule); ok {
+						log.Infof("block: %d, type: %s", event.Height, e.Type)
+						for _, attr := range e.Attributes {
+							log.Infof("key: %s,value: %s", attr.Key, attr.Value)
+						}
 						err := eventModule.HandleBucketEvent(ctx, 0, e)
 						if err != nil {
-							log.Errorw("error while handling message", "module", module, "height", tx.Height,
-								"txHash", tx.TxHash, "msg", proto.MessageName(msg), "err", err)
+							log.Infof("err: %v", err)
 						}
 					}
 				}
 			}
 		}
 	}
+	return nil
 }

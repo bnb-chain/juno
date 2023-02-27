@@ -2,43 +2,47 @@ package bucket
 
 import (
 	"context"
-	"encoding/base64"
-	"errors"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules/parse"
 	"github.com/tendermint/tendermint/abci/types"
+	"strings"
 )
 
 func (m *Module) HandleBucketEvent(ctx context.Context, index int, event types.Event) error {
 	fieldMap := make(map[string]interface{})
 	var parseErr error
 	for _, attr := range event.Attributes {
-		keyBytes, err1 := base64.StdEncoding.DecodeString(string(attr.Key))
-		valueBytes, err2 := base64.StdEncoding.DecodeString(string(attr.Value))
-		if err1 != nil || err2 != nil {
-			return errors.New("Attributes decode failed")
-		}
-		parseFunc, ok := parse.BucketParseFuncMap[string(keyBytes)]
+		//keyBytes, err1 := base64.StdEncoding.DecodeString(string(attr.Key))
+		//valueBytes, err2 := base64.StdEncoding.DecodeString(string(attr.Value))
+		//if err1 != nil || err2 != nil {
+		//	log.Errorf("decode failed err1 : %v, err2:%v key: %s, value: %s", err1, err2, string(attr.Key), string(attr.Value))
+		//
+		//	return errors.New("Attributes decode failed")
+		//}
+		parseFunc, ok := parse.BucketParseFuncMap[string(attr.Key)]
 		if !ok {
 			continue
 		}
-		fieldMap[string(keyBytes)], parseErr = parseFunc(string(valueBytes))
+		log.Infof("value: %s", attr.GetValue())
+		log.Infof("attr: %s", attr.String())
+		value := strings.Trim(string(attr.Value), "\"")
+		fieldMap[string(attr.Key)], parseErr = parseFunc(value)
 		if parseErr != nil {
 			log.Errorf("parse failed err: %v", parseErr)
 			return parseErr
 		}
 	}
+	log.Infof("map: %+v", fieldMap)
 
 	switch event.Type {
 	case "bnbchain.greenfield.storage.EventCreateBucket":
-		return m.handleCreateBucket(ctx, event)
+		return m.handleCreateBucket(ctx, fieldMap)
 	case "bnbchain.greenfield.storage.EventDeleteBucket":
-		return m.handleDeleteBucket(ctx, event)
+		return m.handleDeleteBucket(ctx, fieldMap)
 	case "bnbchain.greenfield.storage.EventUpdateBucketInfo":
-
+		return m.handleUpdateBucketInfo(ctx, fieldMap)
 	default:
 		return nil
 	}
@@ -55,7 +59,7 @@ func (m *Module) handleCreateBucket(ctx context.Context, fieldMap map[string]int
 		SourceType:       fieldMap[parse.SourceTypeStr].(string),
 		PaymentAddress:   fieldMap[parse.PaymentAddressStr].(common.Address),
 		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
-		ReadQuota:        fieldMap[parse.ReadQuotaStr].(int32),
+		ReadQuota:        fieldMap[parse.ReadQuotaStr].(string),
 	}
 
 	if err := m.db.SaveBucket(ctx, bucket); err != nil {
@@ -64,26 +68,7 @@ func (m *Module) handleCreateBucket(ctx context.Context, fieldMap map[string]int
 	return nil
 }
 
-func (m *Module) handleDeleteBucket(ctx context.Context, event sdk.Event) error {
-	fieldMap := make(map[string]interface{})
-	var parseErr error
-	for _, attr := range event.Attributes {
-		keyBytes, err1 := base64.StdEncoding.DecodeString(string(attr.Key))
-		valueBytes, err2 := base64.StdEncoding.DecodeString(string(attr.Value))
-		if err1 != nil || err2 != nil {
-			return errors.New("Attributes decode failed")
-		}
-		parseFunc, ok := parse.ParseFuncMap[string(keyBytes)]
-		if !ok {
-			continue
-		}
-		fieldMap[string(keyBytes)], parseErr = parseFunc(string(valueBytes))
-		if parseErr != nil {
-			log.Errorf("parse failed err: %v", parseErr)
-			return parseErr
-		}
-	}
-
+func (m *Module) handleDeleteBucket(ctx context.Context, fieldMap map[string]interface{}) error {
 	bucket := &models.Bucket{
 		BucketName:       fieldMap[parse.BucketNameStr].(string),
 		BucketID:         fieldMap[parse.BucketIDStr].(int64),
@@ -98,30 +83,11 @@ func (m *Module) handleDeleteBucket(ctx context.Context, event sdk.Event) error 
 	return nil
 }
 
-func (m *Module) handleUpdateBucketInfo(ctx context.Context, event sdk.Event) error {
-	fieldMap := make(map[string]interface{})
-	var parseErr error
-	for _, attr := range event.Attributes {
-		keyBytes, err1 := base64.StdEncoding.DecodeString(string(attr.Key))
-		valueBytes, err2 := base64.StdEncoding.DecodeString(string(attr.Value))
-		if err1 != nil || err2 != nil {
-			return errors.New("Attributes decode failed")
-		}
-		parseFunc, ok := parse.ParseFuncMap[string(keyBytes)]
-		if !ok {
-			continue
-		}
-		fieldMap[string(keyBytes)], parseErr = parseFunc(string(valueBytes))
-		if parseErr != nil {
-			log.Errorf("parse failed err: %v", parseErr)
-			return parseErr
-		}
-	}
-
+func (m *Module) handleUpdateBucketInfo(ctx context.Context, fieldMap map[string]interface{}) error {
 	bucket := &models.Bucket{
 		BucketName:     fieldMap[parse.BucketNameStr].(string),
 		BucketID:       fieldMap[parse.BucketIDStr].(int64),
-		ReadQuota:      fieldMap[parse.ReadQuotaStr].(int32),
+		ReadQuota:      fieldMap[parse.ReadQuotaStr].(string),
 		PaymentAddress: fieldMap[parse.PaymentAddressStr].(common.Address),
 	}
 

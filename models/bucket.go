@@ -11,7 +11,7 @@ type Bucket struct {
 	SourceType       string         `gorm:"source_type;type:int"`
 	PaymentAddress   common.Address `gorm:"payment_address;type:BINARY(20)"`
 	PrimarySpAddress common.Address `gorm:"primary_sp_address;type:BINARY(20)"`
-	ReadQuota        int32          `gorm:"read_quota;type:bigint(64)"`
+	ReadQuota        string         `gorm:"read_quota;type:bigint(64)"`
 	PaymentPriceTime int64          `gorm:"payment_price_time;type:bigint(64)"`
 	SpAddress        common.Address `gorm:"sp_address;type:BINARY(20)"`
 	Rate             int64          `gorm:"rate"`

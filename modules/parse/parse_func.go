@@ -2,6 +2,7 @@ package parse
 
 import (
 	"github.com/forbole/juno/v4/common"
+	"github.com/forbole/juno/v4/log"
 	"strconv"
 )
 
@@ -37,7 +38,7 @@ var BucketParseFuncMap = map[string]func(str string) (interface{}, error){
 	CreateAtStr:         parseInt64,
 	BucketIDStr:         parseInt64,
 	SourceTypeStr:       parseStr,
-	ReadQuotaStr:        parseInt32,
+	ReadQuotaStr:        parseStr,
 	PaymentAddressStr:   parseAddress,
 	PrimarySpAddressStr: parseAddress,
 	OperatorAddressStr:  parseAddress,
@@ -72,6 +73,7 @@ func parseBool(str string) (interface{}, error) {
 }
 
 func parseInt64(str string) (interface{}, error) {
+	log.Infof("str: %v", str)
 	return strconv.ParseInt(str, 10, 64)
 }
 

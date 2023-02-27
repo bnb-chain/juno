@@ -353,7 +353,7 @@ func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
 	err := db.Db.Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "object_id"}, {Name: "object_name"}},
 		DoUpdates: clause.AssignmentColumns([]string{"object_status", "removed"}),
-	}).Create(bucket).Error
+	}).Create(object).Error
 	return err
 }
 

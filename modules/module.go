@@ -3,16 +3,16 @@ package modules
 import (
 	"context"
 	"encoding/json"
+	"github.com/forbole/juno/v4/types"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/x/authz"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/go-co-op/gocron"
+	abcitypes "github.com/tendermint/tendermint/abci/types"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
-
-	"github.com/forbole/juno/v4/types"
 )
 
 // Module represents a generic module without any particular handling of data
@@ -120,9 +120,9 @@ type EventModule interface {
 }
 
 type BucketModule interface {
-	HandleBucketEvent(ctx context.Context, index int, event sdk.Event) error
+	HandleBucketEvent(ctx context.Context, index int, event abcitypes.Event) error
 }
 
 type ObjectModule interface {
-	HandleObjectEvent(ctx context.Context, index int, event sdk.Event) error
+	HandleObjectEvent(ctx context.Context, index int, event abcitypes.Event) error
 }
