@@ -115,5 +115,6 @@ type AuthzMessageModule interface {
 }
 
 type EventModule interface {
-	HandleEvent(index int, event sdk.Event) error
+	//HandleEvent tx param here to save relative tx info
+	HandleEvent(index int, event sdk.Event, tx *types.Tx) error
 }

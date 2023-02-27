@@ -4,9 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
+	"github.com/gogo/protobuf/proto"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
+
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
@@ -15,12 +21,9 @@ import (
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
+	eventutil "github.com/forbole/juno/v4/types/event"
 	"github.com/forbole/juno/v4/types/utils"
 	"github.com/forbole/juno/v4/utils/syncutils"
-	"github.com/gogo/protobuf/proto"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-	"time"
 )
 
 // Worker defines a job consumer that is responsible for getting and
@@ -229,6 +232,9 @@ func (w Worker) ExportBlock(
 	//	return err
 	//}
 
+	// Call the event handlers
+	w.ExportEvents(txs)
+
 	// Call the block handlers
 	for _, module := range w.modules {
 		if blockModule, ok := module.(modules.BlockModule); ok {
@@ -248,6 +254,7 @@ func (w Worker) ExportBlock(
 			return w.ExportAccounts(txs)
 		},
 	)
+	return nil
 }
 
 // ExportCommit accepts a block commitment and a corresponding set of
@@ -344,6 +351,21 @@ func (w Worker) handleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 	}
 }
 
+// HandleEvent accepts the transaction and handles events contained inside the transaction.
+func (w Worker) HandleEvent(index int, event sdk.Event, tx *types.Tx) {
+	// Allow modules to handle the message
+	for _, module := range w.modules {
+		if eventModule, ok := module.(modules.EventModule); ok {
+			err := eventModule.HandleEvent(index, event, tx)
+			if err != nil {
+				log.Errorw("error while handling event", "module", module, "height", tx.Height,
+					"txHash", tx.TxHash, "event", event, "err", err)
+			}
+		}
+	}
+
+}
+
 // ExportTxs accepts a slice of transactions and persists then inside the database.
 // An error is returned if write fails.
 func (w Worker) ExportTxs(txs []*types.Tx) error {
@@ -410,4 +432,28 @@ func (w Worker) ExportAccounts(txs []*types.Tx) error {
 		}
 	}
 	return nil
+}
+
+// ExportEvents accepts a slice of transactions and get events in order to save in database.
+func (w Worker) ExportEvents(txs []*types.Tx) error {
+	// get all events in order from the txs within the block
+	for _, tx := range txs {
+		// handle all events contained inside the transaction
+		events := filterEventsType(tx)
+		// call the event handlers
+		for i, event := range events {
+			w.HandleEvent(i, event, tx)
+		}
+	}
+	return nil
+}
+
+func filterEventsType(tx *types.Tx) []sdk.Event {
+	filteredEvents := make([]sdk.Event, 0)
+	for _, event := range tx.Events {
+		if _, ok := eventutil.EventProcessedMap[event.Type]; ok {
+			filteredEvents = append(filteredEvents, sdk.Event(event))
+		}
+	}
+	return filteredEvents
 }
