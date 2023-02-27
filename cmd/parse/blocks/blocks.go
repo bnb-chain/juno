@@ -36,7 +36,7 @@ will be replaced with the data downloaded from the node.
 			}
 
 			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules)
-			worker := parser.NewWorker(workerCtx, nil, 0)
+			worker := parser.NewWorker(workerCtx, nil, 0, false)
 
 			// Get the flag values
 			start, _ := cmd.Flags().GetInt64(flagStart)

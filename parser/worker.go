@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
@@ -22,6 +20,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
+	"time"
 )
 
 // Worker defines a job consumer that is responsible for getting and
@@ -37,17 +36,20 @@ type Worker struct {
 
 	node node.Node
 	db   database.Database
+
+	concurrentSync bool
 }
 
 // NewWorker allows to create a new Worker implementation.
-func NewWorker(ctx *Context, queue types.HeightQueue, index int) Worker {
+func NewWorker(ctx *Context, queue types.HeightQueue, index int, concurrentSync bool) Worker {
 	return Worker{
-		index:   index,
-		codec:   ctx.EncodingConfig.Codec,
-		node:    ctx.Node,
-		queue:   queue,
-		db:      ctx.Database,
-		modules: ctx.Modules,
+		index:          index,
+		codec:          ctx.EncodingConfig.Codec,
+		node:           ctx.Node,
+		queue:          queue,
+		db:             ctx.Database,
+		modules:        ctx.Modules,
+		concurrentSync: concurrentSync,
 	}
 }
 
@@ -62,14 +64,20 @@ func (w Worker) Start() {
 
 	for i := range w.queue {
 		if err := w.ProcessIfNotExists(i); err != nil {
-			// re-enqueue any failed job after average block time
-			time.Sleep(config.GetAvgBlockTime())
+			if w.concurrentSync {
+				// re-enqueue any failed job after average block time
+				// TODO: Implement exponential backoff or max retries for a block height.
+				go func() {
+					log.Errorw("re-enqueueing failed block", "height", i, "err", err)
+					w.queue <- i
+				}()
+				continue
+			}
 
-			// TODO: Implement exponential backoff or max retries for a block height.
-			go func() {
-				log.Errorw("re-enqueueing failed block", "height", i, "err", err)
-				w.queue <- i
-			}()
+			for err != nil {
+				time.Sleep(config.GetAvgBlockTime())
+				err = w.ProcessIfNotExists(i)
+			}
 		}
 
 		log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
@@ -96,6 +104,7 @@ func (w Worker) ProcessIfNotExists(height uint64) error {
 // Process fetches  a block for a given height and associated metadata and export it to a database.
 // It returns an error if any export process fails.
 func (w Worker) Process(height uint64) error {
+	log.Debugw("processing block", "height", height)
 	if height == 0 {
 		cfg := config.Cfg.Parser
 

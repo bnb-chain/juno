@@ -21,6 +21,7 @@ func NewParsingConfig(
 	parseGenesis bool, genesisFilePath string,
 	startHeight uint64, fastSync bool,
 	avgBlockTime *time.Duration,
+	concurrentSync bool,
 ) Config {
 	return Config{
 		Workers:         workers,
@@ -31,6 +32,7 @@ func NewParsingConfig(
 		StartHeight:     startHeight,
 		FastSync:        fastSync,
 		AvgBlockTime:    avgBlockTime,
+		ConcurrentSync:  concurrentSync,
 	}
 }
 
@@ -46,5 +48,6 @@ func DefaultParsingConfig() Config {
 		1,
 		false,
 		&avgBlockTime,
+		false,
 	)
 }

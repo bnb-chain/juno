@@ -263,8 +263,8 @@ func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error 
 // HasValidator implements database.Database
 func (db *Impl) HasValidator(ctx context.Context, addr string) (bool, error) {
 	var res bool
-	stmt := `SELECT EXISTS(SELECT 1 FROM validator WHERE consensus_address = ?);`
-	err := db.Db.Raw(stmt, addr).WithContext(ctx).Scan(&res).Error
+	stmt := `SELECT EXISTS(SELECT 1 FROM validators WHERE consensus_address = ?);`
+	err := db.Db.Raw(stmt, addr).WithContext(ctx).Take(&res).Error
 	return res, err
 }
 

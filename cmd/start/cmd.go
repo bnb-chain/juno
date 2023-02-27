@@ -84,7 +84,7 @@ func startParsing(ctx *parser.Context) error {
 	// Create workers
 	workers := make([]parser.Worker, cfg.Workers)
 	for i := range workers {
-		workers[i] = parser.NewWorker(ctx, exportQueue, i)
+		workers[i] = parser.NewWorker(ctx, exportQueue, i, cfg.ConcurrentSync)
 	}
 
 	waitGroup.Add(1)
