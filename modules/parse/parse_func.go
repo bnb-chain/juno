@@ -28,7 +28,7 @@ const (
 	ObjectStatusStr    = "status"
 	RedundancyTypeStr  = "redundancy_type"
 	ChecksumsStr       = "checksums"
-	SecondarySpAddress = "secondary_sp_address"
+	SecondarySpAddress = "secondary_sp_addresses"
 )
 
 var BucketParseFuncMap = map[string]func(str string) (interface{}, error){
@@ -54,6 +54,11 @@ var ObjectParseFuncMap = map[string]func(str string) (interface{}, error){
 	RedundancyTypeStr:  parseStr,
 	ChecksumsStr:       parseStr,
 	SecondarySpAddress: parseStr,
+	OwnerAddressStr:    parseAddress,
+	BucketNameStr:      parseStr,
+	CreateAtStr:        parseInt64,
+	IsPublicStr:        parseBool,
+	SourceTypeStr:      parseStr,
 }
 
 func parseStr(str string) (interface{}, error) {

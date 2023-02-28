@@ -10,7 +10,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/go-co-op/gocron"
-	abcitypes "github.com/tendermint/tendermint/abci/types"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
@@ -116,13 +115,6 @@ type AuthzMessageModule interface {
 }
 
 type EventModule interface {
-	HandleEvent(index int, event sdk.Event) error
-}
-
-type BucketModule interface {
-	HandleBucketEvent(ctx context.Context, index int, event abcitypes.Event) error
-}
-
-type ObjectModule interface {
-	HandleObjectEvent(ctx context.Context, index int, event abcitypes.Event) error
+	//HandleEvent index param here to save possible sequence order
+	HandleEvent(ctx context.Context, index int, event sdk.Event) error
 }

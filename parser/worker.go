@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	"github.com/gogo/protobuf/proto"
+
+	abci "github.com/tendermint/tendermint/abci/types"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
-	"strings"
-	"time"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/database"
@@ -21,6 +23,7 @@ import (
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
+	eventutil "github.com/forbole/juno/v4/types/event"
 	"github.com/forbole/juno/v4/types/utils"
 	"github.com/forbole/juno/v4/utils/syncutils"
 )
@@ -40,10 +43,11 @@ type Worker struct {
 	db   database.Database
 
 	concurrentSync bool
+	workerType     string
 }
 
-// NewWorker allows to create a new Worker implementation.
-func NewWorker(ctx *Context, queue types.HeightQueue, index int, concurrentSync bool) Worker {
+// NewWorker allows t o create a new Worker implementation.
+func NewWorker(ctx *Context, queue types.HeightQueue, index int, concurrentSync bool, workerType string) Worker {
 	return Worker{
 		index:          index,
 		codec:          ctx.EncodingConfig.Codec,
@@ -52,6 +56,7 @@ func NewWorker(ctx *Context, queue types.HeightQueue, index int, concurrentSync 
 		db:             ctx.Database,
 		modules:        ctx.Modules,
 		concurrentSync: concurrentSync,
+		workerType:     workerType,
 	}
 }
 
@@ -100,7 +105,11 @@ func (w Worker) ProcessIfNotExists(height uint64) error {
 		return nil
 	}
 
+	if w.workerType == config.BlockSyncerWorkerType {
+		return w.LightProcess(height)
+	}
 	return w.Process(height)
+
 }
 
 // Process fetches  a block for a given height and associated metadata and export it to a database.
@@ -120,34 +129,46 @@ func (w Worker) Process(height uint64) error {
 
 	log.Debugw("processing block", "height", height)
 
-	//block, err := w.node.Block(height)
-	//if err != nil {
-	//	return fmt.Errorf("failed to get block from node: %s", err)
-	//}
+	block, err := w.node.Block(int64(height))
+	if err != nil {
+		return fmt.Errorf("failed to get block from node: %s", err)
+	}
 
 	events, err := w.node.BlockResults(int64(height))
-	//for _, txs := range events.TxsResults {
-	//	for _, e := range txs.Events {
-	//		log.Infof("e.type: %v", e.Type)
-	//	}
-	//}
 
 	if err != nil {
 		return fmt.Errorf("failed to get block results from node: %s", err)
 	}
 
-	//txs, err := w.node.Txs(block)
-	//if err != nil {
-	//	return fmt.Errorf("failed to get transactions for block: %s", err)
-	//}
-	//
-	//vals, err := w.node.Validators(height)
-	//if err != nil {
-	//	return fmt.Errorf("failed to get validators for block: %s", err)
-	//}
+	txs, err := w.node.Txs(block)
+	if err != nil {
+		return fmt.Errorf("failed to get transactions for block: %s", err)
+	}
 
-	//err1 := w.ExportBlock(block, events, txs, vals)
-	return w.ExportStorage(context.Background(), events)
+	vals, err := w.node.Validators(int64(height))
+	if err != nil {
+		return fmt.Errorf("failed to get validators for block: %s", err)
+	}
+
+	return w.ExportBlock(block, events, txs, vals)
+
+}
+
+// LightProcess just process events, currently for blocksyncer
+func (w Worker) LightProcess(height uint64) error {
+	log.Debugw("processing block", "height", height)
+
+	block, err := w.node.Block(int64(height))
+	if err != nil {
+		return fmt.Errorf("failed to get block from node: %s", err)
+	}
+
+	events, err := w.node.BlockResults(int64(height))
+	if err != nil {
+		return fmt.Errorf("failed to get block results from node: %s", err)
+	}
+
+	return w.ExportBlockLight(block, events)
 }
 
 // ProcessTransactions fetches transactions for a given height and stores them into the database.
@@ -234,10 +255,10 @@ func (w Worker) ExportBlock(
 
 	//currently no need
 	// Save the commits
-	//err = w.ExportCommit(b.Block.LastCommit, vals)
-	//if err != nil {
-	//	return err
-	//}
+	err = w.ExportCommit(b.Block.LastCommit, vals)
+	if err != nil {
+		return err
+	}
 
 	// Call the block handlers
 	for _, module := range w.modules {
@@ -259,6 +280,21 @@ func (w Worker) ExportBlock(
 	//	},
 	//)
 	return nil
+}
+
+// ExportBlockLight only exports basic block data and module related events, currently used for blocksyncer
+func (w Worker) ExportBlockLight(
+	b *tmctypes.ResultBlock, r *tmctypes.ResultBlockResults) error {
+
+	// Save the block simple
+	err := w.db.SaveBlockLight(w.ctx, models.NewBlockFromTmBlock(b, 0))
+	if err != nil {
+		return fmt.Errorf("failed to persist block: %s", err)
+	}
+
+	// Call the event handlers
+	return w.ExportEvents(r.TxsResults)
+
 }
 
 // ExportCommit accepts a block commitment and a corresponding set of
@@ -355,6 +391,20 @@ func (w Worker) handleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 	}
 }
 
+// HandleEvent accepts the transaction and handles events contained inside the transaction.
+func (w Worker) HandleEvent(ctx context.Context, index int, event sdk.Event) {
+	// Allow modules to handle the message
+	for _, module := range w.modules {
+		if eventModule, ok := module.(modules.EventModule); ok {
+			err := eventModule.HandleEvent(ctx, index, event)
+			if err != nil {
+				log.Errorw("error while handling event", "module", module, "event", event, "err", err)
+			}
+		}
+	}
+
+}
+
 // ExportTxs accepts a slice of transactions and persists then inside the database.
 // An error is returned if write fails.
 func (w Worker) ExportTxs(txs []*types.Tx) error {
@@ -423,26 +473,26 @@ func (w Worker) ExportAccounts(txs []*types.Tx) error {
 	return nil
 }
 
-func (w Worker) ExportStorage(ctx context.Context, event *tmctypes.ResultBlockResults) error {
-	txsResults := event.TxsResults
-	for _, txs := range txsResults {
-		for _, e := range txs.Events {
-			if strings.Contains(e.Type, "bnbchain.greenfield.storage") {
-				// Allow modules to handle the message
-				for _, module := range w.modules {
-					if eventModule, ok := module.(modules.BucketModule); ok {
-						log.Infof("block: %d, type: %s", event.Height, e.Type)
-						for _, attr := range e.Attributes {
-							log.Infof("key: %s,value: %s", attr.Key, attr.Value)
-						}
-						err := eventModule.HandleBucketEvent(ctx, 0, e)
-						if err != nil {
-							log.Infof("err: %v", err)
-						}
-					}
-				}
-			}
+// ExportEvents accepts a slice of transactions and get events in order to save in database.
+func (w Worker) ExportEvents(txs []*abci.ResponseDeliverTx) error {
+	// get all events in order from the txs within the block
+	for _, tx := range txs {
+		// handle all events contained inside the transaction
+		events := filterEventsType(tx)
+		// call the event handlers
+		for i, event := range events {
+			w.HandleEvent(w.ctx, i, event)
 		}
 	}
 	return nil
+}
+
+func filterEventsType(tx *abci.ResponseDeliverTx) []sdk.Event {
+	filteredEvents := make([]sdk.Event, 0)
+	for _, event := range tx.Events {
+		if _, ok := eventutil.EventProcessedMap[event.Type]; ok {
+			filteredEvents = append(filteredEvents, sdk.Event(event))
+		}
+	}
+	return filteredEvents
 }

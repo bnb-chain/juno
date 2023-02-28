@@ -2,15 +2,15 @@ package bucket
 
 import (
 	"context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules/parse"
-	"github.com/tendermint/tendermint/abci/types"
 	"strings"
 )
 
-func (m *Module) HandleBucketEvent(ctx context.Context, index int, event types.Event) error {
+func (m *Module) HandleEvent(ctx context.Context, index int, event sdk.Event) error {
 	fieldMap := make(map[string]interface{})
 	var parseErr error
 	for _, attr := range event.Attributes {

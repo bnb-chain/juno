@@ -2,38 +2,33 @@ package object
 
 import (
 	"context"
-	"encoding/base64"
-	"errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules/parse"
+	"strings"
 )
 
-type ObjectModule struct {
-}
-
-func (o *Module) HandleObjectEvent(ctx context.Context, index int, event sdk.Event) error {
+func (o *Module) HandleEvent(ctx context.Context, index int, event sdk.Event) error {
 	fieldMap := make(map[string]interface{})
 	var parseErr error
 	for _, attr := range event.Attributes {
-		keyBytes, err1 := base64.StdEncoding.DecodeString(string(attr.Key))
-		valueBytes, err2 := base64.StdEncoding.DecodeString(string(attr.Value))
-		if err1 != nil || err2 != nil {
-			return errors.New("Attributes decode failed")
-		}
-		parseFunc, ok := parse.ObjectParseFuncMap[string(keyBytes)]
+		parseFunc, ok := parse.ObjectParseFuncMap[string(attr.Key)]
 		if !ok {
 			continue
 		}
-		fieldMap[string(keyBytes)], parseErr = parseFunc(string(valueBytes))
+		value := strings.Trim(string(attr.Value), "\"")
+		fieldMap[string(attr.Key)], parseErr = parseFunc(value)
 		if parseErr != nil {
 			log.Errorf("parse failed err: %v", parseErr)
 			return parseErr
 		}
 	}
-	switch event.Type {
+
+	log.Infof("event.type: %v", event.Type)
+	eventType := event.Type
+	switch eventType {
 	case "bnbchain.greenfield.storage.EventCreateObject":
 		return o.handleCreateObject(ctx, fieldMap)
 	case "bnbchain.greenfield.storage.EventCancelCreateObject":
@@ -47,12 +42,13 @@ func (o *Module) HandleObjectEvent(ctx context.Context, index int, event sdk.Eve
 	case "bnbchain.greenfield.storage.EventRejectSealObject":
 		return o.handleRejectSealObject(ctx, fieldMap)
 	default:
-		return nil
+		log.Infof("not object event")
 	}
 	return nil
 }
 
 func (o *Module) handleCreateObject(ctx context.Context, fieldMap map[string]interface{}) error {
+	log.Debugf("fieldMap: %+v", fieldMap)
 	obj := &models.Object{
 		Creator:        fieldMap[parse.CreatorAddressStr].(common.Address),
 		Owner:          fieldMap[parse.OwnerAddressStr].(common.Address),
