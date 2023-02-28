@@ -28,14 +28,14 @@ type Database interface {
 
 	// HasBlock tells whether the database has already stored the block having the given height.
 	// An error is returned if the operation fails.
-	HasBlock(ctx context.Context, height int64) (bool, error)
+	HasBlock(ctx context.Context, height uint64) (bool, error)
 
 	// GetLastBlockHeight returns the last block height stored in database..
 	// An error is returned if the operation fails.
-	GetLastBlockHeight(ctx context.Context) (int64, error)
+	GetLastBlockHeight(ctx context.Context) (uint64, error)
 
 	// GetMissingHeights returns a slice of missing block heights between startHeight and endHeight
-	GetMissingHeights(ctx context.Context, startHeight, endHeight int64) []int64
+	GetMissingHeights(ctx context.Context, startHeight, endHeight uint64) []uint64
 
 	// SaveBlock will be called when a new block is parsed, passing the block itself
 	// and the transactions contained inside that block.
@@ -156,38 +156,22 @@ func (db *Impl) PrepareTables(ctx context.Context, tables []schema.Tabler) error
 }
 
 // HasBlock implements database.Database
-func (db *Impl) HasBlock(ctx context.Context, height int64) (bool, error) {
+func (db *Impl) HasBlock(ctx context.Context, height uint64) (bool, error) {
 	var res bool
 	err := db.Db.Raw(`SELECT EXISTS(SELECT 1 FROM blocks WHERE height = ?);`, height).Scan(&res).Error
 	return res, err
 }
 
 // GetLastBlockHeight returns the last block height stored inside the database
-func (db *Impl) GetLastBlockHeight(ctx context.Context) (int64, error) {
-	var height int64
+func (db *Impl) GetLastBlockHeight(ctx context.Context) (uint64, error) {
+	var height uint64
 
-	err := db.Db.Table((&models.Block{}).TableName()).Select("height").Order("height DESC").Scan(&height).Error
+	err := db.Db.Table((&models.Block{}).TableName()).Select("height").Order("height DESC").Take(&height).Error
 	if errIsNotFound(err) {
 		return 0, nil
 	}
 
 	return height, err
-}
-
-// GetMissingHeights returns a slice of missing block heights between startHeight and endHeight
-func (db *Impl) GetMissingHeights(ctx context.Context, startHeight, endHeight int64) []int64 {
-	var result []int64
-	stmt := `SELECT generate_series($1::int,$2::int) EXCEPT SELECT height FROM blocks ORDER BY 1;`
-	err := db.Db.Select(&result, stmt, startHeight, endHeight)
-	if err != nil {
-		return nil
-	}
-
-	if len(result) == 0 {
-		return nil
-	}
-
-	return result
 }
 
 // SaveBlock implements database.Database
@@ -279,7 +263,7 @@ func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
 func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error {
 	err := db.Db.Table((&models.Account{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "address"}},
-		DoUpdates: []clause.Assignment{{Column: clause.Column{Name: "tx_count"}, Value: "tx_count+1"}}, // TODO renee verify
+		DoUpdates: []clause.Assignment{{Column: clause.Column{Name: "tx_count"}, Value: gorm.Expr("tx_count+1")}},
 	}).Create(account).Error
 	return err
 }
@@ -287,8 +271,8 @@ func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error 
 // HasValidator implements database.Database
 func (db *Impl) HasValidator(ctx context.Context, addr string) (bool, error) {
 	var res bool
-	stmt := `SELECT EXISTS(SELECT 1 FROM validator WHERE consensus_address = ?);`
-	err := db.Db.Raw(stmt, addr).WithContext(ctx).Scan(&res).Error
+	stmt := `SELECT EXISTS(SELECT 1 FROM validators WHERE consensus_address = ?);`
+	err := db.Db.Raw(stmt, addr).WithContext(ctx).Take(&res).Error
 	return res, err
 }
 

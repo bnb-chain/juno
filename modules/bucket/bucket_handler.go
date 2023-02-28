@@ -14,19 +14,10 @@ func (m *Module) HandleBucketEvent(ctx context.Context, index int, event types.E
 	fieldMap := make(map[string]interface{})
 	var parseErr error
 	for _, attr := range event.Attributes {
-		//keyBytes, err1 := base64.StdEncoding.DecodeString(string(attr.Key))
-		//valueBytes, err2 := base64.StdEncoding.DecodeString(string(attr.Value))
-		//if err1 != nil || err2 != nil {
-		//	log.Errorf("decode failed err1 : %v, err2:%v key: %s, value: %s", err1, err2, string(attr.Key), string(attr.Value))
-		//
-		//	return errors.New("Attributes decode failed")
-		//}
 		parseFunc, ok := parse.BucketParseFuncMap[string(attr.Key)]
 		if !ok {
 			continue
 		}
-		log.Infof("value: %s", attr.GetValue())
-		log.Infof("attr: %s", attr.String())
 		value := strings.Trim(string(attr.Value), "\"")
 		fieldMap[string(attr.Key)], parseErr = parseFunc(value)
 		if parseErr != nil {
@@ -75,6 +66,7 @@ func (m *Module) handleDeleteBucket(ctx context.Context, fieldMap map[string]int
 		Owner:            fieldMap[parse.OwnerAddressStr].(common.Address),
 		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
 		OperatorAddress:  fieldMap[parse.OperatorAddressStr].(common.Address),
+		Removed:          true,
 	}
 
 	if err := m.db.SaveBucket(ctx, bucket); err != nil {

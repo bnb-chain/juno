@@ -84,7 +84,7 @@ func startParsing(ctx *parser.Context) error {
 	// Create workers
 	workers := make([]parser.Worker, cfg.Workers)
 	for i := range workers {
-		workers[i] = parser.NewWorker(ctx, exportQueue, i)
+		workers[i] = parser.NewWorker(ctx, exportQueue, i, cfg.ConcurrentSync)
 	}
 
 	waitGroup.Add(1)
@@ -106,13 +106,12 @@ func startParsing(ctx *parser.Context) error {
 	// Listen for and trap any OS signal to gracefully shutdown and exit
 	trapSignal(ctx)
 
-	if cfg.ParseGenesis {
-		// Add the genesis to the queue if requested
-		exportQueue <- 0
-	}
-
 	if cfg.ParseOldBlocks {
-		go enqueueMissingBlocks(exportQueue, ctx)
+		if cfg.ConcurrentSync {
+			go enqueueMissingBlocks(exportQueue, ctx)
+		} else {
+			enqueueMissingBlocks(exportQueue, ctx)
+		}
 	}
 
 	if cfg.ParseNewBlocks {
@@ -144,14 +143,14 @@ func enqueueMissingBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
 	// Set startHeight to the latest height in database
 	// if is not set inside config.yaml file
 	if startHeight == 0 {
-		startHeight = utils.MaxInt64(1, lastDbBlockHeight)
+		startHeight = utils.MaxUint64(0, lastDbBlockHeight)
 	}
 
 	if cfg.FastSync {
 		log.Infow("fast sync is enabled, ignoring all previous blocks", "latest_block_height", latestBlockHeight)
 		for _, module := range ctx.Modules {
 			if mod, ok := module.(modules.FastSyncModule); ok {
-				err := mod.DownloadState(latestBlockHeight)
+				err := mod.DownloadState(int64(latestBlockHeight))
 				if err != nil {
 					log.Error("error while performing fast sync",
 						"err", err,
@@ -164,7 +163,7 @@ func enqueueMissingBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
 	} else {
 		log.Infow("syncing missing blocks...", "latest_block_height", latestBlockHeight)
 		for _, i := range ctx.Database.GetMissingHeights(context.TODO(), startHeight, latestBlockHeight) {
-			log.Debug("enqueueing missing block", "height", i)
+			log.Debugw("enqueueing missing block", "height", i)
 			exportQueue <- i
 		}
 	}
@@ -189,11 +188,11 @@ func enqueueNewBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
 
 // mustGetLatestHeight tries getting the latest height from the RPC client.
 // If after 50 tries no latest height can be found, it returns 0.
-func mustGetLatestHeight(ctx *parser.Context) int64 {
+func mustGetLatestHeight(ctx *parser.Context) uint64 {
 	for retryCount := 0; retryCount < 50; retryCount++ {
 		latestBlockHeight, err := ctx.Node.LatestHeight()
 		if err == nil {
-			return latestBlockHeight
+			return uint64(latestBlockHeight)
 		}
 
 		log.Errorw("failed to get last block from RPCConfig client",

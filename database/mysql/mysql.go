@@ -1,9 +1,10 @@
 package mysql
 
 import (
-	"github.com/forbole/juno/v4/database/sqlclient"
+	"context"
 
 	"github.com/forbole/juno/v4/database"
+	"github.com/forbole/juno/v4/database/sqlclient"
 )
 
 // Builder creates a database connection with the given database connection info
@@ -29,4 +30,21 @@ var _ database.Database = &Database{}
 // for data aggregation and exporting.
 type Database struct {
 	database.Impl
+}
+
+// GetMissingHeights returns a slice of missing block heights between startHeight and endHeight
+func (db *Database) GetMissingHeights(ctx context.Context, startHeight, endHeight uint64) []uint64 {
+	var result []uint64
+	for i := startHeight; i <= endHeight; i++ {
+		exist, _ := db.HasBlock(ctx, i)
+		if !exist {
+			result = append(result, i)
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
 }

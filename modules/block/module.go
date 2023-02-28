@@ -35,6 +35,7 @@ func (m *Module) Name() string {
 func (m *Module) PrepareTables() error {
 	return m.db.PrepareTables(context.TODO(), []schema.Tabler{
 		&models.Block{},
+		&models.Genesis{},
 		&models.AverageBlockTimeFromGenesis{},
 		&models.AverageBlockTimePerDay{},
 		&models.AverageBlockTimePerHour{},

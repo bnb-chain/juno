@@ -14,7 +14,7 @@ type Account struct {
 
 	Address    common.Address `gorm:"column:address;type:BINARY(20);uniqueIndex:idx_address"`
 	Type       AccountType    `gorm:"column:type;not null;default:'general'"`
-	Balance    uint64         `gorm:"column:balance;not null;default:0"` // changed from events of coin_spent and coin_receive
+	Balance    *common.Big    `gorm:"column:balance"` // changed from events of coin_spent and coin_receive
 	TxCount    uint64         `gorm:"column:tx_count;not null;default:0"`
 	Refundable bool           `json:"column:refundable;not null;default:true"`
 }

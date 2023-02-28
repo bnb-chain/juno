@@ -94,7 +94,7 @@ type ValidatorCommission struct {
 	ID uint64 `gorm:"column:id;primaryKey"`
 
 	ValidatorAddress  common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
-	Commission        float64        `gorm:"column:commission"`
+	Commission        uint64         `gorm:"column:commission"`
 	MinSelfDelegation uint64         `gorm:"column:min_self_delegation"`
 	Height            uint64         `gorm:"column:height;index:idx_height"`
 }
