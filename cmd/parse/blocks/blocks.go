@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/parser"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -36,7 +37,7 @@ will be replaced with the data downloaded from the node.
 			}
 
 			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules)
-			worker := parser.NewWorker(workerCtx, nil, 0, false)
+			worker := parser.NewWorker(workerCtx, nil, 0, false, config.NormalWorkerType)
 
 			// Get the flag values
 			start, _ := cmd.Flags().GetInt64(flagStart)

@@ -19,6 +19,7 @@ type Config struct {
 	buildDb               database.Builder
 	fileType              string
 	tomlConfig            *tomlconfig.TomlConfig
+	workerType            string
 }
 
 // NewConfig allows to build a new Config instance

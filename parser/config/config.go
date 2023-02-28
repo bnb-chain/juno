@@ -12,6 +12,7 @@ type Config struct {
 	ParseGenesis    bool           `yaml:"parse_genesis"`
 	FastSync        bool           `yaml:"fast_sync,omitempty"`
 	ConcurrentSync  bool           `yaml:"concurrent_sync,omitempty"`
+	WorkerType      string         `yaml:"worker_type,omitempty"`
 }
 
 // NewParsingConfig allows to build a new Config instance

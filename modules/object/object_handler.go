@@ -5,25 +5,24 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/forbole/juno/v4/types"
 	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
-func (m *Module) HandleEvent(index int, event sdk.Event, tx *types.Tx) error {
+func (m *Module) HandleEvent(index int, event sdk.Event) error {
 	if eventType, ok := eventutil.EventProcessedMap[event.Type]; ok {
 		switch eventType {
 		case "EventCreateObject":
-			handleEventCreateObject(event, tx)
+			handleEventCreateObject(event)
 		case "EventCancelCreateObject":
-			handleEventCancelCreateObject(event, tx)
+			handleEventCancelCreateObject(event)
 		case "EventSealObject":
-			handleEventSealObject(event, tx)
+			handleEventSealObject(event)
 		case "EventCopyObject":
-			handleEventCopyObject(event, tx)
+			handleEventCopyObject(event)
 		case "EventDeleteObject":
-			handleEventDeleteObject(event, tx)
+			handleEventDeleteObject(event)
 		case "EventRejectSealObject":
-			handleEventRejectSealObject(event, tx)
+			handleEventRejectSealObject(event)
 		default:
 			return nil
 		}
@@ -31,26 +30,26 @@ func (m *Module) HandleEvent(index int, event sdk.Event, tx *types.Tx) error {
 	return nil
 }
 
-func handleEventCreateObject(event sdk.Event, tx *types.Tx) {
+func handleEventCreateObject(event sdk.Event) {
 	fmt.Println("handleEventCreateObject")
 }
 
-func handleEventCancelCreateObject(event sdk.Event, tx *types.Tx) {
+func handleEventCancelCreateObject(event sdk.Event) {
 	fmt.Println("handleEventCancelCreateObject")
 }
 
-func handleEventSealObject(event sdk.Event, tx *types.Tx) {
+func handleEventSealObject(event sdk.Event) {
 	fmt.Println("handleEventSealObject")
 }
 
-func handleEventCopyObject(event sdk.Event, tx *types.Tx) {
+func handleEventCopyObject(event sdk.Event) {
 	fmt.Println("handleEventCopyObject")
 }
 
-func handleEventDeleteObject(event sdk.Event, tx *types.Tx) {
+func handleEventDeleteObject(event sdk.Event) {
 	fmt.Println("handleEventDeleteObject")
 }
 
-func handleEventRejectSealObject(event sdk.Event, tx *types.Tx) {
+func handleEventRejectSealObject(event sdk.Event) {
 	fmt.Println("handleEventRejectSealObject")
 }

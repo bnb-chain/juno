@@ -5,21 +5,20 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/forbole/juno/v4/types"
 	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
-func (m *Module) HandleEvent(index int, event sdk.Event, tx *types.Tx) error {
+func (m *Module) HandleEvent(index int, event sdk.Event) error {
 	if eventType, ok := eventutil.EventProcessedMap[event.Type]; ok {
 		switch eventType {
 		case "EventCreateGroup":
-			handleEventCreateGroup(event, tx)
+			handleEventCreateGroup(event)
 		case "EventDeleteGroup":
-			handleEventDeleteGroup(event, tx)
+			handleEventDeleteGroup(event)
 		case "EventLeaveGroup":
-			handleEventLeaveGroup(event, tx)
+			handleEventLeaveGroup(event)
 		case "EventUpdateGroupMember":
-			handleEventUpdateGroupMember(event, tx)
+			handleEventUpdateGroupMember(event)
 		default:
 			return nil
 		}
@@ -27,18 +26,18 @@ func (m *Module) HandleEvent(index int, event sdk.Event, tx *types.Tx) error {
 	return nil
 }
 
-func handleEventCreateGroup(event sdk.Event, tx *types.Tx) {
+func handleEventCreateGroup(event sdk.Event) {
 	fmt.Println("handleEventCreateGroup")
 }
 
-func handleEventDeleteGroup(event sdk.Event, tx *types.Tx) {
+func handleEventDeleteGroup(event sdk.Event) {
 	fmt.Println("handleEventCreateGroup")
 }
 
-func handleEventLeaveGroup(event sdk.Event, tx *types.Tx) {
+func handleEventLeaveGroup(event sdk.Event) {
 	fmt.Println("handleEventCreateGroup")
 }
 
-func handleEventUpdateGroupMember(event sdk.Event, tx *types.Tx) {
+func handleEventUpdateGroupMember(event sdk.Event) {
 	fmt.Println("handleEventCreateGroup")
 }

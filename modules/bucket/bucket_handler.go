@@ -1,23 +1,21 @@
 package bucket
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/forbole/juno/v4/types"
+	"github.com/forbole/juno/v4/log"
 	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
-func (m *Module) HandleEvent(index int, event sdk.Event, tx *types.Tx) error {
+func (m *Module) HandleEvent(index int, event sdk.Event) error {
 	if eventType, ok := eventutil.EventProcessedMap[event.Type]; ok {
 		switch eventType {
 		case "EventCreateBucket":
-			handleEventCreateBucket(event, tx)
+			handleEventCreateBucket(event)
 		case "EventDeleteBucket":
-			handleEventDeleteBucket(event, tx)
+			handleEventDeleteBucket(event)
 		case "EventUpdateBucketInfo":
-			handleEventUpdateBucketInfo(event, tx)
+			handleEventUpdateBucketInfo(event)
 		default:
 			return nil
 		}
@@ -25,14 +23,14 @@ func (m *Module) HandleEvent(index int, event sdk.Event, tx *types.Tx) error {
 	return nil
 }
 
-func handleEventCreateBucket(event sdk.Event, tx *types.Tx) {
-	fmt.Println("handleEventCreateBucket")
+func handleEventCreateBucket(event sdk.Event) {
+	log.Infow("handleEventCreateBucket")
 }
 
-func handleEventDeleteBucket(event sdk.Event, tx *types.Tx) {
-	fmt.Println("handleEventDeleteBucket")
+func handleEventDeleteBucket(event sdk.Event) {
+	log.Infow("handleEventDeleteBucket")
 }
 
-func handleEventUpdateBucketInfo(event sdk.Event, tx *types.Tx) {
-	fmt.Println("handleEventUpdateBucketInfo")
+func handleEventUpdateBucketInfo(event sdk.Event) {
+	log.Infow("handleEventUpdateBucketInfo")
 }
