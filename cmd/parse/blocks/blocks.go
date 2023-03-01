@@ -9,6 +9,7 @@ import (
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/parser"
+	"github.com/forbole/juno/v4/parser/explorer"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
 )
@@ -37,7 +38,10 @@ will be replaced with the data downloaded from the node.
 			}
 
 			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules)
-			worker := parser.NewWorker(workerCtx, nil, 0, false, config.NormalWorkerType)
+
+			commonWorker := parser.NewWorker(workerCtx, nil, 0, false, config.ExplorerWorkerType)
+			var worker parser.Worker
+			worker = &explorer.Worker{CommonWorker: commonWorker}
 
 			// Get the flag values
 			start, _ := cmd.Flags().GetInt64(flagStart)
@@ -71,7 +75,7 @@ will be replaced with the data downloaded from the node.
 				if force {
 					err = worker.Process(k)
 				} else {
-					err = worker.ProcessIfNotExists(k)
+					err = worker.ProcessIfNotExists(worker, k)
 				}
 
 				if err != nil {

@@ -9,25 +9,26 @@ import (
 )
 
 func (m *Module) HandleEvent(index int, event sdk.Event) error {
-	if eventType, ok := eventutil.EventProcessedMap[event.Type]; ok {
+	eventType, err := eventutil.GetEventType(event)
+	if err == nil {
 		switch eventType {
-		case "EventCreateObject":
+		case eventutil.EventCreateObject:
 			handleEventCreateObject(event)
-		case "EventCancelCreateObject":
+		case eventutil.EventCancelCreateObject:
 			handleEventCancelCreateObject(event)
-		case "EventSealObject":
+		case eventutil.EventSealObject:
 			handleEventSealObject(event)
-		case "EventCopyObject":
+		case eventutil.EventCopyObject:
 			handleEventCopyObject(event)
-		case "EventDeleteObject":
+		case eventutil.EventDeleteObject:
 			handleEventDeleteObject(event)
-		case "EventRejectSealObject":
+		case eventutil.EventRejectSealObject:
 			handleEventRejectSealObject(event)
 		default:
 			return nil
 		}
 	}
-	return nil
+	return err
 }
 
 func handleEventCreateObject(event sdk.Event) {

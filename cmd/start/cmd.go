@@ -15,6 +15,8 @@ import (
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/parser"
+	"github.com/forbole/juno/v4/parser/blocksyncer"
+	"github.com/forbole/juno/v4/parser/explorer"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
@@ -85,7 +87,13 @@ func startParsing(ctx *parser.Context) error {
 	// Create workers
 	workers := make([]parser.Worker, cfg.Workers)
 	for i := range workers {
-		workers[i] = parser.NewWorker(ctx, exportQueue, i, cfg.ConcurrentSync, cfg.WorkerType)
+		commonWorker := parser.NewWorker(ctx, exportQueue, i, cfg.ConcurrentSync, cfg.WorkerType)
+		switch cfg.WorkerType {
+		case config.BlockSyncerWorkerType:
+			workers[i] = &blocksyncer.Worker{CommonWorker: commonWorker}
+		case config.ExplorerWorkerType:
+			workers[i] = &explorer.Worker{CommonWorker: commonWorker}
+		}
 	}
 
 	waitGroup.Add(1)
@@ -101,7 +109,7 @@ func startParsing(ctx *parser.Context) error {
 	// off of the export queue.
 	for i, w := range workers {
 		log.Debugw("starting worker...", "number", i+1)
-		go w.Start()
+		go w.Start(w)
 	}
 
 	// Listen for and trap any OS signal to gracefully shutdown and exit

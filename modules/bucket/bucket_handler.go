@@ -8,19 +8,20 @@ import (
 )
 
 func (m *Module) HandleEvent(index int, event sdk.Event) error {
-	if eventType, ok := eventutil.EventProcessedMap[event.Type]; ok {
+	eventType, err := eventutil.GetEventType(event)
+	if err == nil {
 		switch eventType {
-		case "EventCreateBucket":
+		case eventutil.EventCreateBucket:
 			handleEventCreateBucket(event)
-		case "EventDeleteBucket":
+		case eventutil.EventDeleteBucket:
 			handleEventDeleteBucket(event)
-		case "EventUpdateBucketInfo":
+		case eventutil.EventUpdateBucketInfo:
 			handleEventUpdateBucketInfo(event)
 		default:
 			return nil
 		}
 	}
-	return nil
+	return err
 }
 
 func handleEventCreateBucket(event sdk.Event) {
