@@ -7,6 +7,7 @@ import (
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules/parse"
+	eventutil "github.com/forbole/juno/v4/types/event"
 	"strings"
 )
 
@@ -26,25 +27,27 @@ func (o *Module) HandleEvent(ctx context.Context, index int, event sdk.Event) er
 		}
 	}
 
-	log.Infof("event.type: %v", event.Type)
-	eventType := event.Type
-	switch eventType {
-	case "bnbchain.greenfield.storage.EventCreateObject":
-		return o.handleCreateObject(ctx, fieldMap)
-	case "bnbchain.greenfield.storage.EventCancelCreateObject":
-		return o.handleCancelCreateObject(ctx, fieldMap)
-	case "bnbchain.greenfield.storage.EventSealObject":
-		return o.handleSealObject(ctx, fieldMap)
-	case "bnbchain.greenfield.storage.EventCopyObject":
-		return o.handleCopyObject(ctx, fieldMap)
-	case "bnbchain.greenfield.storage.EventDeleteObject":
-		return o.handleDeleteObject(ctx, fieldMap)
-	case "bnbchain.greenfield.storage.EventRejectSealObject":
-		return o.handleRejectSealObject(ctx, fieldMap)
-	default:
-		log.Infof("not object event")
+	eventType, err := eventutil.GetEventType(event)
+	if err == nil {
+		switch eventType {
+		case eventutil.EventCreateObject:
+			return o.handleCreateObject(ctx, fieldMap)
+		case eventutil.EventCancelCreateObject:
+			return o.handleCancelCreateObject(ctx, fieldMap)
+		case eventutil.EventSealObject:
+			return o.handleSealObject(ctx, fieldMap)
+		case eventutil.EventCopyObject:
+			return o.handleCopyObject(ctx, fieldMap)
+		case eventutil.EventDeleteObject:
+			return o.handleDeleteObject(ctx, fieldMap)
+		case eventutil.EventRejectSealObject:
+			return o.handleRejectSealObject(ctx, fieldMap)
+		default:
+			return nil
+		}
 	}
-	return nil
+
+	return err
 }
 
 func (o *Module) handleCreateObject(ctx context.Context, fieldMap map[string]interface{}) error {

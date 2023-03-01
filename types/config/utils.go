@@ -13,7 +13,7 @@ const (
 	TomlConfigType        = "toml"
 	YamlConfigType        = "yaml"
 	BlockSyncerWorkerType = "blocksyncer"
-	NormalWorkerType      = "normal"
+	ExplorerWorkerType    = "explorer"
 )
 
 // GetConfigFilePath returns the path to the configuration file given the executable name

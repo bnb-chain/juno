@@ -9,6 +9,7 @@ import (
 
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
 	"github.com/forbole/juno/v4/parser"
+	"github.com/forbole/juno/v4/parser/explorer"
 	"github.com/forbole/juno/v4/types/config"
 )
 
@@ -30,7 +31,11 @@ func newMissingCmd(parseConfig *parsecmdtypes.Config) *cobra.Command {
 			}
 
 			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules)
-			worker := parser.NewWorker(workerCtx, nil, 0, false, config.NormalWorkerType)
+			//worker := parser.NewWorker(workerCtx, nil, 0, false, config.NormalWorkerType)
+
+			commonWorker := parser.NewWorker(workerCtx, nil, 0, false, config.ExplorerWorkerType)
+			var worker parser.Worker
+			worker = &explorer.Worker{CommonWorker: commonWorker}
 
 			ctx := context.Background()
 			dbLastHeight, err := parseCtx.Database.GetLastBlockHeight(ctx)

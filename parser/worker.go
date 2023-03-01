@@ -24,78 +24,129 @@ import (
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	eventutil "github.com/forbole/juno/v4/types/event"
-	"github.com/forbole/juno/v4/types/utils"
 	"github.com/forbole/juno/v4/utils/syncutils"
 )
 
-// Worker defines a job consumer that is responsible for getting and
-// aggregating block and associated data and exporting it to a database.
-type Worker struct {
-	ctx context.Context
+// Worker defines a job consumer that is responsible for getting and aggregating block and associated data and exporting it to a database.
+type Worker interface {
+	// Start starts a worker by listening for new jobs (block heights) from the given worker queue. Any failed job is logged and re-enqueued.
+	Start(typedWorker Worker)
 
-	index int
+	// ProcessIfNotExists defines the job consumer workflow. It will fetch a block for a given  height and associated metadata and export it to a database if it does not exist yet. It returns an error if any export process fails.
+	ProcessIfNotExists(typedWorker Worker, height uint64) error
 
-	queue   types.HeightQueue
-	codec   codec.Codec
-	modules []modules.Module
+	// Process fetches  a block for a given height and associated metadata and export it to a database.
+	// It returns an error if any export process fails.
+	Process(height uint64) error
 
-	node node.Node
-	db   database.Database
+	// ProcessTransactions fetches transactions for a given height and stores them into the database.
+	// It returns an error if the export process fails.
+	ProcessTransactions(height int64) error
 
-	concurrentSync bool
-	workerType     string
+	// HandleGenesis accepts a GenesisDoc and calls all the registered genesis handlers in the order in which they have been registered.
+	HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[string]json.RawMessage) error
+
+	// SaveValidators persists a list of Tendermint validators with an address and a consensus public key. An error is returned if the public key cannot be Bech32 encoded or if the DB write fails.
+	SaveValidators(vals []*tmtypes.Validator) error
+
+	// ExportBlock accepts a finalized block and a corresponding set of transactions
+	// and persists them to the database along with attributable metadata. An error
+	// is returned if write fails.
+	ExportBlock(args ...interface{}) error
+
+	// ExportCommit accepts a block commitment and a corresponding set of
+	// validators for the commitment and persists them to the database. An error is
+	// returned if any write fails or if there is any missed aggregated data.
+	ExportCommit(commit *tmtypes.Commit, vals *tmctypes.ResultValidators) error
+
+	// SaveTx accepts the transaction and persists it inside the database.
+	// An error is returned if write fails.
+	SaveTx(tx *types.Tx) error
+
+	// HandleTx accepts the transaction and calls the tx handlers.
+	HandleTx(tx *types.Tx)
+
+	// HandleMessage accepts the transaction and handles messages contained
+	// inside the transaction.
+	HandleMessage(index int, msg sdk.Msg, tx *types.Tx)
+
+	// HandleEvent accepts the transaction and handles events contained inside the transaction.
+	HandleEvent(ctx context.Context, index int, event sdk.Event)
+
+	// ExportTxs accepts a slice of transactions and persists then inside the database.
+	// An error is returned if write fails.
+	ExportTxs(txs []*types.Tx) error
+
+	// ExportAccounts accepts a slice of transactions and persists accounts inside the database.
+	// An error is returned if write fails.
+	ExportAccounts(txs []*types.Tx) error
+
+	// ExportEvents accepts a slice of transactions and get events in order to save in database.
+	ExportEvents(txs []*abci.ResponseDeliverTx) error
 }
 
-// NewWorker allows t o create a new Worker implementation.
-func NewWorker(ctx *Context, queue types.HeightQueue, index int, concurrentSync bool, workerType string) Worker {
-	return Worker{
-		index:          index,
-		codec:          ctx.EncodingConfig.Codec,
-		node:           ctx.Node,
-		queue:          queue,
-		db:             ctx.Database,
-		modules:        ctx.Modules,
-		concurrentSync: concurrentSync,
-		workerType:     workerType,
+type CommonWorker struct {
+	Ctx            context.Context
+	Index          int
+	Queue          types.HeightQueue
+	Codec          codec.Codec
+	Modules        []modules.Module
+	Node           node.Node
+	DB             database.Database
+	ConcurrentSync bool
+	WorkerType     string
+}
+
+// NewWorker allows to create a new Worker implementation.
+func NewWorker(ctx *Context, queue types.HeightQueue, index int, concurrentSync bool, workerType string) CommonWorker {
+	return CommonWorker{
+		Index:          index,
+		Codec:          ctx.EncodingConfig.Codec,
+		Node:           ctx.Node,
+		Queue:          queue,
+		DB:             ctx.Database,
+		Modules:        ctx.Modules,
+		ConcurrentSync: concurrentSync,
+		WorkerType:     workerType,
 	}
 }
 
 // Start starts a worker by listening for new jobs (block heights) from the
 // given worker queue. Any failed job is logged and re-enqueued.
-func (w Worker) Start() {
+func (w *CommonWorker) Start(typedWorker Worker) {
 	log.WorkerCount.Inc()
-	chainID, err := w.node.ChainID()
+	chainID, err := w.Node.ChainID()
 	if err != nil {
 		log.Errorw("error while getting chain ID from the node ", "err", err)
 	}
 
-	for i := range w.queue {
-		if err := w.ProcessIfNotExists(i); err != nil {
-			if w.concurrentSync {
+	for i := range w.Queue {
+		if err := w.ProcessIfNotExists(typedWorker, i); err != nil {
+			if w.ConcurrentSync {
 				// re-enqueue any failed job after average block time
 				// TODO: Implement exponential backoff or max retries for a block height.
 				go func() {
 					log.Errorw("re-enqueueing failed block", "height", i, "err", err)
-					w.queue <- i
+					w.Queue <- i
 				}()
 				continue
 			}
 
 			for err != nil {
 				time.Sleep(config.GetAvgBlockTime())
-				err = w.ProcessIfNotExists(i)
+				err = w.ProcessIfNotExists(typedWorker, i)
 			}
 		}
 
-		log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
+		log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.Index), chainID).Set(float64(i))
 	}
 }
 
 // ProcessIfNotExists defines the job consumer workflow. It will fetch a block for a given
 // height and associated metadata and export it to a database if it does not exist yet. It returns an
 // error if any export process fails.
-func (w Worker) ProcessIfNotExists(height uint64) error {
-	exists, err := w.db.HasBlock(w.ctx, height)
+func (w *CommonWorker) ProcessIfNotExists(worker Worker, height uint64) error {
+	exists, err := w.DB.HasBlock(w.Ctx, height)
 	if err != nil {
 		return fmt.Errorf("error while searching for block: %s", err)
 	}
@@ -105,81 +156,18 @@ func (w Worker) ProcessIfNotExists(height uint64) error {
 		return nil
 	}
 
-	if w.workerType == config.BlockSyncerWorkerType {
-		return w.LightProcess(height)
-	}
-	return w.Process(height)
-
-}
-
-// Process fetches  a block for a given height and associated metadata and export it to a database.
-// It returns an error if any export process fails.
-func (w Worker) Process(height uint64) error {
-	log.Debugw("processing block", "height", height)
-	if height == 0 {
-		cfg := config.Cfg.Parser
-
-		genesisDoc, genesisState, err := utils.GetGenesisDocAndState(cfg.GenesisFilePath, w.node)
-		if err != nil {
-			return fmt.Errorf("failed to get genesis: %s", err)
-		}
-
-		return w.HandleGenesis(genesisDoc, genesisState)
-	}
-
-	log.Debugw("processing block", "height", height)
-
-	block, err := w.node.Block(int64(height))
-	if err != nil {
-		return fmt.Errorf("failed to get block from node: %s", err)
-	}
-
-	events, err := w.node.BlockResults(int64(height))
-
-	if err != nil {
-		return fmt.Errorf("failed to get block results from node: %s", err)
-	}
-
-	txs, err := w.node.Txs(block)
-	if err != nil {
-		return fmt.Errorf("failed to get transactions for block: %s", err)
-	}
-
-	vals, err := w.node.Validators(int64(height))
-	if err != nil {
-		return fmt.Errorf("failed to get validators for block: %s", err)
-	}
-
-	return w.ExportBlock(block, events, txs, vals)
-
-}
-
-// LightProcess just process events, currently for blocksyncer
-func (w Worker) LightProcess(height uint64) error {
-	log.Debugw("processing block", "height", height)
-
-	block, err := w.node.Block(int64(height))
-	if err != nil {
-		return fmt.Errorf("failed to get block from node: %s", err)
-	}
-
-	events, err := w.node.BlockResults(int64(height))
-	if err != nil {
-		return fmt.Errorf("failed to get block results from node: %s", err)
-	}
-
-	return w.ExportBlockLight(block, events)
+	return worker.Process(height)
 }
 
 // ProcessTransactions fetches transactions for a given height and stores them into the database.
 // It returns an error if the export process fails.
-func (w Worker) ProcessTransactions(height int64) error {
-	block, err := w.node.Block(height)
+func (w *CommonWorker) ProcessTransactions(height int64) error {
+	block, err := w.Node.Block(height)
 	if err != nil {
 		return fmt.Errorf("failed to get block from node: %s", err)
 	}
 
-	txs, err := w.node.Txs(block)
+	txs, err := w.Node.Txs(block)
 	if err != nil {
 		return fmt.Errorf("failed to get transactions for block: %s", err)
 	}
@@ -196,9 +184,9 @@ func (w Worker) ProcessTransactions(height int64) error {
 
 // HandleGenesis accepts a GenesisDoc and calls all the registered genesis handlers
 // in the order in which they have been registered.
-func (w Worker) HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[string]json.RawMessage) error {
+func (w *CommonWorker) HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[string]json.RawMessage) error {
 	// Call the genesis handlers
-	for _, module := range w.modules {
+	for _, module := range w.Modules {
 		if genesisModule, ok := module.(modules.GenesisModule); ok {
 			if err := genesisModule.HandleGenesis(genesisDoc, appState); err != nil {
 				log.Errorw("error while handling genesis", "module", module, "err", err)
@@ -212,7 +200,7 @@ func (w Worker) HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[strin
 // SaveValidators persists a list of Tendermint validators with an address and a
 // consensus public key. An error is returned if the public key cannot be Bech32
 // encoded or if the DB write fails.
-func (w Worker) SaveValidators(vals []*tmtypes.Validator) error {
+func (w *CommonWorker) SaveValidators(vals []*tmtypes.Validator) error {
 	var validators = make([]*models.Validator, len(vals))
 	for index, val := range vals {
 		consAddr := sdk.ConsAddress(val.Address).String()
@@ -220,7 +208,7 @@ func (w Worker) SaveValidators(vals []*tmtypes.Validator) error {
 		validators[index] = models.NewValidator(common.HexToAddress(consAddr), models.BytesToPubkey(val.PubKey.Bytes()))
 	}
 
-	err := w.db.SaveValidators(w.ctx, validators)
+	err := w.DB.SaveValidators(w.Ctx, validators)
 	if err != nil {
 		return fmt.Errorf("error while saving validators: %s", err)
 	}
@@ -228,79 +216,10 @@ func (w Worker) SaveValidators(vals []*tmtypes.Validator) error {
 	return nil
 }
 
-// ExportBlock accepts a finalized block and a corresponding set of transactions
-// and persists them to the database along with attributable metadata. An error
-// is returned if write fails.
-func (w Worker) ExportBlock(
-	b *tmctypes.ResultBlock, r *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators,
-) error {
-	// Save all validators
-	err := w.SaveValidators(vals.Validators)
-	if err != nil {
-		return err
-	}
-
-	// Make sure the proposer exists
-	proposerAddr := sdk.ConsAddress(b.Block.ProposerAddress)
-	val := findValidatorByAddr(proposerAddr.String(), vals)
-	if val == nil {
-		return fmt.Errorf("failed to find validator by proposer address %s: %s", proposerAddr.String(), err)
-	}
-
-	// Save the block
-	err = w.db.SaveBlock(w.ctx, models.NewBlockFromTmBlock(b, sumGasTxs(txs)))
-	if err != nil {
-		return fmt.Errorf("failed to persist block: %s", err)
-	}
-
-	//currently no need
-	// Save the commits
-	err = w.ExportCommit(b.Block.LastCommit, vals)
-	if err != nil {
-		return err
-	}
-
-	// Call the block handlers
-	for _, module := range w.modules {
-		if blockModule, ok := module.(modules.BlockModule); ok {
-			err = blockModule.HandleBlock(b, r, txs, vals)
-			if err != nil {
-				log.Errorw("error while handling block", "module", module, "height", b, "err", err)
-			}
-		}
-	}
-
-	// Export the transactions and accounts
-	//return syncutils.BatchRun(
-	//	func() error {
-	//		return w.ExportTxs(txs)
-	//	},
-	//	func() error {
-	//		return w.ExportAccounts(txs)
-	//	},
-	//)
-	return nil
-}
-
-// ExportBlockLight only exports basic block data and module related events, currently used for blocksyncer
-func (w Worker) ExportBlockLight(
-	b *tmctypes.ResultBlock, r *tmctypes.ResultBlockResults) error {
-
-	// Save the block simple
-	err := w.db.SaveBlockLight(w.ctx, models.NewBlockFromTmBlock(b, 0))
-	if err != nil {
-		return fmt.Errorf("failed to persist block: %s", err)
-	}
-
-	// Call the event handlers
-	return w.ExportEvents(r.TxsResults)
-
-}
-
 // ExportCommit accepts a block commitment and a corresponding set of
 // validators for the commitment and persists them to the database. An error is
 // returned if any write fails or if there is any missed aggregated data.
-func (w Worker) ExportCommit(commit *tmtypes.Commit, vals *tmctypes.ResultValidators) error {
+func (w *CommonWorker) ExportCommit(commit *tmtypes.Commit, vals *tmctypes.ResultValidators) error {
 	var signatures []*types.CommitSig
 	for _, commitSig := range commit.Signatures {
 		// Avoid empty commits
@@ -309,7 +228,7 @@ func (w Worker) ExportCommit(commit *tmtypes.Commit, vals *tmctypes.ResultValida
 		}
 
 		valAddr := sdk.ConsAddress(commitSig.ValidatorAddress)
-		val := findValidatorByAddr(valAddr.String(), vals)
+		val := FindValidatorByAddr(valAddr.String(), vals)
 		if val == nil {
 			return fmt.Errorf("failed to find validator by commit validator address %s", valAddr.String())
 		}
@@ -323,7 +242,7 @@ func (w Worker) ExportCommit(commit *tmtypes.Commit, vals *tmctypes.ResultValida
 		))
 	}
 
-	err := w.db.SaveCommitSignatures(w.ctx, signatures)
+	err := w.DB.SaveCommitSignatures(w.Ctx, signatures)
 	if err != nil {
 		return fmt.Errorf("error while saving commit signatures: %s", err)
 	}
@@ -331,20 +250,20 @@ func (w Worker) ExportCommit(commit *tmtypes.Commit, vals *tmctypes.ResultValida
 	return nil
 }
 
-// saveTx accepts the transaction and persists it inside the database.
+// SaveTx accepts the transaction and persists it inside the database.
 // An error is returned if write fails.
-func (w Worker) saveTx(tx *types.Tx) error {
-	err := w.db.SaveTx(w.ctx, tx)
+func (w *CommonWorker) SaveTx(tx *types.Tx) error {
+	err := w.DB.SaveTx(w.Ctx, tx)
 	if err != nil {
 		return fmt.Errorf("failed to handle transaction with hash %s: %s", tx.TxHash, err)
 	}
 	return nil
 }
 
-// handleTx accepts the transaction and calls the tx handlers.
-func (w Worker) handleTx(tx *types.Tx) {
+// HandleTx accepts the transaction and calls the tx handlers.
+func (w *CommonWorker) HandleTx(tx *types.Tx) {
 	// Call the tx handlers
-	for _, module := range w.modules {
+	for _, module := range w.Modules {
 		if transactionModule, ok := module.(modules.TransactionModule); ok {
 			err := transactionModule.HandleTx(tx)
 			if err != nil {
@@ -355,11 +274,11 @@ func (w Worker) handleTx(tx *types.Tx) {
 	}
 }
 
-// handleMessage accepts the transaction and handles messages contained
+// HandleMessage accepts the transaction and handles messages contained
 // inside the transaction.
-func (w Worker) handleMessage(index int, msg sdk.Msg, tx *types.Tx) {
+func (w *CommonWorker) HandleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 	// Allow modules to handle the message
-	for _, module := range w.modules {
+	for _, module := range w.Modules {
 		if messageModule, ok := module.(modules.MessageModule); ok {
 			err := messageModule.HandleMsg(index, msg, tx)
 			if err != nil {
@@ -373,12 +292,12 @@ func (w Worker) handleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 	if msgExec, ok := msg.(*authz.MsgExec); ok {
 		for authzIndex, msgAny := range msgExec.Msgs {
 			var executedMsg sdk.Msg
-			err := w.codec.UnpackAny(msgAny, &executedMsg)
+			err := w.Codec.UnpackAny(msgAny, &executedMsg)
 			if err != nil {
 				log.Errorw("unable to unpack MsgExec inner message", "index", authzIndex, "error", err)
 			}
 
-			for _, module := range w.modules {
+			for _, module := range w.Modules {
 				if messageModule, ok := module.(modules.AuthzMessageModule); ok {
 					err = messageModule.HandleMsgExec(index, msgExec, authzIndex, executedMsg, tx)
 					if err != nil {
@@ -392,9 +311,9 @@ func (w Worker) handleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 }
 
 // HandleEvent accepts the transaction and handles events contained inside the transaction.
-func (w Worker) HandleEvent(ctx context.Context, index int, event sdk.Event) {
+func (w *CommonWorker) HandleEvent(ctx context.Context, index int, event sdk.Event) {
 	// Allow modules to handle the message
-	for _, module := range w.modules {
+	for _, module := range w.Modules {
 		if eventModule, ok := module.(modules.EventModule); ok {
 			err := eventModule.HandleEvent(ctx, index, event)
 			if err != nil {
@@ -407,23 +326,23 @@ func (w Worker) HandleEvent(ctx context.Context, index int, event sdk.Event) {
 
 // ExportTxs accepts a slice of transactions and persists then inside the database.
 // An error is returned if write fails.
-func (w Worker) ExportTxs(txs []*types.Tx) error {
+func (w *CommonWorker) ExportTxs(txs []*types.Tx) error {
 	// handle all transactions inside the block
 	for _, tx := range txs {
 		// save the transaction
-		err := w.saveTx(tx)
+		err := w.SaveTx(tx)
 		if err != nil {
 			return fmt.Errorf("error while storing txs: %s", err)
 		}
 
 		// call the tx handlers
-		w.handleTx(tx)
+		w.HandleTx(tx)
 
 		// handle all messages contained inside the transaction
 		sdkMsgs := make([]sdk.Msg, len(tx.Body.Messages))
 		for i, msg := range tx.Body.Messages {
 			var stdMsg sdk.Msg
-			err := w.codec.UnpackAny(msg, &stdMsg)
+			err := w.Codec.UnpackAny(msg, &stdMsg)
 			if err != nil {
 				return err
 			}
@@ -432,14 +351,14 @@ func (w Worker) ExportTxs(txs []*types.Tx) error {
 
 		// call the msg handlers
 		for i, sdkMsg := range sdkMsgs {
-			w.handleMessage(i, sdkMsg, tx)
+			w.HandleMessage(i, sdkMsg, tx)
 		}
 	}
 
-	totalBlocks := w.db.GetTotalBlocks(w.ctx)
+	totalBlocks := w.DB.GetTotalBlocks(w.Ctx)
 	log.DbBlockCount.WithLabelValues("total_blocks_in_db").Set(float64(totalBlocks))
 
-	dbLatestHeight, err := w.db.GetLastBlockHeight(w.ctx)
+	dbLatestHeight, err := w.DB.GetLastBlockHeight(w.Ctx)
 	if err != nil {
 		return err
 	}
@@ -450,7 +369,7 @@ func (w Worker) ExportTxs(txs []*types.Tx) error {
 
 // ExportAccounts accepts a slice of transactions and persists accounts inside the database.
 // An error is returned if write fails.
-func (w Worker) ExportAccounts(txs []*types.Tx) error {
+func (w *CommonWorker) ExportAccounts(txs []*types.Tx) error {
 	// save account
 	for _, tx := range txs {
 		for _, l := range tx.Logs {
@@ -461,7 +380,7 @@ func (w Worker) ExportAccounts(txs []*types.Tx) error {
 							Address: common.HexToAddress(attr.Value),
 							TxCount: 1,
 						}
-						err := w.db.SaveAccount(context.TODO(), account)
+						err := w.DB.SaveAccount(context.TODO(), account)
 						if err != nil {
 							return fmt.Errorf("error while storing account: %s", err)
 						}
@@ -474,14 +393,14 @@ func (w Worker) ExportAccounts(txs []*types.Tx) error {
 }
 
 // ExportEvents accepts a slice of transactions and get events in order to save in database.
-func (w Worker) ExportEvents(txs []*abci.ResponseDeliverTx) error {
+func (w *CommonWorker) ExportEvents(txs []*abci.ResponseDeliverTx) error {
 	// get all events in order from the txs within the block
 	for _, tx := range txs {
 		// handle all events contained inside the transaction
 		events := filterEventsType(tx)
 		// call the event handlers
 		for i, event := range events {
-			w.HandleEvent(w.ctx, i, event)
+			w.HandleEvent(w.Ctx, i, event)
 		}
 	}
 	return nil

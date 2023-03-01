@@ -7,6 +7,7 @@ import (
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules/parse"
+	eventutil "github.com/forbole/juno/v4/types/event"
 	"strings"
 )
 
@@ -27,17 +28,20 @@ func (m *Module) HandleEvent(ctx context.Context, index int, event sdk.Event) er
 	}
 	log.Infof("map: %+v", fieldMap)
 
-	switch event.Type {
-	case "bnbchain.greenfield.storage.EventCreateBucket":
-		return m.handleCreateBucket(ctx, fieldMap)
-	case "bnbchain.greenfield.storage.EventDeleteBucket":
-		return m.handleDeleteBucket(ctx, fieldMap)
-	case "bnbchain.greenfield.storage.EventUpdateBucketInfo":
-		return m.handleUpdateBucketInfo(ctx, fieldMap)
-	default:
-		return nil
+	eventType, err := eventutil.GetEventType(event)
+	if err == nil {
+		switch eventType {
+		case eventutil.EventCreateBucket:
+			return m.handleCreateBucket(ctx, fieldMap)
+		case eventutil.EventDeleteBucket:
+			return m.handleDeleteBucket(ctx, fieldMap)
+		case eventutil.EventUpdateBucketInfo:
+			return m.handleUpdateBucketInfo(ctx, fieldMap)
+		default:
+			return nil
+		}
 	}
-	return nil
+	return err
 }
 
 func (m *Module) handleCreateBucket(ctx context.Context, fieldMap map[string]interface{}) error {

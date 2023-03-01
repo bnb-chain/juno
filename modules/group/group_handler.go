@@ -9,21 +9,22 @@ import (
 )
 
 func (m *Module) HandleEvent(index int, event sdk.Event) error {
-	if eventType, ok := eventutil.EventProcessedMap[event.Type]; ok {
+	eventType, err := eventutil.GetEventType(event)
+	if err == nil {
 		switch eventType {
-		case "EventCreateGroup":
+		case eventutil.EventCreateGroup:
 			handleEventCreateGroup(event)
-		case "EventDeleteGroup":
+		case eventutil.EventDeleteGroup:
 			handleEventDeleteGroup(event)
-		case "EventLeaveGroup":
+		case eventutil.EventLeaveGroup:
 			handleEventLeaveGroup(event)
-		case "EventUpdateGroupMember":
+		case eventutil.EventUpdateGroupMember:
 			handleEventUpdateGroupMember(event)
 		default:
 			return nil
 		}
 	}
-	return nil
+	return err
 }
 
 func handleEventCreateGroup(event sdk.Event) {
