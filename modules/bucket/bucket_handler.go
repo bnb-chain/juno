@@ -2,13 +2,15 @@ package bucket
 
 import (
 	"context"
+	"strings"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules/parse"
 	eventutil "github.com/forbole/juno/v4/types/event"
-	"strings"
 )
 
 func (m *Module) HandleEvent(ctx context.Context, index int, event sdk.Event) error {
@@ -81,10 +83,11 @@ func (m *Module) handleDeleteBucket(ctx context.Context, fieldMap map[string]int
 
 func (m *Module) handleUpdateBucketInfo(ctx context.Context, fieldMap map[string]interface{}) error {
 	bucket := &models.Bucket{
-		BucketName:     fieldMap[parse.BucketNameStr].(string),
-		BucketID:       fieldMap[parse.BucketIDStr].(int64),
-		ReadQuota:      fieldMap[parse.ReadQuotaStr].(string),
-		PaymentAddress: fieldMap[parse.PaymentAddressStr].(common.Address),
+		BucketName:      fieldMap[parse.BucketNameStr].(string),
+		BucketID:        fieldMap[parse.BucketIDStr].(int64),
+		ReadQuota:       fieldMap[parse.ReadQuotaStr].(string),
+		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
+		PaymentAddress:  fieldMap[parse.PaymentAddressStr].(common.Address),
 	}
 
 	if err := m.db.SaveBucket(ctx, bucket); err != nil {

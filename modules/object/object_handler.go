@@ -2,13 +2,15 @@ package object
 
 import (
 	"context"
+	"strings"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules/parse"
 	eventutil "github.com/forbole/juno/v4/types/event"
-	"strings"
 )
 
 func (o *Module) HandleEvent(ctx context.Context, index int, event sdk.Event) error {
@@ -83,6 +85,7 @@ func (o *Module) handleSealObject(ctx context.Context, fieldMap map[string]inter
 		ObjectID:             fieldMap[parse.ObjectIDStr].(int64),
 		ObjectStatus:         fieldMap[parse.ObjectStatusStr].(string),
 		SecondarySpAddresses: fieldMap[parse.SecondarySpAddress].(string),
+		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
 	}
 
 	if err := o.db.SaveObject(ctx, obj); err != nil {
@@ -94,10 +97,11 @@ func (o *Module) handleSealObject(ctx context.Context, fieldMap map[string]inter
 
 func (o *Module) handleCancelCreateObject(ctx context.Context, fieldMap map[string]interface{}) error {
 	obj := &models.Object{
-		BucketName: fieldMap[parse.BucketNameStr].(string),
-		ObjectName: fieldMap[parse.ObjectNameStr].(string),
-		ObjectID:   fieldMap[parse.ObjectIDStr].(int64),
-		Removed:    true,
+		BucketName:      fieldMap[parse.BucketNameStr].(string),
+		ObjectName:      fieldMap[parse.ObjectNameStr].(string),
+		ObjectID:        fieldMap[parse.ObjectIDStr].(int64),
+		Removed:         true,
+		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
 	}
 
 	if err := o.db.SaveObject(ctx, obj); err != nil {
@@ -108,6 +112,22 @@ func (o *Module) handleCancelCreateObject(ctx context.Context, fieldMap map[stri
 }
 
 func (o *Module) handleCopyObject(ctx context.Context, fieldMap map[string]interface{}) error {
+	//Get Object info from source
+	destObject, err := o.db.GetObject(ctx, fieldMap[parse.SourceObjectId].(uint64), fieldMap[parse.SourceBucketName].(string))
+	if err != nil {
+		return err
+	}
+
+	//TODO no 'createAt' info, should this keep the same with origin object? Verify later
+	destObject.ObjectID = fieldMap[parse.DestObjectId].(int64)
+	destObject.ObjectName = fieldMap[parse.DestObjectName].(string)
+	destObject.BucketName = fieldMap[parse.DestBucketName].(string)
+	destObject.OperatorAddress = fieldMap[parse.OperatorAddressStr].(common.Address)
+
+	if err := o.db.SaveObject(ctx, destObject); err != nil {
+		log.Errorf("SaveObject failed err: %v", err)
+		return err
+	}
 	return nil
 }
 
@@ -119,6 +139,7 @@ func (o *Module) handleDeleteObject(ctx context.Context, fieldMap map[string]int
 		Removed:              true,
 		SecondarySpAddresses: fieldMap[parse.SecondarySpAddress].(string),
 		PrimarySpAddress:     fieldMap[parse.PrimarySpAddressStr].(common.Address),
+		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
 	}
 
 	if err := o.db.SaveObject(ctx, obj); err != nil {
@@ -128,6 +149,20 @@ func (o *Module) handleDeleteObject(ctx context.Context, fieldMap map[string]int
 	return nil
 }
 
+// RejectSeal event won't emit a delete event, need to be deleted manually here in metadata service
+// handle logic is set as removed, no need to set status
 func (o *Module) handleRejectSealObject(ctx context.Context, fieldMap map[string]interface{}) error {
+	obj := &models.Object{
+		BucketName:      fieldMap[parse.BucketNameStr].(string),
+		ObjectName:      fieldMap[parse.ObjectNameStr].(string),
+		ObjectID:        fieldMap[parse.ObjectIDStr].(int64),
+		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
+		Removed:         true,
+	}
+
+	if err := o.db.SaveObject(ctx, obj); err != nil {
+		log.Errorf("SaveObject failed err: %v", err)
+		return err
+	}
 	return nil
 }

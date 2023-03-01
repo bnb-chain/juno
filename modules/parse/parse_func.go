@@ -1,9 +1,10 @@
 package parse
 
 import (
+	"strconv"
+
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
-	"strconv"
 )
 
 const (
@@ -18,6 +19,8 @@ const (
 	PaymentAddressStr   = "payment_address"
 	PrimarySpAddressStr = "primary_sp_address"
 	OperatorAddressStr  = "operator_address"
+	SourceBucketName    = "src_bucket_name"
+	DestBucketName      = "dst_bucket_name"
 
 	// object
 	ObjectNameStr      = "object_name"
@@ -29,6 +32,10 @@ const (
 	RedundancyTypeStr  = "redundancy_type"
 	ChecksumsStr       = "checksums"
 	SecondarySpAddress = "secondary_sp_addresses"
+	SourceObjectName   = "src_object_name"
+	DestObjectName     = "dst_object_name"
+	SourceObjectId     = "src_object_id"
+	DestObjectId       = "dst_object_id"
 )
 
 var BucketParseFuncMap = map[string]func(str string) (interface{}, error){
@@ -42,6 +49,8 @@ var BucketParseFuncMap = map[string]func(str string) (interface{}, error){
 	PaymentAddressStr:   parseAddress,
 	PrimarySpAddressStr: parseAddress,
 	OperatorAddressStr:  parseAddress,
+	SourceBucketName:    parseStr,
+	DestBucketName:      parseStr,
 }
 
 var ObjectParseFuncMap = map[string]func(str string) (interface{}, error){
@@ -59,6 +68,10 @@ var ObjectParseFuncMap = map[string]func(str string) (interface{}, error){
 	CreateAtStr:        parseInt64,
 	IsPublicStr:        parseBool,
 	SourceTypeStr:      parseStr,
+	SourceObjectName:   parseStr,
+	DestObjectName:     parseStr,
+	SourceObjectId:     parseInt64,
+	DestObjectId:       parseInt64,
 }
 
 func parseStr(str string) (interface{}, error) {

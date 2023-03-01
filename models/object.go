@@ -20,6 +20,7 @@ type Object struct {
 	CheckSums            string         `gorm:"checksums;type:text"`
 	SecondarySpAddresses string         `gorm:"secondary_sp_addresses;type:text"`
 	PrimarySpAddress     common.Address `gorm:"primary_sp_address;type:BINARY(20)"`
+	OperatorAddress      common.Address `gorm:"operator_address;type:BINARY(20)"`
 	LockedBalance        common.Hash    `gorm:"locked_balance;type:BINARY(32)"`
 	Removed              bool           `gorm:"removed"`
 }

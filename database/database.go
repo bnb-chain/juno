@@ -82,6 +82,10 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveObject(ctx context.Context, object *models.Object) error
 
+	// GetObject returns an object model with given objectId and bucketName.
+	// It should return only one record
+	GetObject(ctx context.Context, objectId uint64, bucketName string) (*models.Object, error)
+
 	// Close closes the connection to the database
 	Close()
 }
@@ -353,9 +357,19 @@ func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
 func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
 	err := db.Db.Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "object_id"}, {Name: "object_name"}},
-		DoUpdates: clause.AssignmentColumns([]string{"object_status", "removed", "secondary_sp_addresses"}),
+		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "object_status", "removed", "secondary_sp_addresses"}),
 	}).Create(object).Error
 	return err
+}
+
+func (db *Impl) GetObject(ctx context.Context, objectId uint64, bucketName string) (*models.Object, error) {
+	var object models.Object
+
+	err := db.Db.Where("object_id = ? AND bucket_name = ? AND removed IS NOT TRUE", objectId, bucketName).Find(&object).Error
+	if err != nil {
+		return nil, err
+	}
+	return &object, nil
 }
 
 // saveMessageInsidePartition stores the given message inside the partition having the provided id
