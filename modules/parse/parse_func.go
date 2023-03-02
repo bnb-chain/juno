@@ -75,6 +75,7 @@ var ObjectParseFuncMap = map[string]func(str string) (interface{}, error){
 	DestObjectId:          parseInt64,
 	SecondarySpAddressDel: parseStr,
 	PrimarySpAddressStr:   parseAddress,
+	OperatorAddressStr:    parseAddress,
 }
 
 func parseStr(str string) (interface{}, error) {
