@@ -137,7 +137,7 @@ func (o *Module) handleDeleteObject(ctx context.Context, fieldMap map[string]int
 		ObjectName:           fieldMap[parse.ObjectNameStr].(string),
 		ObjectID:             fieldMap[parse.ObjectIDStr].(int64),
 		Removed:              true,
-		SecondarySpAddresses: fieldMap[parse.SecondarySpAddress].(string),
+		SecondarySpAddresses: fieldMap[parse.SecondarySpAddressDel].(string),
 		PrimarySpAddress:     fieldMap[parse.PrimarySpAddressStr].(common.Address),
 		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
 	}
