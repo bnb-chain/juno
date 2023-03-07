@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/bnb-chain/greenfield/app"
 
 	tomlconfig "github.com/forbole/juno/v4/cmd/migrate/toml"
 	"github.com/forbole/juno/v4/database"
@@ -81,7 +81,7 @@ func (cfg *Config) WithEncodingConfigBuilder(b EncodingConfigBuilder) *Config {
 // GetEncodingConfigBuilder returns the encoding config builder to be used
 func (cfg *Config) GetEncodingConfigBuilder() EncodingConfigBuilder {
 	if cfg.encodingConfigBuilder == nil {
-		return simapp.MakeTestEncodingConfig
+		return app.MakeEncodingConfig
 	}
 	return cfg.encodingConfigBuilder
 }

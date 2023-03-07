@@ -1,8 +1,15 @@
 package models
 
 import (
-	"github.com/forbole/juno/v4/common"
+	"time"
+
+	"github.com/tendermint/tendermint/crypto"
+	tmversion "github.com/tendermint/tendermint/proto/tendermint/version"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/tendermint/tendermint/version"
+
+	"github.com/forbole/juno/v4/common"
 )
 
 type PartSetHeader struct {
@@ -45,6 +52,35 @@ type Block struct {
 
 func (*Block) TableName() string {
 	return "blocks"
+}
+
+func (b *Block) ToTmBlock() *tmctypes.ResultBlock {
+	blockID := tmtypes.BlockID{
+		Hash: b.Hash.Bytes(),
+	}
+	header := tmtypes.Header{
+		Version: tmversion.Consensus{Block: version.BlockProtocol},
+		//ChainID: ,
+		Height: int64(b.Height),
+		Time:   time.Unix(int64(b.Timestamp), 0),
+		//LastBlockID: ,
+		LastCommitHash:     b.LastResultsHash.Bytes(),
+		DataHash:           b.DataHash.Bytes(),
+		ValidatorsHash:     b.ValidatorsHash.Bytes(),
+		NextValidatorsHash: b.NextValidatorsHash.Bytes(),
+		ConsensusHash:      b.ConsensusHash.Bytes(),
+		AppHash:            b.AppHash.Bytes(),
+		LastResultsHash:    b.LastResultsHash.Bytes(),
+		EvidenceHash:       b.EvidenceHash.Bytes(),
+		ProposerAddress:    crypto.AddressHash(b.ProposerAddress.Bytes()),
+	}
+	block := &tmtypes.Block{
+		Header: header,
+	}
+	return &tmctypes.ResultBlock{
+		BlockID: blockID,
+		Block:   block,
+	}
 }
 
 // NewBlockFromTmBlock builds a new Block instance from a given ResultBlock object

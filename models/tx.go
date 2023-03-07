@@ -1,6 +1,10 @@
 package models
 
 import (
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/bytes"
+	tmtypes "github.com/tendermint/tendermint/types"
+
 	"github.com/forbole/juno/v4/common"
 )
 
@@ -28,4 +32,41 @@ type Tx struct {
 
 func (*Tx) TableName() string {
 	return "txs"
+}
+
+func (t *Tx) ToTmTx() *ResultTx {
+	txResult := ResponseDeliverTx{
+		Log:       t.Logs,
+		GasWanted: int64(t.GasWanted),
+		GasUsed:   int64(t.GasUsed),
+		Messages:  t.Messages,
+	}
+	return &ResultTx{
+		Hash:     t.Hash.Bytes(),
+		Height:   int64(t.Height),
+		Index:    t.TxIndex,
+		TxResult: txResult,
+	}
+}
+
+type ResponseDeliverTx struct {
+	Code      uint32       `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Data      []byte       `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	Log       string       `protobuf:"bytes,3,opt,name=log,proto3" json:"log,omitempty"`
+	Info      string       `protobuf:"bytes,4,opt,name=info,proto3" json:"info,omitempty"`
+	GasWanted int64        `protobuf:"varint,5,opt,name=gas_wanted,proto3" json:"gas_wanted,omitempty"`
+	GasUsed   int64        `protobuf:"varint,6,opt,name=gas_used,proto3" json:"gas_used,omitempty"`
+	Events    []abci.Event `protobuf:"bytes,7,rep,name=events,proto3" json:"events,omitempty"`
+	Codespace string       `protobuf:"bytes,8,opt,name=codespace,proto3" json:"codespace,omitempty"`
+	Messages  string       `json:"messages,omitempty"`
+}
+
+// ResultTx Result of querying for a tx
+type ResultTx struct {
+	Hash     bytes.HexBytes    `json:"hash"`
+	Height   int64             `json:"height"`
+	Index    uint32            `json:"index"`
+	TxResult ResponseDeliverTx `json:"tx_result"`
+	Tx       tmtypes.Tx        `json:"tx"`
+	Proof    tmtypes.TxProof   `json:"proof,omitempty"`
 }

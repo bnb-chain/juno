@@ -4,9 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
+	"github.com/gogo/protobuf/proto"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
+
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
@@ -17,10 +23,6 @@ import (
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
 	"github.com/forbole/juno/v4/utils/syncutils"
-	"github.com/gogo/protobuf/proto"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-	"time"
 )
 
 // Worker defines a job consumer that is responsible for getting and
@@ -44,7 +46,7 @@ type Worker struct {
 func NewWorker(ctx *Context, queue types.HeightQueue, index int, concurrentSync bool) Worker {
 	return Worker{
 		index:          index,
-		codec:          ctx.EncodingConfig.Codec,
+		codec:          ctx.EncodingConfig.Marshaler,
 		node:           ctx.Node,
 		queue:          queue,
 		db:             ctx.Database,
@@ -75,11 +77,13 @@ func (w Worker) Start() {
 			}
 
 			for err != nil {
+				log.Errorw("error while process block", "height", i, "err", err)
 				time.Sleep(config.GetAvgBlockTime())
 				err = w.ProcessIfNotExists(i)
 			}
 		}
 
+		log.Infow("processed block", "height", i)
 		log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
 	}
 }
@@ -234,7 +238,7 @@ func (w Worker) ExportBlock(
 		if blockModule, ok := module.(modules.BlockModule); ok {
 			err = blockModule.HandleBlock(b, r, txs, vals)
 			if err != nil {
-				log.Errorw("error while handling block", "module", module, "height", b, "err", err)
+				log.Errorw("error while handling block", "module", module.Name(), "height", b, "err", err)
 			}
 		}
 	}

@@ -1,7 +1,7 @@
 package registrar
 
 import (
-	"github.com/cosmos/cosmos-sdk/simapp/params"
+	"github.com/bnb-chain/greenfield/app/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
@@ -92,7 +92,7 @@ func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 		group.NewModule(ctx.Database),
 		object.NewModule(ctx.Database),
 		pruning.NewModule(ctx.JunoConfig, ctx.Database),
-		messages.NewModule(r.parser, ctx.EncodingConfig.Codec, ctx.Database),
+		messages.NewModule(r.parser, ctx.EncodingConfig.Marshaler, ctx.Database),
 		telemetry.NewModule(ctx.JunoConfig),
 	}
 }

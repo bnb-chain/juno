@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/simapp/params"
+	"github.com/bnb-chain/greenfield/app/params"
 	"github.com/forbole/juno/v4/common"
 	databaseconfig "github.com/forbole/juno/v4/database/config"
 	"github.com/forbole/juno/v4/log"
@@ -56,7 +56,7 @@ type Database interface {
 
 	// HasValidator returns true if a given validator by consensus address exists.
 	// An error is returned if the operation fails.
-	HasValidator(ctx context.Context, address string) (bool, error)
+	HasValidator(ctx context.Context, address common.Address) (bool, error)
 
 	// SaveValidators stores a list of validators if they do not already exist.
 	// An error is returned if the operation fails.
@@ -100,7 +100,7 @@ func NewContext(cfg databaseconfig.Config, encodingConfig *params.EncodingConfig
 	}
 }
 
-// Builder represents a method that allows to build any database from a given codec and configuration
+// Builder represents a method that allows to build any database from a given Marshaler and configuration
 type Builder func(ctx *Context) (Database, error)
 
 type Impl struct {
@@ -198,7 +198,7 @@ func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
 
 	var msgs = make([]string, len(tx.Body.Messages))
 	for index, msg := range tx.Body.Messages {
-		bz, err := db.EncodingConfig.Codec.MarshalJSON(msg)
+		bz, err := db.EncodingConfig.Marshaler.MarshalJSON(msg)
 		if err != nil {
 			return err
 		}
@@ -206,14 +206,14 @@ func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
 	}
 	msgsBz := fmt.Sprintf("[%s]", strings.Join(msgs, ","))
 
-	feeBz, err := db.EncodingConfig.Codec.MarshalJSON(tx.AuthInfo.Fee)
+	feeBz, err := db.EncodingConfig.Marshaler.MarshalJSON(tx.AuthInfo.Fee)
 	if err != nil {
 		return fmt.Errorf("failed to JSON encode tx fee: %s", err)
 	}
 
 	var sigInfos = make([]string, len(tx.AuthInfo.SignerInfos))
 	for index, info := range tx.AuthInfo.SignerInfos {
-		bz, err := db.EncodingConfig.Codec.MarshalJSON(info)
+		bz, err := db.EncodingConfig.Marshaler.MarshalJSON(info)
 		if err != nil {
 			return err
 		}
@@ -261,7 +261,7 @@ func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error 
 }
 
 // HasValidator implements database.Database
-func (db *Impl) HasValidator(ctx context.Context, addr string) (bool, error) {
+func (db *Impl) HasValidator(ctx context.Context, addr common.Address) (bool, error) {
 	var res bool
 	stmt := `SELECT EXISTS(SELECT 1 FROM validators WHERE consensus_address = ?);`
 	err := db.Db.Raw(stmt, addr).WithContext(ctx).Take(&res).Error

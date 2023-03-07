@@ -28,8 +28,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/forbole/juno/v4/common/hexutil"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/forbole/juno/v4/common/hexutil"
 )
 
 // Lengths of hashes and addresses in bytes.
@@ -222,7 +223,16 @@ func IsHexAddress(s string) bool {
 	if has0xPrefix(s) {
 		s = s[2:]
 	}
-	return len(s) == 2*AddressLength && isHex(s)
+	return len(s) == 2*AddressLength && IsHex(s)
+}
+
+// IsHexHash verifies whether a string can represent a valid hex-encoded
+// Ethereum hash or not.
+func IsHexHash(s string) bool {
+	if has0xPrefix(s) {
+		s = s[2:]
+	}
+	return len(s) == 2*HashLength && IsHex(s)
 }
 
 // Bytes gets the string representation of the underlying address.
