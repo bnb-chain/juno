@@ -87,12 +87,14 @@ func startParsing(ctx *parser.Context) error {
 	// Create workers
 	workers := make([]parser.Worker, cfg.Workers)
 	for i := range workers {
-		commonWorker := parser.NewWorker(ctx, exportQueue, i, cfg.ConcurrentSync, cfg.WorkerType)
+		commonIndexer := parser.NewCommonIndexer(ctx)
 		switch cfg.WorkerType {
 		case config.BlockSyncerWorkerType:
-			workers[i] = &blocksyncer.Worker{CommonWorker: commonWorker}
+			indexer := &blocksyncer.Indexer{Ctx: context.Background(), CommonIndexer: commonIndexer}
+			workers[i] = parser.NewWorker(indexer, exportQueue, i, cfg.ConcurrentSync, cfg.WorkerType)
 		case config.ExplorerWorkerType:
-			workers[i] = &explorer.Worker{CommonWorker: commonWorker}
+			indexer := &explorer.Indexer{CommonIndexer: commonIndexer}
+			workers[i] = parser.NewWorker(indexer, exportQueue, i, cfg.ConcurrentSync, cfg.WorkerType)
 		}
 	}
 
@@ -109,7 +111,7 @@ func startParsing(ctx *parser.Context) error {
 	// off of the export queue.
 	for i, w := range workers {
 		log.Debugw("starting worker...", "number", i+1)
-		go w.Start(w)
+		go w.Start()
 	}
 
 	// Listen for and trap any OS signal to gracefully shutdown and exit

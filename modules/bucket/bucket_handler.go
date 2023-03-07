@@ -33,7 +33,6 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, i
 		fieldMap["timestamp"] = block.Block.Time.Unix()
 	}
 	log.Infof("map: %+v", fieldMap)
-
 	eventType, err := eventutil.GetEventType(event)
 	if err == nil {
 		switch eventType {

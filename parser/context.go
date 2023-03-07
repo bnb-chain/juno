@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"github.com/cosmos/cosmos-sdk/simapp/params"
+	"github.com/bnb-chain/greenfield/app/params"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/node"

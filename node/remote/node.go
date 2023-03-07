@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/forbole/juno/v4/log"
+
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -213,7 +215,8 @@ func (cp *Node) Tx(hash string) (*types.Tx, error) {
 		var stdMsg sdk.Msg
 		err = cp.codec.UnpackAny(msg, &stdMsg)
 		if err != nil {
-			return nil, fmt.Errorf("error while unpacking message: %s", err)
+			log.Errorw("error while unpacking message", "err", err)
+			//return nil, fmt.Errorf("error while unpacking message: %s", err)
 		}
 	}
 

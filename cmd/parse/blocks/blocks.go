@@ -36,12 +36,9 @@ will be replaced with the data downloaded from the node.
 			if err != nil {
 				return err
 			}
-
-			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules)
-
-			commonWorker := parser.NewWorker(workerCtx, nil, 0, false, config.ExplorerWorkerType)
-			var worker parser.Worker
-			worker = &explorer.Worker{CommonWorker: commonWorker}
+			commonIndexer := parser.NewCommonIndexer(parseCtx)
+			indexer := &explorer.Indexer{CommonIndexer: commonIndexer}
+			worker := parser.NewWorker(indexer, nil, 0, false, config.ExplorerWorkerType)
 
 			// Get the flag values
 			start, _ := cmd.Flags().GetInt64(flagStart)
@@ -73,9 +70,9 @@ will be replaced with the data downloaded from the node.
 			log.Infow("getting blocks and transactions", "start height", startHeight, "end height", endHeight)
 			for k := startHeight; k <= uint64(endHeight); k++ {
 				if force {
-					err = worker.Process(k)
+					err = worker.Indexer.ProcessBlock(k)
 				} else {
-					err = worker.ProcessIfNotExists(worker, k)
+					err = worker.ProcessIfNotExists(k)
 				}
 
 				if err != nil {

@@ -6,24 +6,27 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+type SPEventType int
+
 const (
-	EventCreateBucket       = "EventCreateBucket"
-	EventDeleteBucket       = "EventDeleteBucket"
-	EventUpdateBucketInfo   = "EventUpdateBucketInfo"
-	EventCreateObject       = "EventCreateObject"
-	EventCancelCreateObject = "EventCancelCreateObject"
-	EventSealObject         = "EventSealObject"
-	EventCopyObject         = "EventCopyObject"
-	EventDeleteObject       = "EventDeleteObject"
-	EventRejectSealObject   = "EventRejectSealObject"
-	EventCreateGroup        = "EventCreateGroup"
-	EventDeleteGroup        = "EventDeleteGroup"
-	EventLeaveGroup         = "EventLeaveGroup"
-	EventUpdateGroupMember  = "EventUpdateGroupMember"
+	EventCreateBucket = iota
+	EventDeleteBucket
+	EventUpdateBucketInfo
+	EventCreateObject
+	EventCancelCreateObject
+	EventSealObject
+	EventCopyObject
+	EventDeleteObject
+	EventRejectSealObject
+	EventCreateGroup
+	EventDeleteGroup
+	EventLeaveGroup
+	EventUpdateGroupMember
 )
+const EventUnsupported SPEventType = -1
 
 var (
-	EventProcessedMap = map[string]string{
+	EventProcessedMap = map[string]SPEventType{
 		"bnbchain.greenfield.storage.EventCreateBucket":       EventCreateBucket,
 		"bnbchain.greenfield.storage.EventDeleteBucket":       EventDeleteBucket,
 		"bnbchain.greenfield.storage.EventUpdateBucketInfo":   EventUpdateBucketInfo,
@@ -40,9 +43,9 @@ var (
 	}
 )
 
-func GetEventType(event sdk.Event) (string, error) {
+func GetEventType(event sdk.Event) (SPEventType, error) {
 	if eventType, ok := EventProcessedMap[event.Type]; ok {
 		return eventType, nil
 	}
-	return "", errors.New("event type not match")
+	return EventUnsupported, errors.New("event type not match")
 }
