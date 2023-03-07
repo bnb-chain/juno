@@ -270,9 +270,11 @@ func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
 
 // SaveAccount implements database.Database
 func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error {
-	err := db.Db.Table((&models.Account{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "address"}},
-		DoUpdates: []clause.Assignment{{Column: clause.Column{Name: "tx_count"}, Value: gorm.Expr("tx_count+1")}},
+	err := db.Db.WithContext(ctx).Table((&models.Account{}).TableName()).Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "address"}},
+		DoUpdates: []clause.Assignment{
+			{Column: clause.Column{Name: "tx_count"}, Value: gorm.Expr("tx_count+1")},
+			{Column: clause.Column{Name: "last_active_timestamp"}, Value: account.LastActiveTimestamp}},
 	}).Create(account).Error
 	return err
 }
