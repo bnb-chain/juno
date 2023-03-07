@@ -2,6 +2,7 @@ package object
 
 import (
 	"context"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,7 +14,7 @@ import (
 	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
-func (o *Module) HandleEvent(ctx context.Context, index int, event sdk.Event) error {
+func (o *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event) error {
 	fieldMap := make(map[string]interface{})
 	var parseErr error
 	for _, attr := range event.Attributes {
@@ -27,6 +28,10 @@ func (o *Module) HandleEvent(ctx context.Context, index int, event sdk.Event) er
 			log.Errorf("parse failed err: %v", parseErr)
 			return parseErr
 		}
+	}
+
+	if block != nil && block.Block != nil {
+		fieldMap["timestamp"] = block.Block.Time.Unix()
 	}
 
 	eventType, err := eventutil.GetEventType(event)
@@ -71,6 +76,11 @@ func (o *Module) handleCreateObject(ctx context.Context, fieldMap map[string]int
 		CheckSums:      fieldMap[parse.ChecksumsStr].(string),
 	}
 
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		obj.CreateTime = timeInter.(int64)
+		obj.UpdateTime = timeInter.(int64)
+	}
+
 	if err := o.db.SaveObject(ctx, obj); err != nil {
 		log.Errorf("SaveObject failed err: %v", err)
 		return err
@@ -88,6 +98,10 @@ func (o *Module) handleSealObject(ctx context.Context, fieldMap map[string]inter
 		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
 	}
 
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		obj.UpdateTime = timeInter.(int64)
+	}
+
 	if err := o.db.SaveObject(ctx, obj); err != nil {
 		log.Errorf("SaveObject failed err: %v", err)
 		return err
@@ -102,6 +116,10 @@ func (o *Module) handleCancelCreateObject(ctx context.Context, fieldMap map[stri
 		ObjectID:        fieldMap[parse.ObjectIDStr].(int64),
 		Removed:         true,
 		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
+	}
+
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		obj.UpdateTime = timeInter.(int64)
 	}
 
 	if err := o.db.SaveObject(ctx, obj); err != nil {
@@ -124,6 +142,10 @@ func (o *Module) handleCopyObject(ctx context.Context, fieldMap map[string]inter
 	destObject.BucketName = fieldMap[parse.DestBucketName].(string)
 	destObject.OperatorAddress = fieldMap[parse.OperatorAddressStr].(common.Address)
 
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		destObject.UpdateTime = timeInter.(int64)
+	}
+
 	if err := o.db.SaveObject(ctx, destObject); err != nil {
 		log.Errorf("SaveObject failed err: %v", err)
 		return err
@@ -142,6 +164,10 @@ func (o *Module) handleDeleteObject(ctx context.Context, fieldMap map[string]int
 		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
 	}
 
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		obj.UpdateTime = timeInter.(int64)
+	}
+
 	if err := o.db.SaveObject(ctx, obj); err != nil {
 		log.Errorf("SaveObject failed err: %v", err)
 		return err
@@ -158,6 +184,10 @@ func (o *Module) handleRejectSealObject(ctx context.Context, fieldMap map[string
 		ObjectID:        fieldMap[parse.ObjectIDStr].(int64),
 		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
 		Removed:         true,
+	}
+
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		obj.UpdateTime = timeInter.(int64)
 	}
 
 	if err := o.db.SaveObject(ctx, obj); err != nil {

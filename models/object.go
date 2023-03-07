@@ -14,6 +14,7 @@ type Object struct {
 	IsPublic             bool           `gorm:"is_public;type:tinyint(1)"`
 	ContentType          string         `gorm:"content_type;type:varchar(20)"`
 	CreateAt             int64          `gorm:"create_at;type:bigint(64)"`
+	CreateTime           int64          `gorm:"create_time;type:bigint(64)"`
 	ObjectStatus         string         `gorm:"object_status;type:varchar(64)"`
 	RedundancyType       string         `gorm:"redundancy_type;type:varchar(64)"`
 	SourceType           string         `gorm:"source_type;type:varchar(64)"`
@@ -23,6 +24,7 @@ type Object struct {
 	OperatorAddress      common.Address `gorm:"operator_address;type:BINARY(20)"`
 	LockedBalance        common.Hash    `gorm:"locked_balance;type:BINARY(32)"`
 	Removed              bool           `gorm:"removed"`
+	UpdateTime           int64          `gorm:"update_time;type:bigint(64)"`
 }
 
 func (*Object) TableName() string {

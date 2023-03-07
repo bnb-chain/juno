@@ -71,7 +71,7 @@ type Worker interface {
 	HandleMessage(index int, msg sdk.Msg, tx *types.Tx)
 
 	// HandleEvent accepts the transaction and handles events contained inside the transaction.
-	HandleEvent(ctx context.Context, index int, event sdk.Event)
+	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event)
 
 	// ExportTxs accepts a slice of transactions and persists then inside the database.
 	// An error is returned if write fails.
@@ -82,7 +82,7 @@ type Worker interface {
 	ExportAccounts(txs []*types.Tx) error
 
 	// ExportEvents accepts a slice of transactions and get events in order to save in database.
-	ExportEvents(txs []*abci.ResponseDeliverTx) error
+	ExportEvents(block *tmctypes.ResultBlock, txs []*abci.ResponseDeliverTx) error
 }
 
 type CommonWorker struct {
@@ -311,11 +311,11 @@ func (w *CommonWorker) HandleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 }
 
 // HandleEvent accepts the transaction and handles events contained inside the transaction.
-func (w *CommonWorker) HandleEvent(ctx context.Context, index int, event sdk.Event) {
+func (w *CommonWorker) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event) {
 	// Allow modules to handle the message
 	for _, module := range w.Modules {
 		if eventModule, ok := module.(modules.EventModule); ok {
-			err := eventModule.HandleEvent(ctx, index, event)
+			err := eventModule.HandleEvent(ctx, block, index, event)
 			if err != nil {
 				log.Errorw("error while handling event", "module", module, "event", event, "err", err)
 			}
@@ -393,14 +393,14 @@ func (w *CommonWorker) ExportAccounts(txs []*types.Tx) error {
 }
 
 // ExportEvents accepts a slice of transactions and get events in order to save in database.
-func (w *CommonWorker) ExportEvents(txs []*abci.ResponseDeliverTx) error {
+func (w *CommonWorker) ExportEvents(block *tmctypes.ResultBlock, txs []*abci.ResponseDeliverTx) error {
 	// get all events in order from the txs within the block
 	for _, tx := range txs {
 		// handle all events contained inside the transaction
 		events := filterEventsType(tx)
 		// call the event handlers
 		for i, event := range events {
-			w.HandleEvent(w.Ctx, i, event)
+			w.HandleEvent(w.Ctx, block, i, event)
 		}
 	}
 	return nil

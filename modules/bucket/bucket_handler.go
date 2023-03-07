@@ -2,6 +2,7 @@ package bucket
 
 import (
 	"context"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,7 +14,7 @@ import (
 	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
-func (m *Module) HandleEvent(ctx context.Context, index int, event sdk.Event) error {
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event) error {
 	fieldMap := make(map[string]interface{})
 	var parseErr error
 	for _, attr := range event.Attributes {
@@ -27,6 +28,9 @@ func (m *Module) HandleEvent(ctx context.Context, index int, event sdk.Event) er
 			log.Errorf("parse failed err: %v", parseErr)
 			return parseErr
 		}
+	}
+	if block != nil && block.Block != nil {
+		fieldMap["timestamp"] = block.Block.Time.Unix()
 	}
 	log.Infof("map: %+v", fieldMap)
 
@@ -59,6 +63,11 @@ func (m *Module) handleCreateBucket(ctx context.Context, fieldMap map[string]int
 		ReadQuota:        fieldMap[parse.ReadQuotaStr].(string),
 	}
 
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		bucket.CreateTime = timeInter.(int64)
+		bucket.UpdateTime = timeInter.(int64)
+	}
+
 	if err := m.db.SaveBucket(ctx, bucket); err != nil {
 		return err
 	}
@@ -75,6 +84,10 @@ func (m *Module) handleDeleteBucket(ctx context.Context, fieldMap map[string]int
 		Removed:          true,
 	}
 
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		bucket.UpdateTime = timeInter.(int64)
+	}
+
 	if err := m.db.SaveBucket(ctx, bucket); err != nil {
 		return err
 	}
@@ -88,6 +101,10 @@ func (m *Module) handleUpdateBucketInfo(ctx context.Context, fieldMap map[string
 		ReadQuota:       fieldMap[parse.ReadQuotaStr].(string),
 		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
 		PaymentAddress:  fieldMap[parse.PaymentAddressStr].(common.Address),
+	}
+
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		bucket.UpdateTime = timeInter.(int64)
 	}
 
 	if err := m.db.SaveBucket(ctx, bucket); err != nil {

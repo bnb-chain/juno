@@ -8,6 +8,7 @@ type Bucket struct {
 	Owner            common.Address `gorm:"owner;type:BINARY(20);index:idx_owner"`
 	BucketName       string         `gorm:"bucket_name;type:varchar(63);uniqueIndex:uniq_bucket_name"` // BucketName length between 3 and 63
 	CreateAt         int64          `gorm:"create_at;type:bigint(64)"`                                 // create at block height
+	CreateTime       int64          `gorm:"create_time;type:bigint(64)"`
 	IsPublic         bool           `gorm:"is_public;type:tinyint(1)"`
 	SourceType       string         `gorm:"source_type;type:varchar(63)"`
 	PaymentAddress   common.Address `gorm:"payment_address;type:BINARY(20)"`
@@ -18,6 +19,7 @@ type Bucket struct {
 	Rate             int64          `gorm:"rate"`
 	Removed          bool           `gorm:"removed"`
 	OperatorAddress  common.Address `gorm:"operator_address;type:BINARY(20)"`
+	UpdateTime       int64          `gorm:"update_time;type:bigint(64)"`
 }
 
 func (*Bucket) TableName() string {

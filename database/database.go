@@ -349,7 +349,7 @@ func (db *Impl) SaveMessage(ctx context.Context, msg *types.Message) error {
 func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
 	err := db.Db.Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "bucket_id"}, {Name: "bucket_name"}},
-		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "read_quota", "payment_address", "removed"}),
+		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "read_quota", "payment_address", "removed", "update_time"}),
 	}).Create(bucket).Error
 	return err
 }
@@ -357,7 +357,7 @@ func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
 func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
 	err := db.Db.Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "object_id"}, {Name: "object_name"}},
-		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "object_status", "removed", "secondary_sp_addresses"}),
+		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "object_status", "removed", "secondary_sp_addresses", "update_time"}),
 	}).Create(object).Error
 	return err
 }

@@ -42,7 +42,7 @@ func (w *Worker) ExportBlock(args ...interface{}) error {
 	}
 
 	// Call the event handlers
-	return w.ExportEvents(r.TxsResults)
+	return w.ExportEvents(b, r.TxsResults)
 
 }
 
