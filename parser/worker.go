@@ -162,7 +162,7 @@ func (w Worker) ProcessTransactions(height int64) error {
 			return w.ExportTxs(txs)
 		},
 		func() error {
-			return w.ExportAccounts(txs)
+			return w.ExportAccounts(uint64(block.Block.Time.Unix()), txs)
 		},
 	)
 }
@@ -249,7 +249,7 @@ func (w Worker) ExportBlock(
 			return w.ExportTxs(txs)
 		},
 		func() error {
-			return w.ExportAccounts(txs)
+			return w.ExportAccounts(uint64(b.Block.Time.Unix()), txs)
 		},
 	)
 }
@@ -393,7 +393,7 @@ func (w Worker) ExportTxs(txs []*types.Tx) error {
 
 // ExportAccounts accepts a slice of transactions and persists accounts inside the database.
 // An error is returned if write fails.
-func (w Worker) ExportAccounts(txs []*types.Tx) error {
+func (w Worker) ExportAccounts(timestamp uint64, txs []*types.Tx) error {
 	// save account
 	for _, tx := range txs {
 		for _, l := range tx.Logs {
@@ -401,8 +401,9 @@ func (w Worker) ExportAccounts(txs []*types.Tx) error {
 				for _, attr := range event.Attributes {
 					if common.IsHexAddress(attr.Value) {
 						account := &models.Account{
-							Address: common.HexToAddress(attr.Value),
-							TxCount: 1,
+							Address:             common.HexToAddress(attr.Value),
+							TxCount:             1,
+							LastActiveTimestamp: timestamp,
 						}
 						err := w.db.SaveAccount(context.TODO(), account)
 						if err != nil {

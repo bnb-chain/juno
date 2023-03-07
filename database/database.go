@@ -9,16 +9,17 @@ import (
 	"strings"
 
 	"github.com/bnb-chain/greenfield/app/params"
+	"github.com/lib/pq"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
+
 	"github.com/forbole/juno/v4/common"
 	databaseconfig "github.com/forbole/juno/v4/database/config"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
-	"github.com/lib/pq"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
-	"gorm.io/gorm/schema"
 )
 
 // Database represents an abstract database that can be used to save data inside it
@@ -253,9 +254,11 @@ func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
 
 // SaveAccount implements database.Database
 func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error {
-	err := db.Db.Table((&models.Account{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "address"}},
-		DoUpdates: []clause.Assignment{{Column: clause.Column{Name: "tx_count"}, Value: gorm.Expr("tx_count+1")}},
+	err := db.Db.WithContext(ctx).Table((&models.Account{}).TableName()).Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "address"}},
+		DoUpdates: []clause.Assignment{
+			{Column: clause.Column{Name: "tx_count"}, Value: gorm.Expr("tx_count+1")},
+			{Column: clause.Column{Name: "last_active_timestamp"}, Value: account.LastActiveTimestamp}},
 	}).Create(account).Error
 	return err
 }
