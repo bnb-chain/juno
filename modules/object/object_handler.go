@@ -59,20 +59,21 @@ func (o *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, i
 func (o *Module) handleCreateObject(ctx context.Context, fieldMap map[string]interface{}) error {
 	log.Debugf("fieldMap: %+v", fieldMap)
 	obj := &models.Object{
-		Creator:        fieldMap[parse.CreatorAddressStr].(common.Address),
-		Owner:          fieldMap[parse.OwnerAddressStr].(common.Address),
-		BucketID:       fieldMap[parse.BucketIDStr].(int64),
-		BucketName:     fieldMap[parse.BucketNameStr].(string),
-		ObjectName:     fieldMap[parse.ObjectNameStr].(string),
-		ObjectID:       fieldMap[parse.ObjectIDStr].(int64),
-		PayloadSize:    fieldMap[parse.PayloadSizeStr].(int64),
-		IsPublic:       fieldMap[parse.IsPublicStr].(bool),
-		ContentType:    fieldMap[parse.ContentTypeStr].(string),
-		CreateAt:       fieldMap[parse.CreateAtStr].(int64),
-		ObjectStatus:   fieldMap[parse.ObjectStatusStr].(string),
-		RedundancyType: fieldMap[parse.RedundancyTypeStr].(string),
-		SourceType:     fieldMap[parse.SourceTypeStr].(string),
-		CheckSums:      fieldMap[parse.ChecksumsStr].(string),
+		Creator:          fieldMap[parse.CreatorAddressStr].(common.Address),
+		Owner:            fieldMap[parse.OwnerAddressStr].(common.Address),
+		BucketID:         fieldMap[parse.BucketIDStr].(int64),
+		BucketName:       fieldMap[parse.BucketNameStr].(string),
+		ObjectName:       fieldMap[parse.ObjectNameStr].(string),
+		ObjectID:         fieldMap[parse.ObjectIDStr].(int64),
+		PayloadSize:      fieldMap[parse.PayloadSizeStr].(int64),
+		IsPublic:         fieldMap[parse.IsPublicStr].(bool),
+		ContentType:      fieldMap[parse.ContentTypeStr].(string),
+		CreateAt:         fieldMap[parse.CreateAtStr].(int64),
+		ObjectStatus:     fieldMap[parse.ObjectStatusStr].(string),
+		RedundancyType:   fieldMap[parse.RedundancyTypeStr].(string),
+		SourceType:       fieldMap[parse.SourceTypeStr].(string),
+		CheckSums:        fieldMap[parse.ChecksumsStr].(string),
+		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
 	}
 
 	if timeInter, ok := fieldMap["timestamp"]; ok {
@@ -110,11 +111,12 @@ func (o *Module) handleSealObject(ctx context.Context, fieldMap map[string]inter
 
 func (o *Module) handleCancelCreateObject(ctx context.Context, fieldMap map[string]interface{}) error {
 	obj := &models.Object{
-		BucketName:      fieldMap[parse.BucketNameStr].(string),
-		ObjectName:      fieldMap[parse.ObjectNameStr].(string),
-		ObjectID:        fieldMap[parse.ObjectIDStr].(int64),
-		Removed:         true,
-		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
+		BucketName:       fieldMap[parse.BucketNameStr].(string),
+		ObjectName:       fieldMap[parse.ObjectNameStr].(string),
+		ObjectID:         fieldMap[parse.ObjectIDStr].(int64),
+		Removed:          true,
+		OperatorAddress:  fieldMap[parse.OperatorAddressStr].(common.Address),
+		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
 	}
 
 	if timeInter, ok := fieldMap["timestamp"]; ok {

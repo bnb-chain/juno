@@ -97,9 +97,9 @@ func (m *Module) handleUpdateBucketInfo(ctx context.Context, fieldMap map[string
 	bucket := &models.Bucket{
 		BucketName:      fieldMap[parse.BucketNameStr].(string),
 		BucketID:        fieldMap[parse.BucketIDStr].(int64),
-		ReadQuota:       fieldMap[parse.ReadQuotaStr].(string),
+		ReadQuota:       fieldMap[parse.ReadQuotaAfterStr].(string),
 		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
-		PaymentAddress:  fieldMap[parse.PaymentAddressStr].(common.Address),
+		PaymentAddress:  fieldMap[parse.PaymentAddressAfterStr].(common.Address),
 	}
 
 	if timeInter, ok := fieldMap["timestamp"]; ok {

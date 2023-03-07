@@ -9,18 +9,20 @@ import (
 
 const (
 	// bucket
-	BucketNameStr       = "bucket_name"
-	OwnerAddressStr     = "owner_address"
-	IsPublicStr         = "is_public"
-	CreateAtStr         = "create_at"
-	BucketIDStr         = "id"
-	SourceTypeStr       = "source_type"
-	ReadQuotaStr        = "read_quota"
-	PaymentAddressStr   = "payment_address"
-	PrimarySpAddressStr = "primary_sp_address"
-	OperatorAddressStr  = "operator_address"
-	SourceBucketName    = "src_bucket_name"
-	DestBucketName      = "dst_bucket_name"
+	BucketNameStr          = "bucket_name"
+	OwnerAddressStr        = "owner_address"
+	IsPublicStr            = "is_public"
+	CreateAtStr            = "create_at"
+	BucketIDStr            = "id"
+	SourceTypeStr          = "source_type"
+	ReadQuotaStr           = "read_quota"
+	ReadQuotaAfterStr      = "read_quota_after"
+	PaymentAddressStr      = "payment_address"
+	PaymentAddressAfterStr = "payment_address_after"
+	PrimarySpAddressStr    = "primary_sp_address"
+	OperatorAddressStr     = "operator_address"
+	SourceBucketName       = "src_bucket_name"
+	DestBucketName         = "dst_bucket_name"
 
 	// object
 	ObjectNameStr         = "object_name"
@@ -40,18 +42,20 @@ const (
 )
 
 var BucketParseFuncMap = map[string]func(str string) (interface{}, error){
-	BucketNameStr:       parseStr,
-	OwnerAddressStr:     parseAddress,
-	IsPublicStr:         parseBool,
-	CreateAtStr:         parseInt64,
-	BucketIDStr:         parseInt64,
-	SourceTypeStr:       parseStr,
-	ReadQuotaStr:        parseStr,
-	PaymentAddressStr:   parseAddress,
-	PrimarySpAddressStr: parseAddress,
-	OperatorAddressStr:  parseAddress,
-	SourceBucketName:    parseStr,
-	DestBucketName:      parseStr,
+	BucketNameStr:          parseStr,
+	OwnerAddressStr:        parseAddress,
+	IsPublicStr:            parseBool,
+	CreateAtStr:            parseInt64,
+	BucketIDStr:            parseInt64,
+	SourceTypeStr:          parseStr,
+	ReadQuotaStr:           parseStr,
+	ReadQuotaAfterStr:      parseStr,
+	PaymentAddressStr:      parseAddress,
+	PaymentAddressAfterStr: parseAddress,
+	PrimarySpAddressStr:    parseAddress,
+	OperatorAddressStr:     parseAddress,
+	SourceBucketName:       parseStr,
+	DestBucketName:         parseStr,
 }
 
 var ObjectParseFuncMap = map[string]func(str string) (interface{}, error){
