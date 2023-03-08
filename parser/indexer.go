@@ -2,7 +2,11 @@ package parser
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/authz"
+	"github.com/gogo/protobuf/proto"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -43,27 +47,119 @@ type Indexer interface {
 	ExportAccounts(block *tmctypes.ResultBlock, txs []*types.Tx) error
 
 	// ExportEvents accepts a slice of transactions and get events in order to save in database.
-	ExportEvents(events *tmctypes.ResultBlockResults) error
+	ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults) error
+
+	// HandleGenesis accepts a GenesisDoc and calls all the registered genesis handlers
+	// in the order in which they have been registered.
+	HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[string]json.RawMessage) error
+
+	HandleBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators)
+
+	// HandleTx accepts the transaction and calls the tx handlers.
+	HandleTx(tx *types.Tx)
+
+	// HandleMessage accepts the transaction and handles messages contained
+	// inside the transaction.
+	HandleMessage(index int, msg sdk.Msg, tx *types.Tx)
+
+	// HandleEvent accepts the transaction and handles events contained inside the transaction.
+	HandleEvent(index int, event sdk.Event)
 }
 
 func DefaultIndexer(codec codec.Codec, proxy node.Node, db database.Database, modules []modules.Module) Indexer {
 	return &Impl{
-		codec:  codec,
-		Node:   proxy,
-		DB:     db,
-		Worker: NewPuppetWorker(modules),
+		codec:   codec,
+		Node:    proxy,
+		DB:      db,
+		Modules: modules,
 	}
 }
 
 type Impl struct {
 	Ctx context.Context
 
-	Worker *Worker
+	Modules []modules.Module
 
 	codec codec.Codec
 
 	Node node.Node
 	DB   database.Database
+}
+
+func (i *Impl) HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[string]json.RawMessage) error {
+	// Call the genesis handlers
+	for _, module := range i.Modules {
+		if genesisModule, ok := module.(modules.GenesisModule); ok {
+			if err := genesisModule.HandleGenesis(genesisDoc, appState); err != nil {
+				log.Errorw("error while handling genesis", "module", module, "err", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (i *Impl) HandleBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators) {
+	for _, module := range i.Modules {
+		if blockModule, ok := module.(modules.BlockModule); ok {
+			err := blockModule.HandleBlock(block, events, txs, vals)
+			if err != nil {
+				log.Errorw("error while handling block", "module", module.Name(), "height", block.Block.Height, "err", err)
+			}
+		}
+	}
+}
+
+func (i *Impl) HandleTx(tx *types.Tx) {
+	// Call the tx handlers
+	for _, module := range i.Modules {
+		if transactionModule, ok := module.(modules.TransactionModule); ok {
+			err := transactionModule.HandleTx(tx)
+			if err != nil {
+				log.Errorw("error while handling transaction", "module", module.Name(), "height", tx.Height,
+					"txHash", tx.TxHash, "err", err)
+			}
+		}
+	}
+}
+
+func (i *Impl) HandleMessage(index int, msg sdk.Msg, tx *types.Tx) {
+	// Allow modules to handle the message
+	for _, module := range i.Modules {
+		if messageModule, ok := module.(modules.MessageModule); ok {
+			err := messageModule.HandleMsg(index, msg, tx)
+			if err != nil {
+				log.Errorw("error while handling message", "module", module, "height", tx.Height,
+					"txHash", tx.TxHash, "msg", proto.MessageName(msg), "err", err)
+			}
+		}
+	}
+
+	// If it's a MsgExecute, we need to make sure the included messages are handled as well
+	if msgExec, ok := msg.(*authz.MsgExec); ok {
+		for authzIndex, msgAny := range msgExec.Msgs {
+			var executedMsg sdk.Msg
+			err := i.codec.UnpackAny(msgAny, &executedMsg)
+			if err != nil {
+				log.Errorw("unable to unpack MsgExec inner message", "index", authzIndex, "error", err)
+			}
+
+			for _, module := range i.Modules {
+				if messageModule, ok := module.(modules.AuthzMessageModule); ok {
+					err = messageModule.HandleMsgExec(index, msgExec, authzIndex, executedMsg, tx)
+					if err != nil {
+						log.Errorw("error while handling message", "module", module, "height", tx.Height,
+							"txHash", tx.TxHash, "msg", proto.MessageName(executedMsg), "err", err)
+					}
+				}
+			}
+		}
+	}
+}
+
+func (i *Impl) HandleEvent(index int, event sdk.Event) {
+	//TODO implement me
+	panic("implement me")
 }
 
 // Process fetches a block for a given height and associated metadata and export it to a database.
@@ -111,6 +207,11 @@ func (i *Impl) Process(height uint64) error {
 		return err
 	}
 
+	err = i.ExportEvents(i.Ctx, block, events)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -126,9 +227,18 @@ func (i *Impl) ExportBlock(
 	}
 
 	// Call the block handlers
-	if i.Worker != nil {
-		log.Debugw("puppet worker exists, handle block...")
-		i.Worker.HandleBlock(block, events, txs, vals)
+	//if i.Worker != nil {
+	//	log.Debugw("puppet worker exists, handle block...")
+	//	i.Worker.HandleBlock(block, events, txs, vals)
+	//}
+
+	for _, module := range i.Modules {
+		if blockModule, ok := module.(modules.BlockModule); ok {
+			err := blockModule.HandleBlock(block, events, txs, vals)
+			if err != nil {
+				log.Errorw("error while handling block", "module", module.Name(), "height", block.Block.Height, "err", err)
+			}
+		}
 	}
 
 	return nil
@@ -205,10 +315,7 @@ func (i *Impl) ExportTxs(txs []*types.Tx) error {
 		}
 
 		// call the tx handlers
-		if i.Worker != nil {
-			log.Debugw("puppet worker exists, handle tx...")
-			i.Worker.HandleTx(tx)
-		}
+		i.HandleTx(tx)
 
 		// handle all messages contained inside the transaction
 		sdkMsgs := make([]sdk.Msg, len(tx.Body.Messages))
@@ -222,11 +329,8 @@ func (i *Impl) ExportTxs(txs []*types.Tx) error {
 		}
 
 		// call the msg handlers
-		if i.Worker != nil {
-			log.Debugw("puppet worker exists, handle msg...")
-			for ind, sdkMsg := range sdkMsgs {
-				i.Worker.HandleMessage(ind, sdkMsg, tx)
-			}
+		for ind, sdkMsg := range sdkMsgs {
+			i.HandleMessage(ind, sdkMsg, tx)
 		}
 	}
 
@@ -268,6 +372,6 @@ func (i *Impl) ExportAccounts(block *tmctypes.ResultBlock, txs []*types.Tx) erro
 	return nil
 }
 
-func (i *Impl) ExportEvents(events *tmctypes.ResultBlockResults) error {
+func (i *Impl) ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults) error {
 	return nil
 }
