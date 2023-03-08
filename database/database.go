@@ -44,9 +44,6 @@ type Database interface {
 	// NOTE. For each transaction inside txs, SaveTx will be called as well.
 	SaveBlock(ctx context.Context, block *models.Block) error
 
-	// SaveBlockLight save part data of SaveBlock, currently used for blocksyncer
-	SaveBlockLight(ctx context.Context, block *models.Block) error
-
 	// GetTotalBlocks returns total number of blocks stored in database.
 	GetTotalBlocks(ctx context.Context) int64
 
