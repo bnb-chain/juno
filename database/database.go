@@ -182,19 +182,6 @@ func (db *Impl) SaveBlock(ctx context.Context, block *models.Block) error {
 	return err
 }
 
-// SaveBlockLight implements database.Database
-// TODO only save property blocksyncer needs
-func (db *Impl) SaveBlockLight(ctx context.Context, block *models.Block) error {
-	err := db.Db.Table((&models.Block{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "hash"}},
-		UpdateAll: true,
-	}, clause.OnConflict{
-		Columns:   []clause.Column{{Name: "height"}},
-		UpdateAll: true,
-	}).Create(block).Error
-	return err
-}
-
 // GetTotalBlocks implements database.Database
 func (db *Impl) GetTotalBlocks(ctx context.Context) int64 {
 	var blockCount int64
