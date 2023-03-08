@@ -15,8 +15,6 @@ import (
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/parser"
-	"github.com/forbole/juno/v4/parser/blocksyncer"
-	"github.com/forbole/juno/v4/parser/explorer"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
@@ -85,17 +83,11 @@ func startParsing(ctx *parser.Context) error {
 	exportQueue := types.NewQueue(25)
 
 	// Create workers
-	workers := make([]parser.Worker, cfg.Workers)
+	workers := make([]*parser.Worker, cfg.Workers)
 	for i := range workers {
-
-		commonIndexer := parser.NewCommonIndexer(ctx)
-		switch cfg.WorkerType {
-		case config.BlockSyncerWorkerType:
-			indexer := &blocksyncer.Indexer{CommonIndexer: commonIndexer}
-			workers[i] = parser.NewWorker(indexer, exportQueue, i, cfg.ConcurrentSync, cfg.WorkerType)
-		case config.ExplorerWorkerType:
-			indexer := &explorer.Indexer{CommonIndexer: commonIndexer}
-			workers[i] = parser.NewWorker(indexer, exportQueue, i, cfg.ConcurrentSync, cfg.WorkerType)
+		workers[i] = parser.NewWorker(ctx, exportQueue, i, cfg.ConcurrentSync)
+		if ctx.Indexer != nil {
+			workers[i].SetIndexer(ctx.Indexer)
 		}
 	}
 

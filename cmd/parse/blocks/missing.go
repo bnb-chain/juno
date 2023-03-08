@@ -9,7 +9,6 @@ import (
 
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
 	"github.com/forbole/juno/v4/parser"
-	"github.com/forbole/juno/v4/parser/explorer"
 	"github.com/forbole/juno/v4/types/config"
 )
 
@@ -30,18 +29,17 @@ func newMissingCmd(parseConfig *parsecmdtypes.Config) *cobra.Command {
 				return err
 			}
 
-			commonIndexer := parser.NewCommonIndexer(parseCtx)
-			indexer := &explorer.Indexer{CommonIndexer: commonIndexer}
-			worker := parser.NewWorker(indexer, nil, 0, false, config.ExplorerWorkerType)
+			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules, nil)
+			worker := parser.NewWorker(workerCtx, nil, 0, false)
 
 			ctx := context.Background()
 			dbLastHeight, err := parseCtx.Database.GetLastBlockHeight(ctx)
 			if err != nil {
-				return fmt.Errorf("error while getting DB last block height: %s", err)
+				return fmt.Errorf("error while getting db last block height: %s", err)
 			}
 
 			for _, k := range parseCtx.Database.GetMissingHeights(ctx, startHeight, dbLastHeight) {
-				err = worker.Indexer.ProcessBlock(k)
+				err = worker.Process(k)
 				if err != nil {
 					return fmt.Errorf("error while re-fetching block %d: %s", k, err)
 				}
