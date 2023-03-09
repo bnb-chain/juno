@@ -43,9 +43,6 @@ type Database interface {
 	// NOTE. For each transaction inside txs, SaveTx will be called as well.
 	SaveBlock(ctx context.Context, block *models.Block) error
 
-	// SaveBlockLight save part data of SaveBlock, currently used for blocksyncer
-	SaveBlockLight(ctx context.Context, block *models.Block) error
-
 	// GetTotalBlocks returns total number of blocks stored in database.
 	GetTotalBlocks(ctx context.Context) int64
 
@@ -193,19 +190,6 @@ func (db *Impl) SaveBlock(ctx context.Context, block *models.Block) error {
 	return err
 }
 
-// SaveBlockLight implements database.Database
-// TODO only save property blocksyncer needs
-func (db *Impl) SaveBlockLight(ctx context.Context, block *models.Block) error {
-	err := db.Db.Table((&models.Block{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "hash"}},
-		UpdateAll: true,
-	}, clause.OnConflict{
-		Columns:   []clause.Column{{Name: "height"}},
-		UpdateAll: true,
-	}).Create(block).Error
-	return err
-}
-
 // GetTotalBlocks implements database.Database
 func (db *Impl) GetTotalBlocks(ctx context.Context) int64 {
 	var blockCount int64
@@ -281,9 +265,11 @@ func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
 
 // SaveAccount implements database.Database
 func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error {
-	err := db.Db.Table((&models.Account{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "address"}},
-		DoUpdates: []clause.Assignment{{Column: clause.Column{Name: "tx_count"}, Value: gorm.Expr("tx_count+1")}},
+	err := db.Db.WithContext(ctx).Table((&models.Account{}).TableName()).Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "address"}},
+		DoUpdates: []clause.Assignment{
+			{Column: clause.Column{Name: "tx_count"}, Value: gorm.Expr("tx_count+1")},
+			{Column: clause.Column{Name: "last_active_timestamp"}, Value: account.LastActiveTimestamp}},
 	}).Create(account).Error
 	return err
 }

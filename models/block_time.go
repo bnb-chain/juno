@@ -1,9 +1,9 @@
 package models
 
 type AverageBlockTimePerMinute struct {
-	OneRowId    bool   `gorm:"one_row_id;not null;default:true;primaryKey"`
-	AverageTime uint64 `gorm:"average_time;not null"`
-	Height      uint64 `gorm:"height;not null;index:idx_height"`
+	OneRowId    bool    `gorm:"one_row_id;not null;default:true;primaryKey"`
+	AverageTime float64 `gorm:"average_time;not null"`
+	Height      uint64  `gorm:"height;not null;index:idx_height"`
 }
 
 func (*AverageBlockTimePerMinute) TableName() string {
@@ -11,9 +11,9 @@ func (*AverageBlockTimePerMinute) TableName() string {
 }
 
 type AverageBlockTimePerHour struct {
-	OneRowId    bool   `gorm:"one_row_id;not null;default:true;primaryKey"`
-	AverageTime uint64 `gorm:"average_time;not null"`
-	Height      uint64 `gorm:"height;not null;index:idx_height"`
+	OneRowId    bool    `gorm:"one_row_id;not null;default:true;primaryKey"`
+	AverageTime float64 `gorm:"average_time;not null"`
+	Height      uint64  `gorm:"height;not null;index:idx_height"`
 }
 
 func (*AverageBlockTimePerHour) TableName() string {
@@ -21,9 +21,9 @@ func (*AverageBlockTimePerHour) TableName() string {
 }
 
 type AverageBlockTimePerDay struct {
-	OneRowId    bool   `gorm:"one_row_id;not null;default:true;primaryKey"`
-	AverageTime uint64 `gorm:"average_time;not null"`
-	Height      uint64 `gorm:"height;not null;index:idx_height"`
+	OneRowId    bool    `gorm:"one_row_id;not null;default:true;primaryKey"`
+	AverageTime float64 `gorm:"average_time;not null"`
+	Height      uint64  `gorm:"height;not null;index:idx_height"`
 }
 
 func (*AverageBlockTimePerDay) TableName() string {
@@ -31,9 +31,9 @@ func (*AverageBlockTimePerDay) TableName() string {
 }
 
 type AverageBlockTimeFromGenesis struct {
-	OneRowId    bool   `gorm:"one_row_id;not null;default:true;primaryKey"`
-	AverageTime uint64 `gorm:"average_time;not null"`
-	Height      uint64 `gorm:"height;not null;index:idx_height"`
+	OneRowId    bool    `gorm:"one_row_id;not null;default:true;primaryKey"`
+	AverageTime float64 `gorm:"average_time;not null"`
+	Height      uint64  `gorm:"height;not null;index:idx_height"`
 }
 
 func (*AverageBlockTimeFromGenesis) TableName() string {

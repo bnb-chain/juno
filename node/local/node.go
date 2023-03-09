@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"path"
 	"sort"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -33,9 +35,6 @@ import (
 
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types"
-
-	"path"
-	"time"
 
 	constypes "github.com/tendermint/tendermint/consensus/types"
 	tmjson "github.com/tendermint/tendermint/libs/json"
