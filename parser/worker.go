@@ -2,17 +2,10 @@ package parser
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/authz"
-	"github.com/gogo/protobuf/proto"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
@@ -131,25 +124,10 @@ func (w *Worker) Process(height uint64) error {
 			return fmt.Errorf("failed to get genesis: %s", err)
 		}
 
-		return w.HandleGenesis(genesisDoc, genesisState)
+		return w.indexer.HandleGenesis(genesisDoc, genesisState)
 	}
 
 	return w.indexer.Process(height)
-}
-
-// HandleGenesis accepts a GenesisDoc and calls all the registered genesis handlers
-// in the order in which they have been registered.
-func (w *Worker) HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[string]json.RawMessage) error {
-	// Call the genesis handlers
-	for _, module := range w.modules {
-		if genesisModule, ok := module.(modules.GenesisModule); ok {
-			if err := genesisModule.HandleGenesis(genesisDoc, appState); err != nil {
-				log.Errorw("error while handling genesis", "module", module, "err", err)
-			}
-		}
-	}
-
-	return nil
 }
 
 // ProcessTransactions fetches transactions for a given height and stores them into the database.
@@ -173,78 +151,4 @@ func (w *Worker) ProcessTransactions(height int64) error {
 			return w.indexer.ExportAccounts(block, txs)
 		},
 	)
-}
-
-func (w *Worker) HandleBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators) {
-	for _, module := range w.modules {
-		if blockModule, ok := module.(modules.BlockModule); ok {
-			err := blockModule.HandleBlock(block, events, txs, vals)
-			if err != nil {
-				log.Errorw("error while handling block", "module", module.Name(), "height", block.Block.Height, "err", err)
-			}
-		}
-	}
-}
-
-// HandleTx accepts the transaction and calls the tx handlers.
-func (w *Worker) HandleTx(tx *types.Tx) {
-	// Call the tx handlers
-	for _, module := range w.modules {
-		if transactionModule, ok := module.(modules.TransactionModule); ok {
-			err := transactionModule.HandleTx(tx)
-			if err != nil {
-				log.Errorw("error while handling transaction", "module", module.Name(), "height", tx.Height,
-					"txHash", tx.TxHash, "err", err)
-			}
-		}
-	}
-}
-
-// HandleMessage accepts the transaction and handles messages contained
-// inside the transaction.
-func (w *Worker) HandleMessage(index int, msg sdk.Msg, tx *types.Tx) {
-	// Allow modules to handle the message
-	for _, module := range w.modules {
-		if messageModule, ok := module.(modules.MessageModule); ok {
-			err := messageModule.HandleMsg(index, msg, tx)
-			if err != nil {
-				log.Errorw("error while handling message", "module", module, "height", tx.Height,
-					"txHash", tx.TxHash, "msg", proto.MessageName(msg), "err", err)
-			}
-		}
-	}
-
-	// If it's a MsgExecute, we need to make sure the included messages are handled as well
-	if msgExec, ok := msg.(*authz.MsgExec); ok {
-		for authzIndex, msgAny := range msgExec.Msgs {
-			var executedMsg sdk.Msg
-			err := w.codec.UnpackAny(msgAny, &executedMsg)
-			if err != nil {
-				log.Errorw("unable to unpack MsgExec inner message", "index", authzIndex, "error", err)
-			}
-
-			for _, module := range w.modules {
-				if messageModule, ok := module.(modules.AuthzMessageModule); ok {
-					err = messageModule.HandleMsgExec(index, msgExec, authzIndex, executedMsg, tx)
-					if err != nil {
-						log.Errorw("error while handling message", "module", module, "height", tx.Height,
-							"txHash", tx.TxHash, "msg", proto.MessageName(executedMsg), "err", err)
-					}
-				}
-			}
-		}
-	}
-}
-
-// HandleEvent accepts the transaction and handles events contained inside the transaction.
-func (w *Worker) HandleEvent(index int, event sdk.Event) {
-	// Allow modules to handle the message
-	for _, module := range w.modules {
-		if eventModule, ok := module.(modules.EventModule); ok {
-			err := eventModule.HandleEvent(index, event)
-			if err != nil {
-				log.Errorw("error while handling event", "module", module, "event", event, "err", err)
-			}
-		}
-	}
 }
