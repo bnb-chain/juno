@@ -80,7 +80,7 @@ func (o *Module) handleCreateObject(ctx context.Context, fieldMap map[string]int
 		obj.CreateTime = timeInter.(int64)
 		obj.UpdateTime = timeInter.(int64)
 	}
-	log.Infof("object: %+v", obj)
+
 	if err := o.db.SaveObject(ctx, obj); err != nil {
 		log.Errorf("SaveObject failed err: %v", err)
 		return err
