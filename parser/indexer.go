@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	"github.com/gogo/protobuf/proto"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -64,7 +63,7 @@ type Indexer interface {
 	HandleMessage(index int, msg sdk.Msg, tx *types.Tx)
 
 	// HandleEvent accepts the transaction and handles events contained inside the transaction.
-	HandleEvent(index int, event sdk.Event)
+	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event)
 }
 
 func DefaultIndexer(codec codec.Codec, proxy node.Node, db database.Database, modules []modules.Module) Indexer {
@@ -85,6 +84,10 @@ type Impl struct {
 
 	Node node.Node
 	DB   database.Database
+}
+
+func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event) {
+	return
 }
 
 func (i *Impl) HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[string]json.RawMessage) error {
@@ -158,11 +161,6 @@ func (i *Impl) HandleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 	}
 }
 
-func (i *Impl) HandleEvent(index int, event sdk.Event) {
-	//TODO implement me
-	panic("implement me")
-}
-
 // Process fetches a block for a given height and associated metadata and export it to a database.
 // It returns an error if any export process fails.
 func (i *Impl) Process(height uint64) error {
@@ -227,7 +225,6 @@ func (i *Impl) ExportBlock(
 		return fmt.Errorf("failed to persist block: %s", err)
 	}
 
-	// Call the block handlers
 	i.HandleBlock(block, events, txs, vals)
 
 	return nil

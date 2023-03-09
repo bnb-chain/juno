@@ -32,11 +32,11 @@ func NewModule(db database.Database) *Module {
 }
 
 // Name implements modules.Module
-func (m *Module) Name() string {
+func (o *Module) Name() string {
 	return ModuleName
 }
 
 // PrepareTables implements
-func (m *Module) PrepareTables() error {
-	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.Object{}})
+func (o *Module) PrepareTables() error {
+	return o.db.PrepareTables(context.TODO(), []schema.Tabler{&models.Object{}})
 }

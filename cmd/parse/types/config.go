@@ -49,7 +49,7 @@ func ReadConfig(cfg *Config) (config.Config, error) {
 	}
 
 	file := config.GetConfigFilePath(cfg.fileType)
-	
+
 	// Make sure the path exists
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return config.Config{}, fmt.Errorf("config file does not exist (%s). Make sure you have run the init command", file)

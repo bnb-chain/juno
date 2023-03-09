@@ -6,13 +6,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"strings"
-
 	"github.com/bnb-chain/greenfield/app/params"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
+	"strings"
 
 	"github.com/forbole/juno/v4/common"
 	databaseconfig "github.com/forbole/juno/v4/database/config"
@@ -70,6 +69,18 @@ type Database interface {
 	// SaveMessage stores a single message.
 	// An error is returned if the operation fails.
 	SaveMessage(ctx context.Context, msg *types.Message) error
+
+	// SaveBucket will be called to save each bucket contained inside a block.
+	// An error is returned if the operation fails.
+	SaveBucket(ctx context.Context, bucket *models.Bucket) error
+
+	// SaveObject will be called to save each object contained inside a block.
+	// An error is returned if the operation fails.
+	SaveObject(ctx context.Context, object *models.Object) error
+
+	// GetObject returns an object model with given objectId and bucketName.
+	// It should return only one record
+	GetObject(ctx context.Context, objectId uint64, bucketName string) (*models.Object, error)
 
 	// Close closes the connection to the database
 	Close()
@@ -318,6 +329,32 @@ func (db *Impl) SaveMessage(ctx context.Context, msg *types.Message) error {
 	}
 
 	return db.saveMessageInsidePartition(msg, partitionID)
+}
+
+func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
+	err := db.Db.Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "bucket_id"}, {Name: "bucket_name"}},
+		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "read_quota", "payment_address", "removed", "update_time"}),
+	}).Create(bucket).Error
+	return err
+}
+
+func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
+	err := db.Db.Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "object_id"}, {Name: "object_name"}},
+		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "object_status", "removed", "secondary_sp_addresses", "update_time", "object_status", "primary_sp_address"}),
+	}).Create(object).Error
+	return err
+}
+
+func (db *Impl) GetObject(ctx context.Context, objectId uint64, bucketName string) (*models.Object, error) {
+	var object models.Object
+
+	err := db.Db.Where("object_id = ? AND bucket_name = ? AND removed IS NOT TRUE", objectId, bucketName).Find(&object).Error
+	if err != nil {
+		return nil, err
+	}
+	return &object, nil
 }
 
 // saveMessageInsidePartition stores the given message inside the partition having the provided id

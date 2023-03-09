@@ -3,7 +3,6 @@ package blocks
 import (
 	"context"
 	"fmt"
-
 	"github.com/spf13/cobra"
 
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"

@@ -3,8 +3,6 @@ package parser
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
@@ -14,6 +12,7 @@ import (
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
 	"github.com/forbole/juno/v4/utils/syncutils"
+	"time"
 )
 
 // Worker defines a job consumer that is responsible for getting and
@@ -45,15 +44,6 @@ func NewWorker(ctx *Context, queue types.HeightQueue, index int, concurrentSync 
 		indexer:        DefaultIndexer(ctx.EncodingConfig.Marshaler, ctx.Node, ctx.Database, ctx.Modules),
 		modules:        ctx.Modules,
 		concurrentSync: concurrentSync,
-	}
-}
-
-// NewPuppetWorker create a puppet Worker
-func NewPuppetWorker(modules []modules.Module) *Worker {
-	return &Worker{
-		index:          -1,
-		modules:        modules,
-		concurrentSync: false,
 	}
 }
 

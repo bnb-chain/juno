@@ -1,56 +1,199 @@
 package object
 
 import (
-	"fmt"
+	"context"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"github.com/forbole/juno/v4/common"
+	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/models"
+	"github.com/forbole/juno/v4/modules/parse"
 	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
-func (m *Module) HandleEvent(index int, event sdk.Event) error {
+func (o *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event) error {
+	fieldMap := make(map[string]interface{})
+	var parseErr error
+	for _, attr := range event.Attributes {
+		parseFunc, ok := parse.ObjectParseFuncMap[string(attr.Key)]
+		if !ok {
+			continue
+		}
+		value := strings.Trim(string(attr.Value), "\"")
+		fieldMap[string(attr.Key)], parseErr = parseFunc(value)
+		if parseErr != nil {
+			log.Errorf("parse failed err: %v", parseErr)
+			return parseErr
+		}
+	}
+
+	if block != nil && block.Block != nil {
+		fieldMap["timestamp"] = block.Block.Time.Unix()
+	}
 	eventType, err := eventutil.GetEventType(event)
 	if err == nil {
 		switch eventType {
 		case eventutil.EventCreateObject:
-			handleEventCreateObject(event)
+			return o.handleCreateObject(ctx, fieldMap)
 		case eventutil.EventCancelCreateObject:
-			handleEventCancelCreateObject(event)
+			return o.handleCancelCreateObject(ctx, fieldMap)
 		case eventutil.EventSealObject:
-			handleEventSealObject(event)
+			return o.handleSealObject(ctx, fieldMap)
 		case eventutil.EventCopyObject:
-			handleEventCopyObject(event)
+			return o.handleCopyObject(ctx, fieldMap)
 		case eventutil.EventDeleteObject:
-			handleEventDeleteObject(event)
+			return o.handleDeleteObject(ctx, fieldMap)
 		case eventutil.EventRejectSealObject:
-			handleEventRejectSealObject(event)
+			return o.handleRejectSealObject(ctx, fieldMap)
 		default:
 			return nil
 		}
 	}
+
 	return err
 }
 
-func handleEventCreateObject(event sdk.Event) {
-	fmt.Println("handleEventCreateObject")
+func (o *Module) handleCreateObject(ctx context.Context, fieldMap map[string]interface{}) error {
+	log.Debugf("fieldMap: %+v", fieldMap)
+	obj := &models.Object{
+		Creator:          fieldMap[parse.CreatorAddressStr].(common.Address),
+		Owner:            fieldMap[parse.OwnerAddressStr].(common.Address),
+		BucketID:         fieldMap[parse.BucketIDStr].(int64),
+		BucketName:       fieldMap[parse.BucketNameStr].(string),
+		ObjectName:       fieldMap[parse.ObjectNameStr].(string),
+		ObjectID:         fieldMap[parse.ObjectIDStr].(int64),
+		PayloadSize:      fieldMap[parse.PayloadSizeStr].(int64),
+		IsPublic:         fieldMap[parse.IsPublicStr].(bool),
+		ContentType:      fieldMap[parse.ContentTypeStr].(string),
+		CreateAt:         fieldMap[parse.CreateAtStr].(int64),
+		ObjectStatus:     fieldMap[parse.ObjectStatusStr].(string),
+		RedundancyType:   fieldMap[parse.RedundancyTypeStr].(string),
+		SourceType:       fieldMap[parse.SourceTypeStr].(string),
+		CheckSums:        fieldMap[parse.ChecksumsStr].(string),
+		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
+	}
+
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		obj.CreateTime = timeInter.(int64)
+		obj.UpdateTime = timeInter.(int64)
+	}
+
+	if err := o.db.SaveObject(ctx, obj); err != nil {
+		log.Errorf("SaveObject failed err: %v", err)
+		return err
+	}
+	return nil
 }
 
-func handleEventCancelCreateObject(event sdk.Event) {
-	fmt.Println("handleEventCancelCreateObject")
+func (o *Module) handleSealObject(ctx context.Context, fieldMap map[string]interface{}) error {
+	obj := &models.Object{
+		BucketName:           fieldMap[parse.BucketNameStr].(string),
+		ObjectName:           fieldMap[parse.ObjectNameStr].(string),
+		ObjectID:             fieldMap[parse.ObjectIDStr].(int64),
+		ObjectStatus:         fieldMap[parse.ObjectStatusStr].(string),
+		SecondarySpAddresses: fieldMap[parse.SecondarySpAddress].(string),
+		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
+	}
+
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		obj.UpdateTime = timeInter.(int64)
+	}
+
+	if err := o.db.SaveObject(ctx, obj); err != nil {
+		log.Errorf("SaveObject failed err: %v", err)
+		return err
+	}
+	return nil
 }
 
-func handleEventSealObject(event sdk.Event) {
-	fmt.Println("handleEventSealObject")
+func (o *Module) handleCancelCreateObject(ctx context.Context, fieldMap map[string]interface{}) error {
+	obj := &models.Object{
+		BucketName:       fieldMap[parse.BucketNameStr].(string),
+		ObjectName:       fieldMap[parse.ObjectNameStr].(string),
+		ObjectID:         fieldMap[parse.ObjectIDStr].(int64),
+		Removed:          true,
+		OperatorAddress:  fieldMap[parse.OperatorAddressStr].(common.Address),
+		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
+	}
+
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		obj.UpdateTime = timeInter.(int64)
+	}
+
+	if err := o.db.SaveObject(ctx, obj); err != nil {
+		log.Errorf("SaveObject failed err: %v", err)
+		return err
+	}
+	return nil
 }
 
-func handleEventCopyObject(event sdk.Event) {
-	fmt.Println("handleEventCopyObject")
+func (o *Module) handleCopyObject(ctx context.Context, fieldMap map[string]interface{}) error {
+	//Get Object info from source
+	destObject, err := o.db.GetObject(ctx, fieldMap[parse.SourceObjectId].(uint64), fieldMap[parse.SourceBucketName].(string))
+	if err != nil {
+		return err
+	}
+
+	//TODO no 'createAt' info, should this keep the same with origin object? Verify later
+	destObject.ObjectID = fieldMap[parse.DestObjectId].(int64)
+	destObject.ObjectName = fieldMap[parse.DestObjectName].(string)
+	destObject.BucketName = fieldMap[parse.DestBucketName].(string)
+	destObject.OperatorAddress = fieldMap[parse.OperatorAddressStr].(common.Address)
+
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		destObject.UpdateTime = timeInter.(int64)
+	}
+
+	if err := o.db.SaveObject(ctx, destObject); err != nil {
+		log.Errorf("SaveObject failed err: %v", err)
+		return err
+	}
+	return nil
 }
 
-func handleEventDeleteObject(event sdk.Event) {
-	fmt.Println("handleEventDeleteObject")
+func (o *Module) handleDeleteObject(ctx context.Context, fieldMap map[string]interface{}) error {
+	obj := &models.Object{
+		BucketName:           fieldMap[parse.BucketNameStr].(string),
+		ObjectName:           fieldMap[parse.ObjectNameStr].(string),
+		ObjectID:             fieldMap[parse.ObjectIDStr].(int64),
+		Removed:              true,
+		SecondarySpAddresses: fieldMap[parse.SecondarySpAddressDel].(string),
+		PrimarySpAddress:     fieldMap[parse.PrimarySpAddressStr].(common.Address),
+		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
+	}
+
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		obj.UpdateTime = timeInter.(int64)
+	}
+
+	if err := o.db.SaveObject(ctx, obj); err != nil {
+		log.Errorf("SaveObject failed err: %v", err)
+		return err
+	}
+	return nil
 }
 
-func handleEventRejectSealObject(event sdk.Event) {
-	fmt.Println("handleEventRejectSealObject")
+// RejectSeal event won't emit a delete event, need to be deleted manually here in metadata service
+// handle logic is set as removed, no need to set status
+func (o *Module) handleRejectSealObject(ctx context.Context, fieldMap map[string]interface{}) error {
+	obj := &models.Object{
+		BucketName:      fieldMap[parse.BucketNameStr].(string),
+		ObjectName:      fieldMap[parse.ObjectNameStr].(string),
+		ObjectID:        fieldMap[parse.ObjectIDStr].(int64),
+		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
+		Removed:         true,
+	}
+
+	if timeInter, ok := fieldMap["timestamp"]; ok {
+		obj.UpdateTime = timeInter.(int64)
+	}
+
+	if err := o.db.SaveObject(ctx, obj); err != nil {
+		log.Errorf("SaveObject failed err: %v", err)
+		return err
+	}
+	return nil
 }
