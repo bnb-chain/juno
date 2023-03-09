@@ -87,14 +87,32 @@ func (w *Worker) Start() {
 // ProcessIfNotExists defines the job consumer workflow. It will fetch a block for a given
 // height and associated metadata and export it to a database if it does not exist yet. It returns an
 // error if any export process fails.
-func (w *Worker) ProcessIfNotExists(height uint64) error {
+
+func (w *Worker) blockProcessed(height uint64) (bool, error) {
+	for _, m := range w.modules {
+		if epochModule, ok := m.(modules.EpochModule); ok {
+			return epochModule.IsProcessed(height)
+		}
+	}
+
 	exists, err := w.db.HasBlock(w.ctx, height)
 	if err != nil {
-		return fmt.Errorf("error while searching for block: %s", err)
+		return false, fmt.Errorf("error while searching for block: %s", err)
 	}
 
 	if exists {
 		log.Debugw("skipping already exported block", "height", height)
+	}
+	return exists, nil
+}
+
+func (w *Worker) ProcessIfNotExists(height uint64) error {
+	exist, err := w.blockProcessed(height)
+	if err != nil {
+		return err
+	}
+
+	if exist {
 		return nil
 	}
 
