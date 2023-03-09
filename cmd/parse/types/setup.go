@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
 	modsregistrar "github.com/forbole/juno/v4/modules/registrar"
@@ -47,7 +48,7 @@ func GetParserContext(cfg config.Config, parseConfig *Config) (*parser.Context, 
 	mods := parseConfig.GetRegistrar().BuildModules(context)
 	registeredModules := modsregistrar.GetModules(mods, cfg.Chain.Modules)
 
-	return parser.NewContext(&encodingConfig, cp, db, registeredModules), nil
+	return parser.NewContext(&encodingConfig, cp, db, registeredModules, nil), nil
 }
 
 // getConfig returns the SDK Config instance as well as if it's sealed or not

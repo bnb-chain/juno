@@ -6,12 +6,13 @@ import (
 	"errors"
 	"time"
 
-	databaseconfig "github.com/forbole/juno/v4/database/config"
-	"github.com/forbole/juno/v4/log"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	databaseconfig "github.com/forbole/juno/v4/database/config"
+	"github.com/forbole/juno/v4/log"
 )
 
 func New(cfg *databaseconfig.Config) (*gorm.DB, error) {

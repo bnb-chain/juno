@@ -115,5 +115,6 @@ type AuthzMessageModule interface {
 }
 
 type EventModule interface {
+	//HandleEvent index param here to save possible sequence order
 	HandleEvent(index int, event sdk.Event) error
 }
