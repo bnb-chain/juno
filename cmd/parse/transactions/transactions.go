@@ -29,6 +29,7 @@ You can specify a custom height range by using the %s and %s flags.
 			if err != nil {
 				return err
 			}
+
 			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules, nil)
 			worker := parser.NewWorker(workerCtx, nil, 0, false)
 

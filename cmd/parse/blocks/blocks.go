@@ -34,6 +34,7 @@ will be replaced with the data downloaded from the node.
 			if err != nil {
 				return err
 			}
+
 			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules, nil)
 			worker := parser.NewWorker(workerCtx, nil, 0, false)
 

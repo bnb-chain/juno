@@ -225,20 +225,7 @@ func (i *Impl) ExportBlock(
 		return fmt.Errorf("failed to persist block: %s", err)
 	}
 
-	// Call the block handlers
-	//if i.Worker != nil {
-	//	log.Debugw("puppet worker exists, handle block...")
-	//	i.Worker.HandleBlock(block, events, txs, vals)
-	//}
-
-	for _, module := range i.Modules {
-		if blockModule, ok := module.(modules.BlockModule); ok {
-			err := blockModule.HandleBlock(block, events, txs, vals)
-			if err != nil {
-				log.Errorw("error while handling block", "module", module.Name(), "height", block.Block.Height, "err", err)
-			}
-		}
-	}
+	i.HandleBlock(block, events, txs, vals)
 
 	return nil
 }
