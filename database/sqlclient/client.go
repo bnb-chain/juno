@@ -17,22 +17,9 @@ import (
 	"github.com/forbole/juno/v4/log"
 )
 
-const (
-	// BlockSyncerDsn dsn environment constants
-	BlockSyncerDsn = "BLOCK_SYNCER_DSN"
-)
-
 func New(cfg *databaseconfig.Config) (*gorm.DB, error) {
 	var dsnForDB string
 	dsnForDB = cfg.DSN
-
-	dsn, errOfEnv := getDBConfigFromEnv(BlockSyncerDsn)
-	if errOfEnv != nil {
-		log.Warn("load block syncer db config from ENV failed, try to use config from file")
-	} else {
-		log.Infof("Using DB config from ENV")
-		dsnForDB = dsn
-	}
 
 	if cfg.Secrets != nil {
 		secret, err := databaseconfig.GetString(cfg.Secrets)
