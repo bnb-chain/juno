@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"os"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -18,9 +16,6 @@ import (
 )
 
 func New(cfg *databaseconfig.Config) (*gorm.DB, error) {
-	var dsnForDB string
-	dsnForDB = cfg.DSN
-
 	if cfg.Secrets != nil {
 		secret, err := databaseconfig.GetString(cfg.Secrets)
 		if err != nil {
@@ -34,14 +29,14 @@ func New(cfg *databaseconfig.Config) (*gorm.DB, error) {
 	var err error
 	switch cfg.Type {
 	case databaseconfig.MySQL:
-		db, err = gorm.Open(mysql.Open(dsnForDB),
+		db, err = gorm.Open(mysql.Open(cfg.DSN),
 			&gorm.Config{
 				Logger:                                   &loggerAdaptor{slowThreshold: time.Duration(cfg.SlowThreshold)},
 				DisableForeignKeyConstraintWhenMigrating: true,
 			},
 		)
 	case databaseconfig.PostgreSQL:
-		db, err = gorm.Open(postgres.Open(dsnForDB),
+		db, err = gorm.Open(postgres.Open(cfg.DSN),
 			&gorm.Config{
 				Logger:                                   &loggerAdaptor{slowThreshold: time.Duration(cfg.SlowThreshold)},
 				DisableForeignKeyConstraintWhenMigrating: true,
@@ -115,12 +110,4 @@ func (la *loggerAdaptor) Trace(ctx context.Context, begin time.Time, fc func() (
 		strSql, rows := fc()
 		log.CtxWarnw(ctx, "slow sql", "elapsed", elapsed, "sql", strSql, "rows", rows)
 	}
-}
-
-func getDBConfigFromEnv(dsn string) (string, error) {
-	dsnVal, ok := os.LookupEnv(dsn)
-	if !ok {
-		return "", fmt.Errorf("dsn %s config is not set in environment", dsnVal)
-	}
-	return dsnVal, nil
 }
