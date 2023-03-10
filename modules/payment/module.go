@@ -1,4 +1,4 @@
-package object
+package payment
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ModuleName = "object"
+	ModuleName = "payment"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 	_ modules.PrepareTablesModule = &Module{}
 )
 
-// Module represents the object module
+// Module represents the payment module
 type Module struct {
 	db database.Database
 }
@@ -32,11 +32,11 @@ func NewModule(db database.Database) *Module {
 }
 
 // Name implements modules.Module
-func (o *Module) Name() string {
+func (m *Module) Name() string {
 	return ModuleName
 }
 
 // PrepareTables implements
-func (o *Module) PrepareTables() error {
-	return o.db.PrepareTables(context.TODO(), []schema.Tabler{&models.Object{}})
+func (m *Module) PrepareTables() error {
+	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.StreamRecord{}, &models.PaymentAccount{}})
 }

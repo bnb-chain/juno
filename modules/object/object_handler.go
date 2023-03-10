@@ -2,8 +2,9 @@ package object
 
 import (
 	"context"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"strings"
+
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -32,6 +33,7 @@ func (o *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, i
 
 	if block != nil && block.Block != nil {
 		fieldMap["timestamp"] = block.Block.Time.Unix()
+		fieldMap["block_update"] = block.Block.Height
 	}
 	eventType, err := eventutil.GetEventType(event)
 	if err == nil {
@@ -81,6 +83,10 @@ func (o *Module) handleCreateObject(ctx context.Context, fieldMap map[string]int
 		obj.UpdateTime = timeInter.(int64)
 	}
 
+	if blockUpdate, ok := fieldMap["block_update"]; ok {
+		obj.UpdateAt = blockUpdate.(int64)
+	}
+
 	if err := o.db.SaveObject(ctx, obj); err != nil {
 		log.Errorf("SaveObject failed err: %v", err)
 		return err
@@ -102,6 +108,10 @@ func (o *Module) handleSealObject(ctx context.Context, fieldMap map[string]inter
 		obj.UpdateTime = timeInter.(int64)
 	}
 
+	if blockUpdate, ok := fieldMap["block_update"]; ok {
+		obj.UpdateAt = blockUpdate.(int64)
+	}
+
 	if err := o.db.SaveObject(ctx, obj); err != nil {
 		log.Errorf("SaveObject failed err: %v", err)
 		return err
@@ -121,6 +131,10 @@ func (o *Module) handleCancelCreateObject(ctx context.Context, fieldMap map[stri
 
 	if timeInter, ok := fieldMap["timestamp"]; ok {
 		obj.UpdateTime = timeInter.(int64)
+	}
+
+	if blockUpdate, ok := fieldMap["block_update"]; ok {
+		obj.UpdateAt = blockUpdate.(int64)
 	}
 
 	if err := o.db.SaveObject(ctx, obj); err != nil {
@@ -147,6 +161,10 @@ func (o *Module) handleCopyObject(ctx context.Context, fieldMap map[string]inter
 		destObject.UpdateTime = timeInter.(int64)
 	}
 
+	if blockUpdate, ok := fieldMap["block_update"]; ok {
+		destObject.UpdateAt = blockUpdate.(int64)
+	}
+
 	if err := o.db.SaveObject(ctx, destObject); err != nil {
 		log.Errorf("SaveObject failed err: %v", err)
 		return err
@@ -169,6 +187,10 @@ func (o *Module) handleDeleteObject(ctx context.Context, fieldMap map[string]int
 		obj.UpdateTime = timeInter.(int64)
 	}
 
+	if blockUpdate, ok := fieldMap["block_update"]; ok {
+		obj.UpdateAt = blockUpdate.(int64)
+	}
+
 	if err := o.db.SaveObject(ctx, obj); err != nil {
 		log.Errorf("SaveObject failed err: %v", err)
 		return err
@@ -189,6 +211,10 @@ func (o *Module) handleRejectSealObject(ctx context.Context, fieldMap map[string
 
 	if timeInter, ok := fieldMap["timestamp"]; ok {
 		obj.UpdateTime = timeInter.(int64)
+	}
+
+	if blockUpdate, ok := fieldMap["block_update"]; ok {
+		obj.UpdateAt = blockUpdate.(int64)
 	}
 
 	if err := o.db.SaveObject(ctx, obj); err != nil {

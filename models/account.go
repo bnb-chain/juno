@@ -5,8 +5,8 @@ import "github.com/forbole/juno/v4/common"
 type AccountType string
 
 const (
-	GeneralAccount AccountType = "general"
-	PaymentAccount AccountType = "payment"
+	GeneralAccountType AccountType = "general"
+	PaymentAccountType AccountType = "payment"
 )
 
 type Account struct {
