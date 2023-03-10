@@ -78,7 +78,7 @@ func (m *Module) handleEventStreamRecordUpdate(ctx context.Context, fieldMap map
 		StaticBalance:   fieldMap[parse.StaticBalance].(decimal.Decimal),
 		BufferBalance:   fieldMap[parse.BufferBalance].(decimal.Decimal),
 		LockBalance:     fieldMap[parse.LockBalance].(decimal.Decimal),
-		Status:          fieldMap[parse.Status].(int32),
+		Status:          fieldMap[parse.Status].(string),
 		SettleTimestamp: fieldMap[parse.SettleTimestamp].(int64),
 		OutFlows:        fieldMap[parse.OutFlows].(string),
 	}

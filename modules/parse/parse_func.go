@@ -107,7 +107,7 @@ var PaymentParseFuncMap = map[string]func(str string) (interface{}, error){
 	StaticBalance:   parseDecimal,
 	BufferBalance:   parseDecimal,
 	LockBalance:     parseDecimal,
-	Status:          parseInt32,
+	Status:          parseStr,
 	SettleTimestamp: parseInt64,
 	OutFlows:        parseStr,
 	Addr:            parseAddress,

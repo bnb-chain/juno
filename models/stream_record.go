@@ -14,7 +14,7 @@ type StreamRecord struct {
 	StaticBalance   decimal.Decimal `gorm:"static_balance"`
 	BufferBalance   decimal.Decimal `gorm:"buffer_balance"`
 	LockBalance     decimal.Decimal `gorm:"lock_balance"`
-	Status          int32           `gorm:"status"`
+	Status          string          `gorm:"status"`
 	SettleTimestamp int64           `gorm:"settle_time;type:bigint(64)"`
 	OutFlows        string          `gorm:"out_flows;type:json"`
 }
