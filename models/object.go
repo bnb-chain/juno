@@ -25,6 +25,7 @@ type Object struct {
 	LockedBalance        common.Hash    `gorm:"locked_balance;type:BINARY(32)"`
 	Removed              bool           `gorm:"removed"`
 	UpdateTime           int64          `gorm:"update_time;type:bigint(64)"`
+	UpdateAt             int64          `gorm:"update_at;type:bigint(64)"`
 }
 
 func (*Object) TableName() string {

@@ -6,12 +6,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/bnb-chain/greenfield/app/params"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
-	"strings"
 
 	"github.com/forbole/juno/v4/common"
 	databaseconfig "github.com/forbole/juno/v4/database/config"
@@ -85,6 +86,14 @@ type Database interface {
 	SaveEpoch(ctx context.Context, epoch *models.Epoch) error
 
 	GetEpoch(ctx context.Context) (*models.Epoch, error)
+
+	// SavePaymentAccount will be called to save PaymentAccount.
+	// An error is returned if the operation fails.
+	SavePaymentAccount(ctx context.Context, paymentAccount *models.PaymentAccount) error
+
+	// SaveStreamRecord will be called to save SaveStreamRecord.
+	// An error is returned if the operation fails.
+	SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error
 
 	// Close closes the connection to the database
 	Close()
@@ -338,7 +347,7 @@ func (db *Impl) SaveMessage(ctx context.Context, msg *types.Message) error {
 func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
 	err := db.Db.Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "bucket_id"}, {Name: "bucket_name"}},
-		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "read_quota", "payment_address", "removed", "update_time"}),
+		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "read_quota", "payment_address", "removed", "update_time", "update_at"}),
 	}).Create(bucket).Error
 	return err
 }
@@ -346,7 +355,7 @@ func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
 func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
 	err := db.Db.Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "object_id"}, {Name: "object_name"}},
-		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "object_status", "removed", "secondary_sp_addresses", "update_time", "primary_sp_address"}),
+		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "object_status", "removed", "secondary_sp_addresses", "update_time", "object_status", "primary_sp_address", "update_at"}),
 	}).Create(object).Error
 	return err
 }
@@ -359,6 +368,22 @@ func (db *Impl) GetObject(ctx context.Context, objectId uint64, bucketName strin
 		return nil, err
 	}
 	return &object, nil
+}
+
+func (db *Impl) SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error {
+	err := db.Db.Table((&models.StreamRecord{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "account"}},
+		DoUpdates: clause.AssignmentColumns([]string{"update_time", "netflow_rate", "static_balance", "buffer_balance", "lock_balance", "status", "settle_time", "out_flows"}),
+	}).Create(streamRecord).Error
+	return err
+}
+
+func (db *Impl) SavePaymentAccount(ctx context.Context, paymentAccount *models.PaymentAccount) error {
+	err := db.Db.Table((&models.PaymentAccount{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "addr"}},
+		DoUpdates: clause.AssignmentColumns([]string{"refundable", "update_at", "update_time"}),
+	}).Create(paymentAccount).Error
+	return err
 }
 
 // saveMessageInsidePartition stores the given message inside the partition having the provided id

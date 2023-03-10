@@ -3,6 +3,8 @@ package parse
 import (
 	"strconv"
 
+	"github.com/shopspring/decimal"
+
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
 )
@@ -39,6 +41,20 @@ const (
 	DestObjectName        = "dst_object_name"
 	SourceObjectId        = "src_object_id"
 	DestObjectId          = "dst_object_id"
+
+	// payment
+	Account         = "account"
+	CrudTimestamp   = "crud_timestamp"
+	NetflowRate     = "netflow_rate"
+	StaticBalance   = "static_balance"
+	BufferBalance   = "buffer_balance"
+	LockBalance     = "lock_balance"
+	Status          = "status"
+	SettleTimestamp = "settle_timestamp"
+	OutFlows        = "out_flows"
+	Addr            = "addr"
+	Owner           = "owner"
+	Refundable      = "refundable"
 )
 
 var BucketParseFuncMap = map[string]func(str string) (interface{}, error){
@@ -82,6 +98,21 @@ var ObjectParseFuncMap = map[string]func(str string) (interface{}, error){
 	OperatorAddressStr:    parseAddress,
 }
 
+var PaymentParseFuncMap = map[string]func(str string) (interface{}, error){
+	Account:         parseAddress,
+	CrudTimestamp:   parseInt64,
+	NetflowRate:     parseDecimal,
+	StaticBalance:   parseDecimal,
+	BufferBalance:   parseDecimal,
+	LockBalance:     parseDecimal,
+	Status:          parseInt32,
+	SettleTimestamp: parseInt64,
+	OutFlows:        parseStr,
+	Addr:            parseAddress,
+	Owner:           parseAddress,
+	Refundable:      parseBool,
+}
+
 func parseStr(str string) (interface{}, error) {
 	return str, nil
 }
@@ -105,4 +136,8 @@ func parseInt64(str string) (interface{}, error) {
 
 func parseInt32(str string) (interface{}, error) {
 	return strconv.ParseInt(str, 10, 32)
+}
+
+func parseDecimal(str string) (interface{}, error) {
+	return decimal.NewFromString(str)
 }

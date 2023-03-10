@@ -2,8 +2,9 @@ package bucket
 
 import (
 	"context"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"strings"
+
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -31,6 +32,7 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, i
 	}
 	if block != nil && block.Block != nil {
 		fieldMap["timestamp"] = block.Block.Time.Unix()
+		fieldMap["block_update"] = block.Block.Height
 	}
 	log.Infof("map: %+v", fieldMap)
 	eventType, err := eventutil.GetEventType(event)
@@ -66,6 +68,9 @@ func (m *Module) handleCreateBucket(ctx context.Context, fieldMap map[string]int
 		bucket.CreateTime = timeInter.(int64)
 		bucket.UpdateTime = timeInter.(int64)
 	}
+	if blockUpdate, ok := fieldMap["block_update"]; ok {
+		bucket.UpdateAt = blockUpdate.(int64)
+	}
 
 	if err := m.db.SaveBucket(ctx, bucket); err != nil {
 		return err
@@ -85,6 +90,9 @@ func (m *Module) handleDeleteBucket(ctx context.Context, fieldMap map[string]int
 
 	if timeInter, ok := fieldMap["timestamp"]; ok {
 		bucket.UpdateTime = timeInter.(int64)
+	}
+	if blockUpdate, ok := fieldMap["block_update"]; ok {
+		bucket.UpdateAt = blockUpdate.(int64)
 	}
 
 	if err := m.db.SaveBucket(ctx, bucket); err != nil {

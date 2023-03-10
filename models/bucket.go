@@ -20,6 +20,7 @@ type Bucket struct {
 	Removed          bool           `gorm:"removed"`
 	OperatorAddress  common.Address `gorm:"operator_address;type:BINARY(20)"`
 	UpdateTime       int64          `gorm:"update_time;type:bigint(64)"`
+	UpdateAt         int64          `gorm:"update_at;type:bigint(64)"`
 }
 
 func (*Bucket) TableName() string {
