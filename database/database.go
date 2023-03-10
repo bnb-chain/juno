@@ -83,6 +83,10 @@ type Database interface {
 	// It should return only one record
 	GetObject(ctx context.Context, objectId uint64, bucketName string) (*models.Object, error)
 
+	SaveEpoch(ctx context.Context, epoch *models.Epoch) error
+
+	GetEpoch(ctx context.Context) (*models.Epoch, error)
+
 	// SavePaymentAccount will be called to save PaymentAccount.
 	// An error is returned if the operation fails.
 	SavePaymentAccount(ctx context.Context, paymentAccount *models.PaymentAccount) error
@@ -395,6 +399,24 @@ ON CONFLICT (transaction_hash, index, partition_id) DO UPDATE
 
 	err := db.Db.Exec(stmt, msg.TxHash, msg.Index, msg.Type, msg.Value, pq.Array(msg.Addresses), msg.Height, partitionID).Error
 	return err
+}
+
+func (db *Impl) SaveEpoch(ctx context.Context, epoch *models.Epoch) error {
+	err := db.Db.Table((&models.Epoch{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"block_height", "block_hash", "update_time"}),
+	}).Create(epoch).Error
+	return err
+}
+
+func (db *Impl) GetEpoch(ctx context.Context) (*models.Epoch, error) {
+	var epoch models.Epoch
+
+	err := db.Db.Find(&epoch).Error
+	if err != nil && !errIsNotFound(err) {
+		return nil, err
+	}
+	return &epoch, nil
 }
 
 // Close implements database.Database

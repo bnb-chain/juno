@@ -7,6 +7,7 @@ require (
 	github.com/bnb-chain/greenfield v0.0.6
 	github.com/cosmos/cosmos-sdk v0.46.7
 	github.com/cosmos/ibc-go/v5 v5.2.0
+	github.com/ethereum/go-ethereum v1.10.19
 	github.com/go-co-op/gocron v1.13.0
 	github.com/gogo/protobuf v1.3.3
 	github.com/golangci/golangci-lint v1.50.1
@@ -93,7 +94,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
 	github.com/esimonov/ifshort v1.0.4 // indirect
-	github.com/ethereum/go-ethereum v1.10.19 // indirect
 	github.com/ettle/strcase v0.1.1 // indirect
 	github.com/evmos/ethermint v0.6.1-0.20220919141022-34226aa7b1fa // indirect
 	github.com/fatih/color v1.13.0 // indirect

@@ -64,6 +64,9 @@ type Indexer interface {
 
 	// HandleEvent accepts the transaction and handles events contained inside the transaction.
 	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event)
+
+	// ExportEpoch accepts a finalized block height and block hash then inside the database.
+	ExportEpoch(block *tmctypes.ResultBlock) error
 }
 
 func DefaultIndexer(codec codec.Codec, proxy node.Node, db database.Database, modules []modules.Module) Indexer {
@@ -84,6 +87,10 @@ type Impl struct {
 
 	Node node.Node
 	DB   database.Database
+}
+
+func (i *Impl) ExportEpoch(block *tmctypes.ResultBlock) error {
+	return nil
 }
 
 func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event) {
