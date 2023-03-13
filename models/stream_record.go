@@ -16,7 +16,7 @@ type StreamRecord struct {
 	LockBalance     decimal.Decimal `gorm:"lock_balance"`
 	Status          int32           `gorm:"status"`
 	SettleTimestamp int64           `gorm:"settle_time;type:bigint(64)"`
-	OutFlows        string          `gorm:"out_flows;type:json;not null;default:(JSON_ARRAY())"`
+	OutFlows        string          `gorm:"out_flows;type:json"`
 }
 
 func (*StreamRecord) TableName() string {
