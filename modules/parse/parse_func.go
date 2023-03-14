@@ -30,6 +30,7 @@ const (
 	ObjectNameStr         = "object_name"
 	CreatorAddressStr     = "creator_address"
 	ObjectIDStr           = "id"
+	ObjectBucketIDStr     = "bucket_id"
 	PayloadSizeStr        = "payload_size"
 	ContentTypeStr        = "content_type"
 	ObjectStatusStr       = "status"
@@ -86,6 +87,7 @@ var ObjectParseFuncMap = map[string]func(str string) (interface{}, error){
 	SecondarySpAddress:    parseStr,
 	OwnerAddressStr:       parseAddress,
 	BucketNameStr:         parseStr,
+	ObjectBucketIDStr:     parseInt64,
 	CreateAtStr:           parseInt64,
 	IsPublicStr:           parseBool,
 	SourceTypeStr:         parseStr,
