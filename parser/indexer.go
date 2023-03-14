@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/x/authz"
-	"github.com/gogo/protobuf/proto"
-	tmtypes "github.com/tendermint/tendermint/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/authz"
+	"github.com/gogo/protobuf/proto"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/database"
@@ -33,7 +32,7 @@ type Indexer interface {
 
 	// ExportTxs accepts a slice of transactions and persists then inside the database.
 	// An error is returned if write fails.
-	ExportTxs(txs []*types.Tx) error
+	ExportTxs(block *tmctypes.ResultBlock, txs []*types.Tx) error
 
 	// ExportValidators accepts ResultValidators and persists validators inside the database.
 	// An error is returned if write fails.
@@ -48,7 +47,7 @@ type Indexer interface {
 	ExportAccounts(block *tmctypes.ResultBlock, txs []*types.Tx) error
 
 	// ExportEvents accepts a slice of transactions and get events in order to save in database.
-	ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults) error
+	ExportEvents(blockResults *tmctypes.ResultBlockResults) error
 
 	// HandleGenesis accepts a GenesisDoc and calls all the registered genesis handlers
 	// in the order in which they have been registered.
@@ -64,11 +63,12 @@ type Indexer interface {
 	HandleMessage(index int, msg sdk.Msg, tx *types.Tx)
 
 	// HandleEvent accepts the transaction and handles events contained inside the transaction.
-	HandleEvent(index int, event sdk.Event)
+	HandleEvent(event sdk.Event)
 }
 
 func DefaultIndexer(codec codec.Codec, proxy node.Node, db database.Database, modules []modules.Module) Indexer {
 	return &Impl{
+		Ctx:     context.TODO(),
 		codec:   codec,
 		Node:    proxy,
 		DB:      db,
@@ -158,9 +158,15 @@ func (i *Impl) HandleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 	}
 }
 
-func (i *Impl) HandleEvent(index int, event sdk.Event) {
-	//TODO implement me
-	panic("implement me")
+func (i *Impl) HandleEvent(event sdk.Event) {
+	for _, module := range i.Modules {
+		if eventModule, ok := module.(modules.EventModule); ok {
+			err := eventModule.HandleEvent(event)
+			if err != nil {
+				log.Errorw("error while handling event", "module", module.Name(), "event", event, "err", err)
+			}
+		}
+	}
 }
 
 // Process fetches a block for a given height and associated metadata and export it to a database.
@@ -173,7 +179,7 @@ func (i *Impl) Process(height uint64) error {
 		return fmt.Errorf("failed to get block from node: %s", err)
 	}
 
-	events, err := i.Node.BlockResults(int64(height))
+	blockResults, err := i.Node.BlockResults(int64(height))
 	if err != nil {
 		return fmt.Errorf("failed to get block results from node: %s", err)
 	}
@@ -188,7 +194,7 @@ func (i *Impl) Process(height uint64) error {
 		return fmt.Errorf("failed to get validators for block: %s", err)
 	}
 
-	err = i.ExportBlock(block, events, txs, vals)
+	err = i.ExportBlock(block, blockResults, txs, vals)
 	if err != nil {
 		return err
 	}
@@ -198,7 +204,7 @@ func (i *Impl) Process(height uint64) error {
 		return err
 	}
 
-	err = i.ExportTxs(txs)
+	err = i.ExportTxs(block, txs)
 	if err != nil {
 		return err
 	}
@@ -208,7 +214,7 @@ func (i *Impl) Process(height uint64) error {
 		return err
 	}
 
-	err = i.ExportEvents(i.Ctx, block, events)
+	err = i.ExportEvents(blockResults)
 	if err != nil {
 		return err
 	}
@@ -294,11 +300,11 @@ func (i *Impl) ExportCommit(block *tmctypes.ResultBlock, vals *tmctypes.ResultVa
 
 // ExportTxs accepts a slice of transactions and persists then inside the database.
 // An error is returned if write fails.
-func (i *Impl) ExportTxs(txs []*types.Tx) error {
+func (i *Impl) ExportTxs(block *tmctypes.ResultBlock, txs []*types.Tx) error {
 	// handle all transactions inside the block
-	for _, tx := range txs {
+	for ind, tx := range txs {
 		// save the transaction
-		err := i.DB.SaveTx(context.TODO(), tx)
+		err := i.DB.SaveTx(context.TODO(), uint64(block.Block.Time.Unix()), ind, tx)
 		if err != nil {
 			return fmt.Errorf("error while storing tx with hash %s, %s", tx.TxHash, err)
 		}
@@ -340,27 +346,36 @@ func (i *Impl) ExportTxs(txs []*types.Tx) error {
 func (i *Impl) ExportAccounts(block *tmctypes.ResultBlock, txs []*types.Tx) error {
 	// save account
 	for _, tx := range txs {
-		for _, l := range tx.Logs {
-			for _, event := range l.Events {
-				for _, attr := range event.Attributes {
-					if common.IsHexAddress(attr.Value) {
-						account := &models.Account{
-							Address:             common.HexToAddress(attr.Value),
-							TxCount:             1,
-							LastActiveTimestamp: uint64(block.Block.Time.Unix()),
-						}
-						err := i.DB.SaveAccount(context.TODO(), account)
-						if err != nil {
-							return fmt.Errorf("error while storing account: %s", err)
-						}
-					}
+		accounts := make(map[common.Address]bool)
+		for _, event := range tx.Events {
+			for _, attr := range event.Attributes {
+				if common.IsHexAddress(string(attr.Value)) {
+					accounts[common.HexToAddress(string(attr.Value))] = true
 				}
+			}
+		}
+		for v, _ := range accounts {
+			account := &models.Account{
+				Address:             v,
+				TxCount:             1,
+				LastActiveTimestamp: uint64(block.Block.Time.Unix()),
+			}
+			err := i.DB.SaveAccount(context.TODO(), account)
+			if err != nil {
+				return fmt.Errorf("error while storing account: %s", err)
 			}
 		}
 	}
 	return nil
 }
 
-func (i *Impl) ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults) error {
+func (i *Impl) ExportEvents(blockResults *tmctypes.ResultBlockResults) error {
+	txsResults := blockResults.TxsResults
+
+	for _, tx := range txsResults {
+		for _, event := range tx.Events {
+			i.HandleEvent(sdk.Event(event))
+		}
+	}
 	return nil
 }

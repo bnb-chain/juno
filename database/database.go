@@ -49,11 +49,14 @@ type Database interface {
 
 	// SaveTx will be called to save each transaction contained inside a block.
 	// An error is returned if the operation fails.
-	SaveTx(ctx context.Context, tx *types.Tx) error
+	SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx *types.Tx) error
 
 	// SaveAccount will be called to save each account contained inside a tx.
 	// An error is returned if the operation fails.
 	SaveAccount(ctx context.Context, account *models.Account) error
+
+	// GetAccountByAddress get account by address
+	GetAccountByAddress(ctx context.Context, address common.Address) (*models.Account, error)
 
 	// HasValidator returns true if a given validator by consensus address exists.
 	// An error is returned if the operation fails.
@@ -191,7 +194,7 @@ func (db *Impl) GetTotalBlocks(ctx context.Context) int64 {
 }
 
 // SaveTx implements database.Database
-func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
+func (db *Impl) SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx *types.Tx) error {
 	var sigs = make([]string, len(tx.Signatures))
 	for index, sig := range tx.Signatures {
 		sigs[index] = base64.StdEncoding.EncodeToString(sig)
@@ -230,6 +233,7 @@ func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
 	dbTx := &models.Tx{
 		Hash:        common.HexToHash(tx.TxHash),
 		Height:      uint64(tx.Height),
+		TxIndex:     uint32(index),
 		Success:     tx.Successful(),
 		Messages:    msgsBz,
 		Memo:        tx.Body.Memo,
@@ -240,6 +244,7 @@ func (db *Impl) SaveTx(ctx context.Context, tx *types.Tx) error {
 		GasUsed:     uint64(tx.GasUsed),
 		RawLog:      tx.RawLog,
 		Logs:        string(logsBz),
+		Timestamp:   blockTimestamp,
 	}
 
 	err = db.Db.Table((&models.Tx{}).TableName()).Clauses(clause.OnConflict{
@@ -261,6 +266,20 @@ func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error 
 			{Column: clause.Column{Name: "last_active_timestamp"}, Value: account.LastActiveTimestamp}},
 	}).Create(account).Error
 	return err
+}
+
+// GetAccountByAddress returns the account by address
+func (db *Impl) GetAccountByAddress(ctx context.Context, address common.Address) (*models.Account, error) {
+	stmt := `SELECT * FROM accounts where address = ?`
+
+	var account models.Account
+	err := db.Db.WithContext(ctx).Raw(stmt, address).Take(&account).Error
+
+	if errIsNotFound(err) {
+		return nil, nil
+	}
+
+	return &account, err
 }
 
 // HasValidator implements database.Database

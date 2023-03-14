@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
@@ -13,7 +14,6 @@ import (
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
-	"github.com/forbole/juno/v4/utils/syncutils"
 )
 
 // Worker defines a job consumer that is responsible for getting and
@@ -143,12 +143,16 @@ func (w *Worker) ProcessTransactions(height int64) error {
 		return fmt.Errorf("failed to get transactions for block: %s", err)
 	}
 
-	return syncutils.BatchRun(
-		func() error {
-			return w.indexer.ExportTxs(txs)
-		},
-		func() error {
-			return w.indexer.ExportAccounts(block, txs)
-		},
-	)
+	return w.indexer.ExportTxs(block, txs)
+}
+
+// ProcessEvents fetches events for a given height and stores them into the database.
+// It returns an error if the export process fails.
+func (w *Worker) ProcessEvents(height int64) error {
+	blockResults, err := w.node.BlockResults(height)
+	if err != nil {
+		return fmt.Errorf("failed to get block results from node: %s", err)
+	}
+
+	return w.indexer.ExportEvents(blockResults)
 }
