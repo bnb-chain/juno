@@ -29,7 +29,7 @@ const (
 	// object
 	ObjectNameStr         = "object_name"
 	CreatorAddressStr     = "creator_address"
-	ObjectIDStr           = "id"
+	ObjectIDStr           = "object_id"
 	ObjectBucketIDStr     = "bucket_id"
 	PayloadSizeStr        = "payload_size"
 	ContentTypeStr        = "content_type"

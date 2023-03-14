@@ -63,7 +63,7 @@ func (o *Module) handleCreateObject(ctx context.Context, fieldMap map[string]int
 	obj := &models.Object{
 		Creator:          fieldMap[parse.CreatorAddressStr].(common.Address),
 		Owner:            fieldMap[parse.OwnerAddressStr].(common.Address),
-		BucketID:         fieldMap[parse.BucketIDStr].(int64),
+		BucketID:         fieldMap[parse.ObjectBucketIDStr].(int64),
 		BucketName:       fieldMap[parse.BucketNameStr].(string),
 		ObjectName:       fieldMap[parse.ObjectNameStr].(string),
 		ObjectID:         fieldMap[parse.ObjectIDStr].(int64),
