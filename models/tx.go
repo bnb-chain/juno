@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/hex"
 	"time"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -50,8 +51,10 @@ func (t *Tx) ToTmTx() *ResultTx {
 		txResult.Code = 1
 	}
 
+	txHash, _ := hex.DecodeString(t.Hash.Hex()[2:])
+
 	return &ResultTx{
-		Hash:     t.Hash.Bytes(),
+		Hash:     txHash,
 		Height:   int64(t.Height),
 		Index:    t.TxIndex,
 		Time:     time.Unix(int64(t.Timestamp), 0),

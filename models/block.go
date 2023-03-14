@@ -1,9 +1,9 @@
 package models
 
 import (
+	"encoding/hex"
 	"time"
 
-	"github.com/tendermint/tendermint/crypto"
 	tmversion "github.com/tendermint/tendermint/proto/tendermint/version"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -64,16 +64,17 @@ func (b *Block) ToTmBlock() *tmctypes.ResultBlock {
 		Height: int64(b.Height),
 		Time:   time.Unix(int64(b.Timestamp), 0),
 		//LastBlockID: ,
-		LastCommitHash:     b.LastResultsHash.Bytes(),
-		DataHash:           b.DataHash.Bytes(),
-		ValidatorsHash:     b.ValidatorsHash.Bytes(),
-		NextValidatorsHash: b.NextValidatorsHash.Bytes(),
-		ConsensusHash:      b.ConsensusHash.Bytes(),
-		AppHash:            b.AppHash.Bytes(),
-		LastResultsHash:    b.LastResultsHash.Bytes(),
-		EvidenceHash:       b.EvidenceHash.Bytes(),
-		ProposerAddress:    crypto.AddressHash(b.ProposerAddress.Bytes()),
 	}
+	header.LastCommitHash, _ = hex.DecodeString(b.LastResultsHash.Hex()[2:])
+	header.DataHash, _ = hex.DecodeString(b.DataHash.Hex()[2:])
+	header.ValidatorsHash, _ = hex.DecodeString(b.DataHash.Hex()[2:])
+	header.NextValidatorsHash, _ = hex.DecodeString(b.NextValidatorsHash.Hex()[2:])
+	header.ConsensusHash, _ = hex.DecodeString(b.ConsensusHash.Hex()[2:])
+	header.AppHash, _ = hex.DecodeString(b.AppHash.Hex()[2:])
+	header.LastResultsHash, _ = hex.DecodeString(b.LastResultsHash.Hex()[2:])
+	header.EvidenceHash, _ = hex.DecodeString(b.EvidenceHash.Hex()[2:])
+	header.ProposerAddress, _ = hex.DecodeString(b.ProposerAddress.Hex()[2:])
+
 	block := &tmtypes.Block{
 		Header: header,
 	}
