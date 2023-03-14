@@ -59,7 +59,7 @@ func (o *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, i
 }
 
 func (o *Module) handleCreateObject(ctx context.Context, fieldMap map[string]interface{}) error {
-	log.Debugf("fieldMap: %+v", fieldMap)
+	log.Infow("object map", "fieldMap: %+v", fieldMap)
 	obj := &models.Object{
 		Creator:          fieldMap[parse.CreatorAddressStr].(common.Address),
 		Owner:            fieldMap[parse.OwnerAddressStr].(common.Address),
