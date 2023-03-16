@@ -55,14 +55,14 @@ func (*Block) TableName() string {
 }
 
 func (b *Block) ToTmBlock() *tmctypes.ResultBlock {
-	blockID := tmtypes.BlockID{
-		Hash: b.Hash.Bytes(),
-	}
+	blockID := tmtypes.BlockID{}
+	blockID.Hash, _ = hex.DecodeString(b.Hash.Hex()[2:])
+
 	header := tmtypes.Header{
 		Version: tmversion.Consensus{Block: version.BlockProtocol},
 		//ChainID: ,
 		Height: int64(b.Height),
-		Time:   time.Unix(int64(b.Timestamp), 0),
+		Time:   time.Unix(0, int64(b.Timestamp)).UTC(),
 		//LastBlockID: ,
 	}
 	header.LastCommitHash, _ = hex.DecodeString(b.LastResultsHash.Hex()[2:])
@@ -84,6 +84,15 @@ func (b *Block) ToTmBlock() *tmctypes.ResultBlock {
 	}
 }
 
+func (b *Block) ToResultBlock() *ResultBlock {
+	tmBlock := b.ToTmBlock()
+	return &ResultBlock{
+		BlockID: tmBlock.BlockID,
+		Block:   tmBlock.Block,
+		NumTxs:  b.NumTxs,
+	}
+}
+
 // NewBlockFromTmBlock builds a new Block instance from a given ResultBlock object
 func NewBlockFromTmBlock(blk *tmctypes.ResultBlock, totalGas uint64) *Block {
 	return &Block{
@@ -101,7 +110,7 @@ func NewBlockFromTmBlock(blk *tmctypes.ResultBlock, totalGas uint64) *Block {
 			common.HexToHash(blk.Block.Header.LastResultsHash.String()),
 			common.HexToHash(blk.Block.Header.EvidenceHash.String()),
 			common.HexToAddress(blk.Block.Header.ProposerAddress.String()),
-			uint64(blk.Block.Time.Unix()),
+			uint64(blk.Block.Time.UTC().UnixNano()),
 		},
 		NumTxs:   uint64(len(blk.Block.Txs)),
 		TotalGas: totalGas,
@@ -117,4 +126,11 @@ type Genesis struct {
 
 func (*Genesis) TableName() string {
 	return "geneses"
+}
+
+// Single block (with meta)
+type ResultBlock struct {
+	BlockID tmtypes.BlockID `json:"block_id"`
+	Block   *tmtypes.Block  `json:"block"`
+	NumTxs  uint64          `json:"num_txs"`
 }

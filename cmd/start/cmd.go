@@ -175,7 +175,12 @@ func enqueueMissingBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
 
 // enqueueNewBlocks enqueues new block heights onto the provided queue.
 func enqueueNewBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
-	currHeight := mustGetLatestHeight(ctx)
+	currHeight, err := ctx.Database.GetLastBlockHeight(context.TODO())
+	if err != nil {
+		log.Errorw("failed to get last block height from database", "error", err)
+	}
+
+	currHeight += 1
 
 	// Enqueue upcoming heights
 	for {

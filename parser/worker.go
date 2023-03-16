@@ -87,10 +87,9 @@ func (w *Worker) Start() {
 				time.Sleep(config.GetAvgBlockTime())
 				err = w.ProcessIfNotExists(i)
 			}
+		} else {
+			log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
 		}
-
-		log.Infow("processed block", "height", i)
-		log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
 	}
 }
 
@@ -104,7 +103,7 @@ func (w *Worker) ProcessIfNotExists(height uint64) error {
 	}
 
 	if exists {
-		log.Debugw("skipping already exported block", "height", height)
+		log.Infow("skipping already exported block", "height", height)
 		return nil
 	}
 
@@ -114,7 +113,7 @@ func (w *Worker) ProcessIfNotExists(height uint64) error {
 // Process fetches  a block for a given height and associated metadata and export it to a database.
 // It returns an error if any export process fails.
 func (w *Worker) Process(height uint64) error {
-	log.Debugw("processing block", "height", height)
+	log.Infow("processing block", "height", height)
 
 	if height == 0 {
 		cfg := config.Cfg.Parser
@@ -127,7 +126,13 @@ func (w *Worker) Process(height uint64) error {
 		return w.indexer.HandleGenesis(genesisDoc, genesisState)
 	}
 
-	return w.indexer.Process(height)
+	err := w.indexer.Process(height)
+
+	if err == nil {
+		log.Infow("processed block", "height", height)
+	}
+
+	return err
 }
 
 // ProcessTransactions fetches transactions for a given height and stores them into the database.

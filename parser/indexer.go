@@ -304,7 +304,7 @@ func (i *Impl) ExportTxs(block *tmctypes.ResultBlock, txs []*types.Tx) error {
 	// handle all transactions inside the block
 	for ind, tx := range txs {
 		// save the transaction
-		err := i.DB.SaveTx(context.TODO(), uint64(block.Block.Time.Unix()), ind, tx)
+		err := i.DB.SaveTx(context.TODO(), uint64(block.Block.Time.UTC().UnixNano()), ind, tx)
 		if err != nil {
 			return fmt.Errorf("error while storing tx with hash %s, %s", tx.TxHash, err)
 		}
@@ -358,7 +358,7 @@ func (i *Impl) ExportAccounts(block *tmctypes.ResultBlock, txs []*types.Tx) erro
 			account := &models.Account{
 				Address:             v,
 				TxCount:             1,
-				LastActiveTimestamp: uint64(block.Block.Time.Unix()),
+				LastActiveTimestamp: uint64(block.Block.Time.UTC().UnixNano()),
 			}
 			err := i.DB.SaveAccount(context.TODO(), account)
 			if err != nil {

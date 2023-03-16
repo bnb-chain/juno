@@ -57,7 +57,7 @@ func (t *Tx) ToTmTx() *ResultTx {
 		Hash:     txHash,
 		Height:   int64(t.Height),
 		Index:    t.TxIndex,
-		Time:     time.Unix(int64(t.Timestamp), 0),
+		Time:     time.Unix(0, int64(t.Timestamp)).UTC(),
 		TxResult: txResult,
 	}
 }
