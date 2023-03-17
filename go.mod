@@ -7,7 +7,6 @@ require (
 	github.com/bnb-chain/greenfield v0.0.7
 	github.com/cosmos/cosmos-sdk v0.46.7
 	github.com/cosmos/ibc-go/v5 v5.2.0
-	github.com/ethereum/go-ethereum v1.10.19
 	github.com/go-co-op/gocron v1.13.0
 	github.com/gogo/protobuf v1.3.3
 	github.com/golangci/golangci-lint v1.50.1
@@ -18,7 +17,6 @@ require (
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/prometheus/client_golang v1.12.2
 	github.com/rs/zerolog v1.29.0
-	github.com/rs/zerolog v1.27.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0

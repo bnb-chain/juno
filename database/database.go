@@ -422,7 +422,7 @@ ON CONFLICT (transaction_hash, index, partition_id) DO UPDATE
 
 func (db *Impl) SaveEpoch(ctx context.Context, epoch *models.Epoch) error {
 	err := db.Db.Table((&models.Epoch{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "id"}},
+		Columns:   []clause.Column{{Name: "one_row_id"}},
 		DoUpdates: clause.AssignmentColumns([]string{"block_height", "block_hash", "update_time"}),
 	}).Create(epoch).Error
 	return err

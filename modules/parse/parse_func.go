@@ -17,8 +17,8 @@ const (
 	CreateAtStr            = "create_at"
 	BucketIDStr            = "bucket_id"
 	SourceTypeStr          = "source_type"
-	ReadQuotaStr           = "read_quota"
-	ReadQuotaAfterStr      = "read_quota_after"
+	ReadQuota              = "read_quota"
+	ReadQuotaAfter         = "read_quota_after"
 	PaymentAddressStr      = "payment_address"
 	PaymentAddressAfterStr = "payment_address_after"
 	PrimarySpAddressStr    = "primary_sp_address"
@@ -64,8 +64,8 @@ var BucketParseFuncMap = map[string]func(str string) (interface{}, error){
 	CreateAtStr:            parseInt64,
 	BucketIDStr:            parseInt64,
 	SourceTypeStr:          parseStr,
-	ReadQuotaStr:           parseStr,
-	ReadQuotaAfterStr:      parseStr,
+	ReadQuota:              parseUint64,
+	ReadQuotaAfter:         parseUint64,
 	PaymentAddressStr:      parseAddress,
 	PaymentAddressAfterStr: parseAddress,
 	PrimarySpAddressStr:    parseAddress,
@@ -132,6 +132,11 @@ func parseBool(str string) (interface{}, error) {
 func parseInt64(str string) (interface{}, error) {
 	log.Infof("str: %v", str)
 	return strconv.ParseInt(str, 10, 64)
+}
+
+func parseUint64(str string) (interface{}, error) {
+	log.Infof("str: %v", str)
+	return strconv.ParseUint(str, 10, 64)
 }
 
 func parseInt32(str string) (interface{}, error) {

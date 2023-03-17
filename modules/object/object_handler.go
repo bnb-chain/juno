@@ -15,7 +15,7 @@ import (
 	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
-func (o *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event) error {
+func (o *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
 	fieldMap := make(map[string]interface{})
 	var parseErr error
 	for _, attr := range event.Attributes {

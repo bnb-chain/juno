@@ -15,7 +15,7 @@ import (
 	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
-func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event) error {
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
 	fieldMap := make(map[string]interface{})
 	var parseErr error
 	for _, attr := range event.Attributes {
@@ -61,7 +61,7 @@ func (m *Module) handleCreateBucket(ctx context.Context, fieldMap map[string]int
 		SourceType:       fieldMap[parse.SourceTypeStr].(string),
 		PaymentAddress:   fieldMap[parse.PaymentAddressStr].(common.Address),
 		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
-		ReadQuota:        fieldMap[parse.ReadQuotaStr].(string),
+		ReadQuota:        fieldMap[parse.ReadQuota].(uint64),
 	}
 
 	if timeInter, ok := fieldMap["timestamp"]; ok {
@@ -105,7 +105,7 @@ func (m *Module) handleUpdateBucketInfo(ctx context.Context, fieldMap map[string
 	bucket := &models.Bucket{
 		BucketName:      fieldMap[parse.BucketNameStr].(string),
 		BucketID:        fieldMap[parse.BucketIDStr].(int64),
-		ReadQuota:       fieldMap[parse.ReadQuotaAfterStr].(string),
+		ReadQuota:       fieldMap[parse.ReadQuotaAfter].(uint64),
 		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
 		PaymentAddress:  fieldMap[parse.PaymentAddressAfterStr].(common.Address),
 	}
