@@ -1,6 +1,6 @@
 package models
 
-import "github.com/ethereum/go-ethereum/common"
+import "github.com/forbole/juno/v4/common"
 
 type Epoch struct {
 	ID          int         `gorm:"id;type:tinyint(1);uniqueIndex:uniq_id"`

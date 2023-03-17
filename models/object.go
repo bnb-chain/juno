@@ -7,8 +7,8 @@ type Object struct {
 	Creator              common.Address `gorm:"creator_address;type:BINARY(20)"`
 	Owner                common.Address `gorm:"owner;type:BINARY(20);index:idx_owner"`
 	BucketID             int64          `gorm:"bucket_id;type:int;index:idx_bucket_id"`
-	BucketName           string         `gorm:"bucket_name;type:varchar(63)"`                              // BucketName length between 3 and 63
-	ObjectName           string         `gorm:"object_name;type:varchar(63);uniqueIndex:uniq_object_name"` // BucketName length between 3 and 63
+	BucketName           string         `gorm:"bucket_name;type:varchar(63)"`  // BucketName length between 3 and 63
+	ObjectName           string         `gorm:"object_name;type:varchar(63);"` // ObjectName length between 3 and 63
 	ObjectID             int64          `gorm:"object_id;type:int;uniqueIndex:uniq_object_id"`
 	PayloadSize          int64          `gorm:"payload_size;type:int"`
 	IsPublic             bool           `gorm:"is_public;type:tinyint(1)"`

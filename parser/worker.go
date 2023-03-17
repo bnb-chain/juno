@@ -14,7 +14,6 @@ import (
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
-	"github.com/forbole/juno/v4/utils/syncutils"
 )
 
 // Worker defines a job consumer that is responsible for getting and
@@ -85,7 +84,6 @@ func (w *Worker) Start() {
 	}
 }
 
-
 func (w *Worker) blockProcessed(height uint64) (bool, error) {
 	for _, m := range w.modules {
 		if epochModule, ok := m.(modules.EpochModule); ok {
@@ -99,17 +97,16 @@ func (w *Worker) blockProcessed(height uint64) (bool, error) {
 	}
 
 	if exists {
-		log.Debugw("skipping already exported block", "height", height)
+		log.Infow("skipping already exported block", "height", height)
 	}
 	return exists, nil
 }
-
 
 // ProcessIfNotExists defines the job consumer workflow. It will fetch a block for a given
 // height and associated metadata and export it to a database if it does not exist yet. It returns an
 // error if any export process fails.
 func (w *Worker) ProcessIfNotExists(height uint64) error {
-	exists, err := w.db.HasBlock(w.ctx, height)
+	exists, err := w.indexer.HasProcessedBlock(w.ctx, height)
 	if err != nil {
 		return fmt.Errorf("error while searching for block: %s", err)
 	}
@@ -167,9 +164,11 @@ func (w *Worker) ProcessTransactions(height int64) error {
 // It returns an error if the export process fails.
 func (w *Worker) ProcessEvents(height int64) error {
 	blockResults, err := w.node.BlockResults(height)
+	block, err := w.node.Block(height)
+
 	if err != nil {
 		return fmt.Errorf("failed to get block results from node: %s", err)
 	}
 
-	return w.indexer.ExportEvents(blockResults)
+	return w.indexer.ExportEvents(w.ctx, block, blockResults)
 }

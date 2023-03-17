@@ -26,6 +26,10 @@ type Indexer interface {
 	// It returns an error if any export process fails.
 	Process(height uint64) error
 
+	// HasProcessedBlock tells whether the current Indexer has already processed the given height of Block
+	// An error is returned if the operation fails.
+	HasProcessedBlock(ctx context.Context, height uint64) (bool, error)
+
 	// ExportBlock accepts a finalized block and persists then inside the database.
 	// An error is returned if write fails.
 	ExportBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators) error
@@ -63,7 +67,7 @@ type Indexer interface {
 	HandleMessage(index int, msg sdk.Msg, tx *types.Tx)
 
 	// HandleEvent accepts the transaction and handles events contained inside the transaction.
-	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event)
+	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event)
 
 	// ExportEpoch accepts a finalized block height and block hash then inside the database.
 	ExportEpoch(block *tmctypes.ResultBlock) error
@@ -92,10 +96,6 @@ type Impl struct {
 
 func (i *Impl) ExportEpoch(block *tmctypes.ResultBlock) error {
 	return nil
-}
-
-func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, index int, event sdk.Event) {
-	return
 }
 
 func (i *Impl) HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[string]json.RawMessage) error {
@@ -169,12 +169,13 @@ func (i *Impl) HandleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 	}
 }
 
-func (i *Impl) HandleEvent(event sdk.Event) {
+// HandleEvent accepts the transaction and handles events contained inside the transaction.
+func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) {
 	for _, module := range i.Modules {
 		if eventModule, ok := module.(modules.EventModule); ok {
-			err := eventModule.HandleEvent(event)
+			err := eventModule.HandleEvent(ctx, block, event)
 			if err != nil {
-				log.Errorw("error while handling event", "module", module.Name(), "event", event, "err", err)
+				log.Errorw("failed to handle event", "module", module, "event", event, "error", err)
 			}
 		}
 	}
@@ -225,7 +226,7 @@ func (i *Impl) Process(height uint64) error {
 		return err
 	}
 
-	err = i.ExportEvents(i.Ctx, block, events)
+	err = i.ExportEvents(i.Ctx, block, blockResults)
 	if err != nil {
 		return err
 	}
@@ -379,13 +380,19 @@ func (i *Impl) ExportAccounts(block *tmctypes.ResultBlock, txs []*types.Tx) erro
 	return nil
 }
 
-func (i *Impl) ExportEvents(blockResults *tmctypes.ResultBlockResults) error {
+func (i *Impl) ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, blockResults *tmctypes.ResultBlockResults) error {
 	txsResults := blockResults.TxsResults
 
 	for _, tx := range txsResults {
 		for _, event := range tx.Events {
-			i.HandleEvent(sdk.Event(event))
+			i.HandleEvent(ctx, block, sdk.Event(event))
 		}
 	}
 	return nil
+}
+
+// HasProcessedBlock tells whether the current Indexer has already processed the given height of Block
+// An error is returned if the operation fails.
+func (i *Impl) HasProcessedBlock(ctx context.Context, height uint64) (bool, error) {
+	return i.DB.HasBlock(ctx, height)
 }
