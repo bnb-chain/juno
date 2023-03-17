@@ -3,7 +3,10 @@ package parser
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/codec"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
@@ -12,7 +15,6 @@ import (
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
 	"github.com/forbole/juno/v4/utils/syncutils"
-	"time"
 )
 
 // Worker defines a job consumer that is responsible for getting and
@@ -77,16 +79,12 @@ func (w *Worker) Start() {
 				time.Sleep(config.GetAvgBlockTime())
 				err = w.ProcessIfNotExists(i)
 			}
+		} else {
+			log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
 		}
-
-		log.Infow("processed block", "height", i)
-		log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
 	}
 }
 
-// ProcessIfNotExists defines the job consumer workflow. It will fetch a block for a given
-// height and associated metadata and export it to a database if it does not exist yet. It returns an
-// error if any export process fails.
 
 func (w *Worker) blockProcessed(height uint64) (bool, error) {
 	for _, m := range w.modules {
@@ -106,13 +104,18 @@ func (w *Worker) blockProcessed(height uint64) (bool, error) {
 	return exists, nil
 }
 
+
+// ProcessIfNotExists defines the job consumer workflow. It will fetch a block for a given
+// height and associated metadata and export it to a database if it does not exist yet. It returns an
+// error if any export process fails.
 func (w *Worker) ProcessIfNotExists(height uint64) error {
-	exist, err := w.blockProcessed(height)
+	exists, err := w.db.HasBlock(w.ctx, height)
 	if err != nil {
-		return err
+		return fmt.Errorf("error while searching for block: %s", err)
 	}
 
-	if exist {
+	if exists {
+		log.Infow("skipping already exported block", "height", height)
 		return nil
 	}
 
@@ -122,7 +125,7 @@ func (w *Worker) ProcessIfNotExists(height uint64) error {
 // Process fetches  a block for a given height and associated metadata and export it to a database.
 // It returns an error if any export process fails.
 func (w *Worker) Process(height uint64) error {
-	log.Debugw("processing block", "height", height)
+	log.Infow("processing block", "height", height)
 
 	if height == 0 {
 		cfg := config.Cfg.Parser
@@ -135,7 +138,13 @@ func (w *Worker) Process(height uint64) error {
 		return w.indexer.HandleGenesis(genesisDoc, genesisState)
 	}
 
-	return w.indexer.Process(height)
+	err := w.indexer.Process(height)
+
+	if err == nil {
+		log.Infow("processed block", "height", height)
+	}
+
+	return err
 }
 
 // ProcessTransactions fetches transactions for a given height and stores them into the database.
@@ -151,12 +160,16 @@ func (w *Worker) ProcessTransactions(height int64) error {
 		return fmt.Errorf("failed to get transactions for block: %s", err)
 	}
 
-	return syncutils.BatchRun(
-		func() error {
-			return w.indexer.ExportTxs(txs)
-		},
-		func() error {
-			return w.indexer.ExportAccounts(block, txs)
-		},
-	)
+	return w.indexer.ExportTxs(block, txs)
+}
+
+// ProcessEvents fetches events for a given height and stores them into the database.
+// It returns an error if the export process fails.
+func (w *Worker) ProcessEvents(height int64) error {
+	blockResults, err := w.node.BlockResults(height)
+	if err != nil {
+		return fmt.Errorf("failed to get block results from node: %s", err)
+	}
+
+	return w.indexer.ExportEvents(blockResults)
 }

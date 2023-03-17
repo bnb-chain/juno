@@ -3,10 +3,10 @@ package registrar
 import (
 	"github.com/bnb-chain/greenfield/app/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
-	"github.com/forbole/juno/v4/modules/account"
 	"github.com/forbole/juno/v4/modules/block"
 	"github.com/forbole/juno/v4/modules/bucket"
 	"github.com/forbole/juno/v4/modules/epoch"
@@ -86,7 +86,6 @@ func NewDefaultRegistrar(parser messages.MessageAddressesParser) *DefaultRegistr
 // BuildModules implements Registrar
 func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 	return modules.Modules{
-		account.NewModule(ctx.Database),
 		block.NewModule(ctx.Database),
 		tx.NewModule(ctx.Database),
 		validator.NewModule(ctx.Database),

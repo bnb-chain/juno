@@ -1,6 +1,9 @@
 package models
 
 import (
+	"encoding/hex"
+	"time"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/bytes"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -27,7 +30,7 @@ type Tx struct {
 	RawLog    string `gorm:"column:raw_log"`
 	Logs      string `gorm:"column:logs;type:json;not null;default:(JSON_ARRAY())"`
 
-	// Timestamp uint64 `gorm:"column:timestamp"` ?
+	Timestamp uint64 `gorm:"timestamp"` // refer block.header.timestamp
 }
 
 func (*Tx) TableName() string {
@@ -41,16 +44,26 @@ func (t *Tx) ToTmTx() *ResultTx {
 		GasUsed:   int64(t.GasUsed),
 		Messages:  t.Messages,
 	}
+
+	if t.Success {
+		txResult.Code = 0
+	} else {
+		txResult.Code = 1
+	}
+
+	txHash, _ := hex.DecodeString(t.Hash.Hex()[2:])
+
 	return &ResultTx{
-		Hash:     t.Hash.Bytes(),
+		Hash:     txHash,
 		Height:   int64(t.Height),
 		Index:    t.TxIndex,
+		Time:     time.Unix(0, int64(t.Timestamp)).UTC(),
 		TxResult: txResult,
 	}
 }
 
 type ResponseDeliverTx struct {
-	Code      uint32       `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Code      uint32       `protobuf:"varint,1,opt,name=code,proto3" json:"code"`
 	Data      []byte       `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	Log       string       `protobuf:"bytes,3,opt,name=log,proto3" json:"log,omitempty"`
 	Info      string       `protobuf:"bytes,4,opt,name=info,proto3" json:"info,omitempty"`
@@ -66,6 +79,7 @@ type ResultTx struct {
 	Hash     bytes.HexBytes    `json:"hash"`
 	Height   int64             `json:"height"`
 	Index    uint32            `json:"index"`
+	Time     time.Time         `json:"time"`
 	TxResult ResponseDeliverTx `json:"tx_result"`
 	Tx       tmtypes.Tx        `json:"tx"`
 	Proof    tmtypes.TxProof   `json:"proof,omitempty"`

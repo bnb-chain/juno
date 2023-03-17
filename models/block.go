@@ -1,9 +1,9 @@
 package models
 
 import (
+	"encoding/hex"
 	"time"
 
-	"github.com/tendermint/tendermint/crypto"
 	tmversion "github.com/tendermint/tendermint/proto/tendermint/version"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -55,31 +55,41 @@ func (*Block) TableName() string {
 }
 
 func (b *Block) ToTmBlock() *tmctypes.ResultBlock {
-	blockID := tmtypes.BlockID{
-		Hash: b.Hash.Bytes(),
-	}
+	blockID := tmtypes.BlockID{}
+	blockID.Hash, _ = hex.DecodeString(b.Hash.Hex()[2:])
+
 	header := tmtypes.Header{
 		Version: tmversion.Consensus{Block: version.BlockProtocol},
 		//ChainID: ,
 		Height: int64(b.Height),
-		Time:   time.Unix(int64(b.Timestamp), 0),
+		Time:   time.Unix(0, int64(b.Timestamp)).UTC(),
 		//LastBlockID: ,
-		LastCommitHash:     b.LastResultsHash.Bytes(),
-		DataHash:           b.DataHash.Bytes(),
-		ValidatorsHash:     b.ValidatorsHash.Bytes(),
-		NextValidatorsHash: b.NextValidatorsHash.Bytes(),
-		ConsensusHash:      b.ConsensusHash.Bytes(),
-		AppHash:            b.AppHash.Bytes(),
-		LastResultsHash:    b.LastResultsHash.Bytes(),
-		EvidenceHash:       b.EvidenceHash.Bytes(),
-		ProposerAddress:    crypto.AddressHash(b.ProposerAddress.Bytes()),
 	}
+	header.LastCommitHash, _ = hex.DecodeString(b.LastResultsHash.Hex()[2:])
+	header.DataHash, _ = hex.DecodeString(b.DataHash.Hex()[2:])
+	header.ValidatorsHash, _ = hex.DecodeString(b.DataHash.Hex()[2:])
+	header.NextValidatorsHash, _ = hex.DecodeString(b.NextValidatorsHash.Hex()[2:])
+	header.ConsensusHash, _ = hex.DecodeString(b.ConsensusHash.Hex()[2:])
+	header.AppHash, _ = hex.DecodeString(b.AppHash.Hex()[2:])
+	header.LastResultsHash, _ = hex.DecodeString(b.LastResultsHash.Hex()[2:])
+	header.EvidenceHash, _ = hex.DecodeString(b.EvidenceHash.Hex()[2:])
+	header.ProposerAddress, _ = hex.DecodeString(b.ProposerAddress.Hex()[2:])
+
 	block := &tmtypes.Block{
 		Header: header,
 	}
 	return &tmctypes.ResultBlock{
 		BlockID: blockID,
 		Block:   block,
+	}
+}
+
+func (b *Block) ToResultBlock() *ResultBlock {
+	tmBlock := b.ToTmBlock()
+	return &ResultBlock{
+		BlockID: tmBlock.BlockID,
+		Block:   tmBlock.Block,
+		NumTxs:  b.NumTxs,
 	}
 }
 
@@ -100,7 +110,7 @@ func NewBlockFromTmBlock(blk *tmctypes.ResultBlock, totalGas uint64) *Block {
 			common.HexToHash(blk.Block.Header.LastResultsHash.String()),
 			common.HexToHash(blk.Block.Header.EvidenceHash.String()),
 			common.HexToAddress(blk.Block.Header.ProposerAddress.String()),
-			uint64(blk.Block.Time.Unix()),
+			uint64(blk.Block.Time.UTC().UnixNano()),
 		},
 		NumTxs:   uint64(len(blk.Block.Txs)),
 		TotalGas: totalGas,
@@ -116,4 +126,11 @@ type Genesis struct {
 
 func (*Genesis) TableName() string {
 	return "geneses"
+}
+
+// Single block (with meta)
+type ResultBlock struct {
+	BlockID tmtypes.BlockID `json:"block_id"`
+	Block   *tmtypes.Block  `json:"block"`
+	NumTxs  uint64          `json:"num_txs"`
 }

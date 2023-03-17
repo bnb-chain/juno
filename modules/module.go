@@ -3,7 +3,6 @@ package modules
 import (
 	"context"
 	"encoding/json"
-	"github.com/forbole/juno/v4/types"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/x/authz"
@@ -12,6 +11,8 @@ import (
 	"github.com/go-co-op/gocron"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
+
+	"github.com/forbole/juno/v4/types"
 )
 
 // Module represents a generic module without any particular handling of data
