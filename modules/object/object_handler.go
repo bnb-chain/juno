@@ -100,7 +100,7 @@ func (o *Module) handleSealObject(ctx context.Context, fieldMap map[string]inter
 		ObjectName:           fieldMap[parse.ObjectNameStr].(string),
 		ObjectID:             fieldMap[parse.ObjectIDStr].(int64),
 		ObjectStatus:         fieldMap[parse.ObjectStatusStr].(string),
-		SecondarySpAddresses: fieldMap[parse.SecondarySpAddress].(string),
+		SecondarySpAddresses: fieldMap[parse.SecondarySpAddresses].(string),
 		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
 	}
 
@@ -178,7 +178,7 @@ func (o *Module) handleDeleteObject(ctx context.Context, fieldMap map[string]int
 		ObjectName:           fieldMap[parse.ObjectNameStr].(string),
 		ObjectID:             fieldMap[parse.ObjectIDStr].(int64),
 		Removed:              true,
-		SecondarySpAddresses: fieldMap[parse.SecondarySpAddressDel].(string),
+		SecondarySpAddresses: fieldMap[parse.SecondarySpAddresses].(string),
 		PrimarySpAddress:     fieldMap[parse.PrimarySpAddressStr].(common.Address),
 		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
 	}

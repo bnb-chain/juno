@@ -15,7 +15,7 @@ const (
 	OwnerAddressStr        = "owner_address"
 	IsPublicStr            = "is_public"
 	CreateAtStr            = "create_at"
-	BucketIDStr            = "id"
+	BucketIDStr            = "bucket_id"
 	SourceTypeStr          = "source_type"
 	ReadQuotaStr           = "read_quota"
 	ReadQuotaAfterStr      = "read_quota_after"
@@ -27,21 +27,20 @@ const (
 	DestBucketName         = "dst_bucket_name"
 
 	// object
-	ObjectNameStr         = "object_name"
-	CreatorAddressStr     = "creator_address"
-	ObjectIDStr           = "object_id"
-	ObjectBucketIDStr     = "bucket_id"
-	PayloadSizeStr        = "payload_size"
-	ContentTypeStr        = "content_type"
-	ObjectStatusStr       = "status"
-	RedundancyTypeStr     = "redundancy_type"
-	ChecksumsStr          = "checksums"
-	SecondarySpAddress    = "secondary_sp_address"
-	SecondarySpAddressDel = "secondary_sp_addresses"
-	SourceObjectName      = "src_object_name"
-	DestObjectName        = "dst_object_name"
-	SourceObjectId        = "src_object_id"
-	DestObjectId          = "dst_object_id"
+	ObjectNameStr        = "object_name"
+	CreatorAddressStr    = "creator_address"
+	ObjectIDStr          = "object_id"
+	ObjectBucketIDStr    = "bucket_id"
+	PayloadSizeStr       = "payload_size"
+	ContentTypeStr       = "content_type"
+	ObjectStatusStr      = "status"
+	RedundancyTypeStr    = "redundancy_type"
+	ChecksumsStr         = "checksums"
+	SecondarySpAddresses = "secondary_sp_addresses"
+	SourceObjectName     = "src_object_name"
+	DestObjectName       = "dst_object_name"
+	SourceObjectId       = "src_object_id"
+	DestObjectId         = "dst_object_id"
 
 	// payment
 	Account         = "account"
@@ -76,28 +75,27 @@ var BucketParseFuncMap = map[string]func(str string) (interface{}, error){
 }
 
 var ObjectParseFuncMap = map[string]func(str string) (interface{}, error){
-	ObjectNameStr:         parseStr,
-	CreatorAddressStr:     parseAddress,
-	ObjectIDStr:           parseInt64,
-	PayloadSizeStr:        parseInt64,
-	ContentTypeStr:        parseStr,
-	ObjectStatusStr:       parseStr,
-	RedundancyTypeStr:     parseStr,
-	ChecksumsStr:          parseStr,
-	SecondarySpAddress:    parseStr,
-	OwnerAddressStr:       parseAddress,
-	BucketNameStr:         parseStr,
-	ObjectBucketIDStr:     parseInt64,
-	CreateAtStr:           parseInt64,
-	IsPublicStr:           parseBool,
-	SourceTypeStr:         parseStr,
-	SourceObjectName:      parseStr,
-	DestObjectName:        parseStr,
-	SourceObjectId:        parseInt64,
-	DestObjectId:          parseInt64,
-	SecondarySpAddressDel: parseStr,
-	PrimarySpAddressStr:   parseAddress,
-	OperatorAddressStr:    parseAddress,
+	ObjectNameStr:        parseStr,
+	CreatorAddressStr:    parseAddress,
+	ObjectIDStr:          parseInt64,
+	PayloadSizeStr:       parseInt64,
+	ContentTypeStr:       parseStr,
+	ObjectStatusStr:      parseStr,
+	RedundancyTypeStr:    parseStr,
+	ChecksumsStr:         parseStr,
+	SecondarySpAddresses: parseStr,
+	OwnerAddressStr:      parseAddress,
+	BucketNameStr:        parseStr,
+	ObjectBucketIDStr:    parseInt64,
+	CreateAtStr:          parseInt64,
+	IsPublicStr:          parseBool,
+	SourceTypeStr:        parseStr,
+	SourceObjectName:     parseStr,
+	DestObjectName:       parseStr,
+	SourceObjectId:       parseInt64,
+	DestObjectId:         parseInt64,
+	PrimarySpAddressStr:  parseAddress,
+	OperatorAddressStr:   parseAddress,
 }
 
 var PaymentParseFuncMap = map[string]func(str string) (interface{}, error){

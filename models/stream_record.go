@@ -7,16 +7,16 @@ import (
 )
 
 type StreamRecord struct {
-	Id              uint64          `gorm:"id;type:bigint(64);primaryKey"`
-	Account         common.Address  `gorm:"account;type:BINARY(20);not null;index:idx_account"`
-	CrudTimestamp   int64           `gorm:"update_time;type:bigint(64)"`
-	NetflowRate     decimal.Decimal `gorm:"netflow_rate"`
-	StaticBalance   decimal.Decimal `gorm:"static_balance"`
-	BufferBalance   decimal.Decimal `gorm:"buffer_balance"`
-	LockBalance     decimal.Decimal `gorm:"lock_balance"`
-	Status          string          `gorm:"status"`
-	SettleTimestamp int64           `gorm:"settle_time;type:bigint(64)"`
-	OutFlows        string          `gorm:"out_flows;type:json"`
+	Id              uint64          `gorm:"column:id;type:bigint(64);primaryKey"`
+	Account         common.Address  `gorm:"column:account;type:BINARY(20);not null;index:idx_account"`
+	CrudTimestamp   int64           `gorm:"column:update_time;type:bigint(64)"`
+	NetflowRate     decimal.Decimal `gorm:"column:netflow_rate"`
+	StaticBalance   decimal.Decimal `gorm:"column:static_balance"`
+	BufferBalance   decimal.Decimal `gorm:"column:buffer_balance"`
+	LockBalance     decimal.Decimal `gorm:"column:lock_balance"`
+	Status          string          `gorm:"column:status"`
+	SettleTimestamp int64           `gorm:"column:settle_time;type:bigint(64)"`
+	OutFlows        string          `gorm:"column:out_flows;type:json"`
 }
 
 func (*StreamRecord) TableName() string {
