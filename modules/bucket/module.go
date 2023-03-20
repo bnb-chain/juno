@@ -2,10 +2,12 @@ package bucket
 
 import (
 	"context"
+
+	"gorm.io/gorm/schema"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
-	"gorm.io/gorm/schema"
 )
 
 const (
@@ -17,7 +19,7 @@ var (
 	_ modules.PrepareTablesModule = &Module{}
 )
 
-// Module represents the telemetry module
+// Module represents the bucket module
 type Module struct {
 	db database.Database
 }

@@ -22,24 +22,28 @@ const (
 	EventDeleteGroup
 	EventLeaveGroup
 	EventUpdateGroupMember
+	EventPaymentAccountUpdate
+	EventStreamRecordUpdate
 )
 const EventUnsupported SPEventType = -1
 
 var (
 	EventProcessedMap = map[string]SPEventType{
-		"bnbchain.greenfield.storage.EventCreateBucket":       EventCreateBucket,
-		"bnbchain.greenfield.storage.EventDeleteBucket":       EventDeleteBucket,
-		"bnbchain.greenfield.storage.EventUpdateBucketInfo":   EventUpdateBucketInfo,
-		"bnbchain.greenfield.storage.EventCreateObject":       EventCreateObject,
-		"bnbchain.greenfield.storage.EventCancelCreateObject": EventCancelCreateObject,
-		"bnbchain.greenfield.storage.EventSealObject":         EventSealObject,
-		"bnbchain.greenfield.storage.EventCopyObject":         EventCopyObject,
-		"bnbchain.greenfield.storage.EventDeleteObject":       EventDeleteObject,
-		"bnbchain.greenfield.storage.EventRejectSealObject":   EventRejectSealObject,
-		"bnbchain.greenfield.storage.EventCreateGroup":        EventCreateGroup,
-		"bnbchain.greenfield.storage.EventDeleteGroup":        EventDeleteGroup,
-		"bnbchain.greenfield.storage.EventLeaveGroup":         EventLeaveGroup,
-		"bnbchain.greenfield.storage.EventUpdateGroupMember":  EventUpdateGroupMember,
+		"bnbchain.greenfield.storage.EventCreateBucket":         EventCreateBucket,
+		"bnbchain.greenfield.storage.EventDeleteBucket":         EventDeleteBucket,
+		"bnbchain.greenfield.storage.EventUpdateBucketInfo":     EventUpdateBucketInfo,
+		"bnbchain.greenfield.storage.EventCreateObject":         EventCreateObject,
+		"bnbchain.greenfield.storage.EventCancelCreateObject":   EventCancelCreateObject,
+		"bnbchain.greenfield.storage.EventSealObject":           EventSealObject,
+		"bnbchain.greenfield.storage.EventCopyObject":           EventCopyObject,
+		"bnbchain.greenfield.storage.EventDeleteObject":         EventDeleteObject,
+		"bnbchain.greenfield.storage.EventRejectSealObject":     EventRejectSealObject,
+		"bnbchain.greenfield.storage.EventCreateGroup":          EventCreateGroup,
+		"bnbchain.greenfield.storage.EventDeleteGroup":          EventDeleteGroup,
+		"bnbchain.greenfield.storage.EventLeaveGroup":           EventLeaveGroup,
+		"bnbchain.greenfield.storage.EventUpdateGroupMember":    EventUpdateGroupMember,
+		"bnbchain.greenfield.payment.EventPaymentAccountUpdate": EventPaymentAccountUpdate,
+		"bnbchain.greenfield.payment.EventStreamRecordUpdate":   EventStreamRecordUpdate,
 	}
 )
 

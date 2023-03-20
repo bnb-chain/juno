@@ -48,15 +48,6 @@ func NewWorker(ctx *Context, queue types.HeightQueue, index int, concurrentSync 
 	}
 }
 
-// NewPuppetWorker create a puppet Worker
-func NewPuppetWorker(modules []modules.Module) *Worker {
-	return &Worker{
-		index:          -1,
-		modules:        modules,
-		concurrentSync: false,
-	}
-}
-
 func (w *Worker) SetIndexer(indexer Indexer) {
 	w.indexer = indexer
 }
@@ -97,7 +88,7 @@ func (w *Worker) Start() {
 // height and associated metadata and export it to a database if it does not exist yet. It returns an
 // error if any export process fails.
 func (w *Worker) ProcessIfNotExists(height uint64) error {
-	exists, err := w.db.HasBlock(w.ctx, height)
+	exists, err := w.indexer.Processed(w.ctx, height)
 	if err != nil {
 		return fmt.Errorf("error while searching for block: %s", err)
 	}
@@ -155,9 +146,11 @@ func (w *Worker) ProcessTransactions(height int64) error {
 // It returns an error if the export process fails.
 func (w *Worker) ProcessEvents(height int64) error {
 	blockResults, err := w.node.BlockResults(height)
+	block, err := w.node.Block(height)
+
 	if err != nil {
 		return fmt.Errorf("failed to get block results from node: %s", err)
 	}
 
-	return w.indexer.ExportEvents(blockResults)
+	return w.indexer.ExportEvents(w.ctx, block, blockResults)
 }

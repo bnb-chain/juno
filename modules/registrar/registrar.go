@@ -9,9 +9,11 @@ import (
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/modules/block"
 	"github.com/forbole/juno/v4/modules/bucket"
+	"github.com/forbole/juno/v4/modules/epoch"
 	"github.com/forbole/juno/v4/modules/group"
 	"github.com/forbole/juno/v4/modules/messages"
 	"github.com/forbole/juno/v4/modules/object"
+	"github.com/forbole/juno/v4/modules/payment"
 	"github.com/forbole/juno/v4/modules/pruning"
 	"github.com/forbole/juno/v4/modules/telemetry"
 	"github.com/forbole/juno/v4/modules/tx"
@@ -93,6 +95,8 @@ func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 		pruning.NewModule(ctx.JunoConfig, ctx.Database),
 		messages.NewModule(r.parser, ctx.EncodingConfig.Marshaler, ctx.Database),
 		telemetry.NewModule(ctx.JunoConfig),
+		epoch.NewModule(ctx.Database),
+		payment.NewModule(ctx.Database),
 	}
 }
 

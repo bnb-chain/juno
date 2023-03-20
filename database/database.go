@@ -74,6 +74,30 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveMessage(ctx context.Context, msg *types.Message) error
 
+	// SaveBucket will be called to save each bucket contained inside a block.
+	// An error is returned if the operation fails.
+	SaveBucket(ctx context.Context, bucket *models.Bucket) error
+
+	// SaveObject will be called to save each object contained inside a block.
+	// An error is returned if the operation fails.
+	SaveObject(ctx context.Context, object *models.Object) error
+
+	// GetObject returns an object model with given objectId and bucketName.
+	// It should return only one record
+	GetObject(ctx context.Context, objectId uint64, bucketName string) (*models.Object, error)
+
+	SaveEpoch(ctx context.Context, epoch *models.Epoch) error
+
+	GetEpoch(ctx context.Context) (*models.Epoch, error)
+
+	// SavePaymentAccount will be called to save PaymentAccount.
+	// An error is returned if the operation fails.
+	SavePaymentAccount(ctx context.Context, paymentAccount *models.PaymentAccount) error
+
+	// SaveStreamRecord will be called to save SaveStreamRecord.
+	// An error is returned if the operation fails.
+	SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error
+
 	// Close closes the connection to the database
 	Close()
 }
@@ -339,6 +363,48 @@ func (db *Impl) SaveMessage(ctx context.Context, msg *types.Message) error {
 	return db.saveMessageInsidePartition(msg, partitionID)
 }
 
+func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
+	err := db.Db.Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "bucket_id"}, {Name: "bucket_name"}},
+		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "read_quota", "payment_address", "removed", "update_time", "update_at"}),
+	}).Create(bucket).Error
+	return err
+}
+
+func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
+	err := db.Db.Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "object_id"}, {Name: "object_name"}},
+		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "object_status", "removed", "secondary_sp_addresses", "update_time", "object_status", "primary_sp_address", "update_at"}),
+	}).Create(object).Error
+	return err
+}
+
+func (db *Impl) GetObject(ctx context.Context, objectId uint64, bucketName string) (*models.Object, error) {
+	var object models.Object
+
+	err := db.Db.Where("object_id = ? AND bucket_name = ? AND removed IS NOT TRUE", objectId, bucketName).Find(&object).Error
+	if err != nil {
+		return nil, err
+	}
+	return &object, nil
+}
+
+func (db *Impl) SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error {
+	err := db.Db.Table((&models.StreamRecord{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "account"}},
+		DoUpdates: clause.AssignmentColumns([]string{"update_time", "netflow_rate", "static_balance", "buffer_balance", "lock_balance", "status", "settle_time", "out_flows"}),
+	}).Create(streamRecord).Error
+	return err
+}
+
+func (db *Impl) SavePaymentAccount(ctx context.Context, paymentAccount *models.PaymentAccount) error {
+	err := db.Db.Table((&models.PaymentAccount{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "addr"}},
+		DoUpdates: clause.AssignmentColumns([]string{"refundable", "update_at", "update_time"}),
+	}).Create(paymentAccount).Error
+	return err
+}
+
 // saveMessageInsidePartition stores the given message inside the partition having the provided id
 func (db *Impl) saveMessageInsidePartition(msg *types.Message, partitionID int64) error {
 	stmt := `
@@ -352,6 +418,24 @@ ON CONFLICT (transaction_hash, index, partition_id) DO UPDATE
 
 	err := db.Db.Exec(stmt, msg.TxHash, msg.Index, msg.Type, msg.Value, pq.Array(msg.Addresses), msg.Height, partitionID).Error
 	return err
+}
+
+func (db *Impl) SaveEpoch(ctx context.Context, epoch *models.Epoch) error {
+	err := db.Db.Table((&models.Epoch{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "one_row_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"block_height", "block_hash", "update_time"}),
+	}).Create(epoch).Error
+	return err
+}
+
+func (db *Impl) GetEpoch(ctx context.Context) (*models.Epoch, error) {
+	var epoch models.Epoch
+
+	err := db.Db.Find(&epoch).Error
+	if err != nil && !errIsNotFound(err) {
+		return nil, err
+	}
+	return &epoch, nil
 }
 
 // Close implements database.Database

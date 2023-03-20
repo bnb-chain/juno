@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 
@@ -116,5 +117,9 @@ type AuthzMessageModule interface {
 
 type EventModule interface {
 	//HandleEvent index param here to save possible sequence order
-	HandleEvent(event sdk.Event) error
+	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error
+}
+
+type EpochModule interface {
+	IsProcessed(height uint64) (bool, error)
 }
