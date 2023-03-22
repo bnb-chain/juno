@@ -41,7 +41,7 @@ type Header struct {
 }
 
 type Block struct {
-	ID uint64 `gorm:"column:id;primaryKey"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	BlockID
 	Header

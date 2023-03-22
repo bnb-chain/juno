@@ -2,120 +2,114 @@ package bucket
 
 import (
 	"context"
-	"strings"
+	"errors"
 
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-
+	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gogo/protobuf/proto"
+	abci "github.com/tendermint/tendermint/abci/types"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
-	"github.com/forbole/juno/v4/modules/parse"
-	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
+var (
+	EventCreateBucket     = proto.MessageName(&storagetypes.EventCreateBucket{})
+	EventDeleteBucket     = proto.MessageName(&storagetypes.EventDeleteBucket{})
+	EventUpdateBucketInfo = proto.MessageName(&storagetypes.EventUpdateBucketInfo{})
+)
+
+var bucketEvents = map[string]bool{
+	EventCreateBucket:     true,
+	EventDeleteBucket:     true,
+	EventUpdateBucketInfo: true,
+}
+
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
-	fieldMap := make(map[string]interface{})
-	var parseErr error
-	for _, attr := range event.Attributes {
-		parseFunc, ok := parse.BucketParseFuncMap[string(attr.Key)]
+	if !bucketEvents[event.Type] {
+		return nil
+	}
+
+	typedEvent, err := sdk.ParseTypedEvent(abci.Event(event))
+	if err != nil {
+		log.Errorw("parse typed events error", "module", m.Name(), "event", event, "err", err)
+		return err
+	}
+
+	switch event.Type {
+	case EventCreateBucket:
+		createBucket, ok := typedEvent.(*storagetypes.EventCreateBucket)
 		if !ok {
-			continue
+			log.Errorw("type assert error", "type", "EventCreateBucket", "event", typedEvent)
+			return errors.New("create bucket event assert error")
 		}
-		value := strings.Trim(string(attr.Value), "\"")
-		fieldMap[string(attr.Key)], parseErr = parseFunc(value)
-		if parseErr != nil {
-			log.Errorf("parse failed err: %v", parseErr)
-			return parseErr
+		return m.handleCreateBucket(ctx, block, createBucket)
+	case EventDeleteBucket:
+		deleteBucket, ok := typedEvent.(*storagetypes.EventDeleteBucket)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventDeleteBucket", "event", typedEvent)
+			return errors.New("delete bucket event assert error")
 		}
-	}
-	if block != nil && block.Block != nil {
-		fieldMap["timestamp"] = block.Block.Time.Unix()
-		fieldMap["block_update"] = block.Block.Height
-	}
-	log.Infow("bucket map", "map: %+v", fieldMap)
-	eventType, err := eventutil.GetEventType(event)
-	if err == nil {
-		switch eventType {
-		case eventutil.EventCreateBucket:
-			return m.handleCreateBucket(ctx, fieldMap)
-		case eventutil.EventDeleteBucket:
-			return m.handleDeleteBucket(ctx, fieldMap)
-		case eventutil.EventUpdateBucketInfo:
-			return m.handleUpdateBucketInfo(ctx, fieldMap)
-		default:
-			return nil
+		return m.handleDeleteBucket(ctx, block, deleteBucket)
+	case EventUpdateBucketInfo:
+		updateBucketInfo, ok := typedEvent.(*storagetypes.EventUpdateBucketInfo)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventUpdateBucketInfo", "event", typedEvent)
+			return errors.New("update bucket event assert error")
 		}
-	}
-	return err
-}
-
-func (m *Module) handleCreateBucket(ctx context.Context, fieldMap map[string]interface{}) error {
-	bucket := &models.Bucket{
-		BucketName:       fieldMap[parse.BucketNameStr].(string),
-		BucketID:         fieldMap[parse.BucketIDStr].(int64),
-		Owner:            fieldMap[parse.OwnerAddressStr].(common.Address),
-		CreateAt:         fieldMap[parse.CreateAtStr].(int64),
-		IsPublic:         fieldMap[parse.IsPublicStr].(bool),
-		SourceType:       fieldMap[parse.SourceTypeStr].(string),
-		PaymentAddress:   fieldMap[parse.PaymentAddressStr].(common.Address),
-		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
-		ReadQuota:        fieldMap[parse.ReadQuota].(uint64),
+		return m.handleUpdateBucketInfo(ctx, block, updateBucketInfo)
 	}
 
-	if timeInter, ok := fieldMap["timestamp"]; ok {
-		bucket.CreateTime = timeInter.(int64)
-		bucket.UpdateTime = timeInter.(int64)
-	}
-	if blockUpdate, ok := fieldMap["block_update"]; ok {
-		bucket.UpdateAt = blockUpdate.(int64)
-	}
-
-	if err := m.db.SaveBucket(ctx, bucket); err != nil {
-		return err
-	}
 	return nil
 }
 
-func (m *Module) handleDeleteBucket(ctx context.Context, fieldMap map[string]interface{}) error {
+func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultBlock, createBucket *storagetypes.EventCreateBucket) error {
 	bucket := &models.Bucket{
-		BucketName:       fieldMap[parse.BucketNameStr].(string),
-		BucketID:         fieldMap[parse.BucketIDStr].(int64),
-		Owner:            fieldMap[parse.OwnerAddressStr].(common.Address),
-		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
-		OperatorAddress:  fieldMap[parse.OperatorAddressStr].(common.Address),
-		Removed:          true,
+		BucketID:         common.BigToHash(createBucket.Id.BigInt()),
+		BucketName:       createBucket.BucketName,
+		OwnerAddress:     common.HexToAddress(createBucket.OwnerAddress),
+		PaymentAddress:   common.HexToAddress(createBucket.PaymentAddress),
+		PrimarySpAddress: common.HexToAddress(createBucket.PrimarySpAddress),
+		SourceType:       createBucket.SourceType.String(),
+		ReadQuota:        createBucket.ReadQuota,
+		IsPublic:         createBucket.IsPublic,
+
+		Removed: false,
+
+		CreateAt:   block.Block.Height,
+		CreateTime: block.Block.Time.UTC().UnixNano(),
+		UpdateAt:   block.Block.Height,
+		UpdateTime: block.Block.Time.UTC().UnixNano(),
 	}
 
-	if timeInter, ok := fieldMap["timestamp"]; ok {
-		bucket.UpdateTime = timeInter.(int64)
-	}
-	if blockUpdate, ok := fieldMap["block_update"]; ok {
-		bucket.UpdateAt = blockUpdate.(int64)
-	}
-
-	if err := m.db.SaveBucket(ctx, bucket); err != nil {
-		return err
-	}
-	return nil
+	return m.db.SaveBucket(ctx, bucket)
 }
 
-func (m *Module) handleUpdateBucketInfo(ctx context.Context, fieldMap map[string]interface{}) error {
+func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultBlock, deleteBucket *storagetypes.EventDeleteBucket) error {
 	bucket := &models.Bucket{
-		BucketName:      fieldMap[parse.BucketNameStr].(string),
-		BucketID:        fieldMap[parse.BucketIDStr].(int64),
-		ReadQuota:       fieldMap[parse.ReadQuotaAfter].(uint64),
-		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
-		PaymentAddress:  fieldMap[parse.PaymentAddressAfterStr].(common.Address),
+		BucketID:        common.BigToHash(deleteBucket.Id.BigInt()),
+		BucketName:      deleteBucket.BucketName,
+		OperatorAddress: common.HexToAddress(deleteBucket.OperatorAddress),
+		Removed:         true,
+		UpdateAt:        block.Block.Height,
+		UpdateTime:      block.Block.Time.UTC().UnixNano(),
 	}
 
-	if timeInter, ok := fieldMap["timestamp"]; ok {
-		bucket.UpdateTime = timeInter.(int64)
+	return m.db.UpdateBucket(ctx, bucket)
+}
+
+func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.ResultBlock, updateBucket *storagetypes.EventUpdateBucketInfo) error {
+	bucket := &models.Bucket{
+		BucketID:        common.BigToHash(updateBucket.Id.BigInt()),
+		BucketName:      updateBucket.BucketName,
+		ReadQuota:       updateBucket.ReadQuotaAfter,
+		OperatorAddress: common.HexToAddress(updateBucket.OperatorAddress),
+		PaymentAddress:  common.HexToAddress(updateBucket.PaymentAddressAfter),
+		UpdateAt:        block.Block.Height,
+		UpdateTime:      block.Block.Time.UTC().UnixNano(),
 	}
 
-	if err := m.db.SaveBucket(ctx, bucket); err != nil {
-		return err
-	}
-	return nil
+	return m.db.UpdateBucket(ctx, bucket)
 }

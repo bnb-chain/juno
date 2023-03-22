@@ -2,224 +2,202 @@ package object
 
 import (
 	"context"
-	"strings"
+	"errors"
 
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-
+	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gogo/protobuf/proto"
+	abci "github.com/tendermint/tendermint/abci/types"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
-	"github.com/forbole/juno/v4/modules/parse"
-	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
-func (o *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
-	fieldMap := make(map[string]interface{})
-	var parseErr error
-	for _, attr := range event.Attributes {
-		parseFunc, ok := parse.ObjectParseFuncMap[string(attr.Key)]
+var (
+	EventCreateObject       = proto.MessageName(&storagetypes.EventCreateObject{})
+	EventCancelCreateObject = proto.MessageName(&storagetypes.EventCancelCreateObject{})
+	EventSealObject         = proto.MessageName(&storagetypes.EventSealObject{})
+	EventCopyObject         = proto.MessageName(&storagetypes.EventCopyObject{})
+	EventDeleteObject       = proto.MessageName(&storagetypes.EventDeleteObject{})
+	EventRejectSealObject   = proto.MessageName(&storagetypes.EventRejectSealObject{})
+)
+
+var objectEvents = map[string]bool{
+	EventCreateObject:       true,
+	EventCancelCreateObject: true,
+	EventSealObject:         true,
+	EventCopyObject:         true,
+	EventDeleteObject:       true,
+	EventRejectSealObject:   true,
+}
+
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
+	if !objectEvents[event.Type] {
+		return nil
+	}
+
+	typedEvent, err := sdk.ParseTypedEvent(abci.Event(event))
+	if err != nil {
+		log.Errorw("parse typed events error", "module", m.Name(), "event", event, "err", err)
+		return err
+	}
+
+	switch event.Type {
+	case EventCreateObject:
+		createObject, ok := typedEvent.(*storagetypes.EventCreateObject)
 		if !ok {
-			continue
+			log.Errorw("type assert error", "type", "EventCreateObject", "event", typedEvent)
+			return errors.New("create object event assert error")
 		}
-		value := strings.Trim(string(attr.Value), "\"")
-		fieldMap[string(attr.Key)], parseErr = parseFunc(value)
-		if parseErr != nil {
-			log.Errorf("parse failed err: %v", parseErr)
-			return parseErr
+		return m.handleCreateObject(ctx, block, createObject)
+	case EventCancelCreateObject:
+		cancelCreateObject, ok := typedEvent.(*storagetypes.EventCancelCreateObject)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventCancelCreateObject", "event", typedEvent)
+			return errors.New("cancel create object event assert error")
 		}
-	}
-
-	if block != nil && block.Block != nil {
-		fieldMap["timestamp"] = block.Block.Time.Unix()
-		fieldMap["block_update"] = block.Block.Height
-	}
-	eventType, err := eventutil.GetEventType(event)
-	if err == nil {
-		switch eventType {
-		case eventutil.EventCreateObject:
-			return o.handleCreateObject(ctx, fieldMap)
-		case eventutil.EventCancelCreateObject:
-			return o.handleCancelCreateObject(ctx, fieldMap)
-		case eventutil.EventSealObject:
-			return o.handleSealObject(ctx, fieldMap)
-		case eventutil.EventCopyObject:
-			return o.handleCopyObject(ctx, fieldMap)
-		case eventutil.EventDeleteObject:
-			return o.handleDeleteObject(ctx, fieldMap)
-		case eventutil.EventRejectSealObject:
-			return o.handleRejectSealObject(ctx, fieldMap)
-		default:
-			return nil
+		return m.handleCancelCreateObject(ctx, block, cancelCreateObject)
+	case EventSealObject:
+		sealObject, ok := typedEvent.(*storagetypes.EventSealObject)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventSealObject", "event", typedEvent)
+			return errors.New("seal object event assert error")
 		}
+		return m.handleSealObject(ctx, block, sealObject)
+	case EventCopyObject:
+		copyObject, ok := typedEvent.(*storagetypes.EventCopyObject)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventCopyObject", "event", typedEvent)
+			return errors.New("copy object event assert error")
+		}
+		return m.handleCopyObject(ctx, block, copyObject)
+	case EventDeleteObject:
+		deleteObject, ok := typedEvent.(*storagetypes.EventDeleteObject)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventDeleteObject", "event", typedEvent)
+			return errors.New("delete object event assert error")
+		}
+		return m.handleDeleteObject(ctx, block, deleteObject)
+	case EventRejectSealObject:
+		rejectSealObject, ok := typedEvent.(*storagetypes.EventRejectSealObject)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventRejectSealObject", "event", typedEvent)
+			return errors.New("reject seal object event assert error")
+		}
+		return m.handleRejectSealObject(ctx, block, rejectSealObject)
 	}
 
-	return err
-}
-
-func (o *Module) handleCreateObject(ctx context.Context, fieldMap map[string]interface{}) error {
-	log.Infow("object map", "fieldMap: %+v", fieldMap)
-	obj := &models.Object{
-		Creator:          fieldMap[parse.CreatorAddressStr].(common.Address),
-		Owner:            fieldMap[parse.OwnerAddressStr].(common.Address),
-		BucketID:         fieldMap[parse.ObjectBucketIDStr].(int64),
-		BucketName:       fieldMap[parse.BucketNameStr].(string),
-		ObjectName:       fieldMap[parse.ObjectNameStr].(string),
-		ObjectID:         fieldMap[parse.ObjectIDStr].(int64),
-		PayloadSize:      fieldMap[parse.PayloadSizeStr].(int64),
-		IsPublic:         fieldMap[parse.IsPublicStr].(bool),
-		ContentType:      fieldMap[parse.ContentTypeStr].(string),
-		CreateAt:         fieldMap[parse.CreateAtStr].(int64),
-		ObjectStatus:     fieldMap[parse.ObjectStatusStr].(string),
-		RedundancyType:   fieldMap[parse.RedundancyTypeStr].(string),
-		SourceType:       fieldMap[parse.SourceTypeStr].(string),
-		CheckSums:        fieldMap[parse.ChecksumsStr].(string),
-		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
-	}
-
-	if timeInter, ok := fieldMap["timestamp"]; ok {
-		obj.CreateTime = timeInter.(int64)
-		obj.UpdateTime = timeInter.(int64)
-	}
-
-	if blockUpdate, ok := fieldMap["block_update"]; ok {
-		obj.UpdateAt = blockUpdate.(int64)
-	}
-
-	if err := o.db.SaveObject(ctx, obj); err != nil {
-		log.Errorf("SaveObject failed err: %v", err)
-		return err
-	}
 	return nil
 }
 
-func (o *Module) handleSealObject(ctx context.Context, fieldMap map[string]interface{}) error {
-	obj := &models.Object{
-		BucketName:           fieldMap[parse.BucketNameStr].(string),
-		ObjectName:           fieldMap[parse.ObjectNameStr].(string),
-		ObjectID:             fieldMap[parse.ObjectIDStr].(int64),
-		ObjectStatus:         fieldMap[parse.ObjectStatusStr].(string),
-		SecondarySpAddresses: fieldMap[parse.SecondarySpAddresses].(string),
-		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
+func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultBlock, createObject *storagetypes.EventCreateObject) error {
+	object := &models.Object{
+		BucketID:         common.BigToHash(createObject.BucketId.BigInt()),
+		BucketName:       createObject.BucketName,
+		ObjectID:         common.BigToHash(createObject.ObjectId.BigInt()),
+		ObjectName:       createObject.ObjectName,
+		CreatorAddress:   common.HexToAddress(createObject.CreatorAddress),
+		OwnerAddress:     common.HexToAddress(createObject.OwnerAddress),
+		PrimarySpAddress: common.HexToAddress(createObject.PrimarySpAddress),
+		PayloadSize:      createObject.PayloadSize,
+		IsPublic:         createObject.IsPublic,
+		ContentType:      createObject.ContentType,
+		Status:           createObject.Status.String(),
+		RedundancyType:   createObject.RedundancyType.String(),
+		SourceType:       createObject.SourceType.String(),
+		CheckSums:        createObject.Checksums,
+
+		CreateAt:   block.Block.Height,
+		CreateTime: block.Block.Time.UTC().UnixNano(),
+		UpdateAt:   block.Block.Height,
+		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		Removed:    false,
 	}
 
-	if timeInter, ok := fieldMap["timestamp"]; ok {
-		obj.UpdateTime = timeInter.(int64)
-	}
-
-	if blockUpdate, ok := fieldMap["block_update"]; ok {
-		obj.UpdateAt = blockUpdate.(int64)
-	}
-
-	if err := o.db.SaveObject(ctx, obj); err != nil {
-		log.Errorf("SaveObject failed err: %v", err)
-		return err
-	}
-	return nil
+	return m.db.SaveObject(ctx, object)
 }
 
-func (o *Module) handleCancelCreateObject(ctx context.Context, fieldMap map[string]interface{}) error {
-	obj := &models.Object{
-		BucketName:       fieldMap[parse.BucketNameStr].(string),
-		ObjectName:       fieldMap[parse.ObjectNameStr].(string),
-		ObjectID:         fieldMap[parse.ObjectIDStr].(int64),
+func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlock, sealObject *storagetypes.EventSealObject) error {
+	object := &models.Object{
+		ObjectID:        common.BigToHash(sealObject.Id.BigInt()),
+		OperatorAddress: common.HexToAddress(sealObject.OperatorAddress),
+
+		Status: sealObject.Status.String(),
+
+		UpdateAt:   block.Block.Height,
+		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		Removed:    false,
+	}
+
+	for _, v := range sealObject.SecondarySpAddress {
+		object.SecondarySpAddresses = append(object.SecondarySpAddresses, common.HexToAddress(v))
+	}
+
+	return m.db.UpdateObject(ctx, object)
+}
+
+func (m *Module) handleCancelCreateObject(ctx context.Context, block *tmctypes.ResultBlock, cancelCreateObject *storagetypes.EventCancelCreateObject) error {
+	object := &models.Object{
+		ObjectID:         common.BigToHash(cancelCreateObject.Id.BigInt()),
+		OperatorAddress:  common.HexToAddress(cancelCreateObject.OperatorAddress),
+		PrimarySpAddress: common.HexToAddress(cancelCreateObject.PrimarySpAddress),
+		UpdateAt:         block.Block.Height,
+		UpdateTime:       block.Block.Time.UTC().UnixNano(),
 		Removed:          true,
-		OperatorAddress:  fieldMap[parse.OperatorAddressStr].(common.Address),
-		PrimarySpAddress: fieldMap[parse.PrimarySpAddressStr].(common.Address),
 	}
 
-	if timeInter, ok := fieldMap["timestamp"]; ok {
-		obj.UpdateTime = timeInter.(int64)
-	}
-
-	if blockUpdate, ok := fieldMap["block_update"]; ok {
-		obj.UpdateAt = blockUpdate.(int64)
-	}
-
-	if err := o.db.SaveObject(ctx, obj); err != nil {
-		log.Errorf("SaveObject failed err: %v", err)
-		return err
-	}
-	return nil
+	return m.db.UpdateObject(ctx, object)
 }
 
-func (o *Module) handleCopyObject(ctx context.Context, fieldMap map[string]interface{}) error {
-	//Get Object info from source
-	destObject, err := o.db.GetObject(ctx, fieldMap[parse.SourceObjectId].(uint64), fieldMap[parse.SourceBucketName].(string))
+func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlock, copyObject *storagetypes.EventCopyObject) error {
+	destObject, err := m.db.GetObject(ctx, common.BigToHash(copyObject.SrcObjectId.BigInt()))
 	if err != nil {
 		return err
 	}
 
-	//TODO no 'createAt' info, should this keep the same with origin object? Verify later
-	destObject.ObjectID = fieldMap[parse.DestObjectId].(int64)
-	destObject.ObjectName = fieldMap[parse.DestObjectName].(string)
-	destObject.BucketName = fieldMap[parse.DestBucketName].(string)
-	destObject.OperatorAddress = fieldMap[parse.OperatorAddressStr].(common.Address)
+	destObject.ObjectID = common.BigToHash(copyObject.DstObjectId.BigInt())
+	destObject.ObjectName = copyObject.DstObjectName
+	destObject.BucketName = copyObject.DstBucketName
+	destObject.OperatorAddress = common.HexToAddress(copyObject.OperatorAddress)
+	destObject.CreateAt = block.Block.Height
+	destObject.CreateTime = block.Block.Time.UTC().UnixNano()
+	destObject.UpdateAt = block.Block.Height
+	destObject.UpdateTime = block.Block.Time.UTC().UnixNano()
+	destObject.Removed = false
 
-	if timeInter, ok := fieldMap["timestamp"]; ok {
-		destObject.UpdateTime = timeInter.(int64)
-	}
-
-	if blockUpdate, ok := fieldMap["block_update"]; ok {
-		destObject.UpdateAt = blockUpdate.(int64)
-	}
-
-	if err := o.db.SaveObject(ctx, destObject); err != nil {
-		log.Errorf("SaveObject failed err: %v", err)
-		return err
-	}
-	return nil
+	return m.db.UpdateObject(ctx, destObject)
 }
 
-func (o *Module) handleDeleteObject(ctx context.Context, fieldMap map[string]interface{}) error {
-	obj := &models.Object{
-		BucketName:           fieldMap[parse.BucketNameStr].(string),
-		ObjectName:           fieldMap[parse.ObjectNameStr].(string),
-		ObjectID:             fieldMap[parse.ObjectIDStr].(int64),
-		Removed:              true,
-		SecondarySpAddresses: fieldMap[parse.SecondarySpAddresses].(string),
-		PrimarySpAddress:     fieldMap[parse.PrimarySpAddressStr].(common.Address),
-		OperatorAddress:      fieldMap[parse.OperatorAddressStr].(common.Address),
+func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultBlock, deleteObject *storagetypes.EventDeleteObject) error {
+	object := &models.Object{
+		ObjectID:         common.BigToHash(deleteObject.Id.BigInt()),
+		PrimarySpAddress: common.HexToAddress(deleteObject.PrimarySpAddress),
+
+		UpdateAt:   block.Block.Height,
+		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		Removed:    true,
 	}
 
-	if timeInter, ok := fieldMap["timestamp"]; ok {
-		obj.UpdateTime = timeInter.(int64)
+	for _, v := range deleteObject.SecondarySpAddresses {
+		object.SecondarySpAddresses = append(object.SecondarySpAddresses, common.HexToAddress(v))
 	}
 
-	if blockUpdate, ok := fieldMap["block_update"]; ok {
-		obj.UpdateAt = blockUpdate.(int64)
-	}
-
-	if err := o.db.SaveObject(ctx, obj); err != nil {
-		log.Errorf("SaveObject failed err: %v", err)
-		return err
-	}
-	return nil
+	return m.db.UpdateObject(ctx, object)
 }
 
 // RejectSeal event won't emit a delete event, need to be deleted manually here in metadata service
 // handle logic is set as removed, no need to set status
-func (o *Module) handleRejectSealObject(ctx context.Context, fieldMap map[string]interface{}) error {
-	obj := &models.Object{
-		BucketName:      fieldMap[parse.BucketNameStr].(string),
-		ObjectName:      fieldMap[parse.ObjectNameStr].(string),
-		ObjectID:        fieldMap[parse.ObjectIDStr].(int64),
-		OperatorAddress: fieldMap[parse.OperatorAddressStr].(common.Address),
-		Removed:         true,
+func (m *Module) handleRejectSealObject(ctx context.Context, block *tmctypes.ResultBlock, rejectSealObject *storagetypes.EventRejectSealObject) error {
+	object := &models.Object{
+		ObjectID:        common.BigToHash(rejectSealObject.Id.BigInt()),
+		OperatorAddress: common.HexToAddress(rejectSealObject.OperatorAddress),
+
+		UpdateAt:   block.Block.Height,
+		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		Removed:    true,
 	}
 
-	if timeInter, ok := fieldMap["timestamp"]; ok {
-		obj.UpdateTime = timeInter.(int64)
-	}
-
-	if blockUpdate, ok := fieldMap["block_update"]; ok {
-		obj.UpdateAt = blockUpdate.(int64)
-	}
-
-	if err := o.db.SaveObject(ctx, obj); err != nil {
-		log.Errorf("SaveObject failed err: %v", err)
-		return err
-	}
-	return nil
+	return m.db.UpdateObject(ctx, object)
 }

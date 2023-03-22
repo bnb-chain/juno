@@ -45,7 +45,7 @@ func (k Pubkey) Value() (driver.Value, error) {
 }
 
 type Validator struct {
-	ID uint64 `gorm:"column:id;primaryKey"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	ConsensusAddress common.Address `gorm:"column:consensus_address;type:binary(20);not null;uniqueIndex:idx_address"`
 	ConsensusPubkey  Pubkey         `gorm:"column:consensus_pubkey;type:binary(64);not null;uniqueIndex:idx_pubkey"`
@@ -57,7 +57,7 @@ func (*Validator) TableName() string {
 
 // ValidatorInfo is managed by upgrade module
 type ValidatorInfo struct {
-	ID uint64 `gorm:"column:id;primaryKey"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	ValidatorAddress    common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
 	OperatorAddress     common.Address `gorm:"column:operator_address"`
@@ -73,7 +73,7 @@ func (*ValidatorInfo) TableName() string {
 
 // ValidatorDescription is managed by upgrade module
 type ValidatorDescription struct {
-	ID uint64 `gorm:"column:id;primaryKey"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	ValidatorAddress common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
 	Moniker          string         `gorm:"column:moniker"`
@@ -91,7 +91,7 @@ func (*ValidatorDescription) TableName() string {
 
 // ValidatorCommission is managed by upgrade module
 type ValidatorCommission struct {
-	ID uint64 `gorm:"column:id;primaryKey"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	ValidatorAddress  common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
 	Commission        uint64         `gorm:"column:commission"`
@@ -105,7 +105,7 @@ func (*ValidatorCommission) TableName() string {
 
 // ValidatorVotingPower is managed by staking module
 type ValidatorVotingPower struct {
-	ID uint64 `gorm:"column:id;primaryKey"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	ValidatorAddress common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
 	VotingPower      uint64         `gorm:"column:voting_power"`
@@ -118,7 +118,7 @@ func (*ValidatorVotingPower) TableName() string {
 
 // ValidatorStatus is managed by staking and gov module
 type ValidatorStatus struct {
-	ID uint64 `gorm:"column:id;primaryKey"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	ValidatorAddress common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
 	Status           int            `gorm:"column:status"`
@@ -132,7 +132,7 @@ func (*ValidatorStatus) TableName() string {
 
 // ValidatorSigningInfo is managed by slashing module
 type ValidatorSigningInfo struct {
-	ID uint64 `gorm:"column:id;primaryKey"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	ValidatorAddress    common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
 	StartHeight         uint64         `gorm:"column:start_height"`                                                       // not null

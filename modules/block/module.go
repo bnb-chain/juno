@@ -3,10 +3,11 @@ package block
 import (
 	"context"
 
+	"gorm.io/gorm/schema"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
-	"gorm.io/gorm/schema"
 )
 
 var (
@@ -39,5 +40,8 @@ func (m *Module) PrepareTables() error {
 		&models.AverageBlockTimeFromGenesis{},
 		&models.AverageBlockTimePerDay{},
 		&models.AverageBlockTimePerHour{},
-		&models.AverageBlockTimePerMinute{}})
+		&models.AverageBlockTimePerMinute{},
+
+		&models.Tx{},
+	})
 }

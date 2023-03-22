@@ -78,13 +78,21 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveBucket(ctx context.Context, bucket *models.Bucket) error
 
+	// UpdateBucket will be called to save each bucket contained inside a block.
+	// An error is returned if the operation fails.
+	UpdateBucket(ctx context.Context, bucket *models.Bucket) error
+
 	// SaveObject will be called to save each object contained inside a block.
 	// An error is returned if the operation fails.
 	SaveObject(ctx context.Context, object *models.Object) error
 
-	// GetObject returns an object model with given objectId and bucketName.
+	// UpdateObject will be called to update each object contained inside a block.
+	// An error is returned if the operation fails.
+	UpdateObject(ctx context.Context, object *models.Object) error
+
+	// GetObject returns an object model with given objectId.
 	// It should return only one record
-	GetObject(ctx context.Context, objectId uint64, bucketName string) (*models.Object, error)
+	GetObject(ctx context.Context, objectId common.Hash) (*models.Object, error)
 
 	SaveEpoch(ctx context.Context, epoch *models.Epoch) error
 
@@ -364,25 +372,36 @@ func (db *Impl) SaveMessage(ctx context.Context, msg *types.Message) error {
 }
 
 func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
-	err := db.Db.Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "bucket_id"}, {Name: "bucket_name"}},
-		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "read_quota", "payment_address", "removed", "update_time", "update_at"}),
+	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "bucket_name"}},
+		UpdateAll: true,
 	}).Create(bucket).Error
 	return err
 }
 
+func (db *Impl) UpdateBucket(ctx context.Context, bucket *models.Bucket) error {
+	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Updates(bucket).Error
+	return err
+}
+
 func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
-	err := db.Db.Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "object_id"}, {Name: "object_name"}},
-		DoUpdates: clause.AssignmentColumns([]string{"operator_address", "object_status", "removed", "secondary_sp_addresses", "update_time", "object_status", "primary_sp_address", "update_at"}),
+	err := db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "object_id"}},
+		UpdateAll: true,
 	}).Create(object).Error
 	return err
 }
 
-func (db *Impl) GetObject(ctx context.Context, objectId uint64, bucketName string) (*models.Object, error) {
+func (db *Impl) UpdateObject(ctx context.Context, object *models.Object) error {
+	err := db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Updates(object).Error
+	return err
+}
+
+func (db *Impl) GetObject(ctx context.Context, objectId common.Hash) (*models.Object, error) {
 	var object models.Object
 
-	err := db.Db.Where("object_id = ? AND bucket_name = ? AND removed IS NOT TRUE", objectId, bucketName).Find(&object).Error
+	err := db.Db.WithContext(ctx).Where(
+		"object_id = ? AND removed IS NOT TRUE", objectId).Find(&object).Error
 	if err != nil {
 		return nil, err
 	}
@@ -390,17 +409,17 @@ func (db *Impl) GetObject(ctx context.Context, objectId uint64, bucketName strin
 }
 
 func (db *Impl) SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error {
-	err := db.Db.Table((&models.StreamRecord{}).TableName()).Clauses(clause.OnConflict{
+	err := db.Db.WithContext(ctx).Table((&models.StreamRecord{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "account"}},
-		DoUpdates: clause.AssignmentColumns([]string{"update_time", "netflow_rate", "static_balance", "buffer_balance", "lock_balance", "status", "settle_time", "out_flows"}),
+		UpdateAll: true,
 	}).Create(streamRecord).Error
 	return err
 }
 
 func (db *Impl) SavePaymentAccount(ctx context.Context, paymentAccount *models.PaymentAccount) error {
-	err := db.Db.Table((&models.PaymentAccount{}).TableName()).Clauses(clause.OnConflict{
+	err := db.Db.WithContext(ctx).Table((&models.PaymentAccount{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "addr"}},
-		DoUpdates: clause.AssignmentColumns([]string{"refundable", "update_at", "update_time"}),
+		UpdateAll: true,
 	}).Create(paymentAccount).Error
 	return err
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/forbole/juno/v4/modules/payment"
 	"github.com/forbole/juno/v4/modules/pruning"
 	"github.com/forbole/juno/v4/modules/telemetry"
-	"github.com/forbole/juno/v4/modules/tx"
 	"github.com/forbole/juno/v4/modules/validator"
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types/config"
@@ -87,7 +86,6 @@ func NewDefaultRegistrar(parser messages.MessageAddressesParser) *DefaultRegistr
 func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 	return modules.Modules{
 		block.NewModule(ctx.Database),
-		tx.NewModule(ctx.Database),
 		validator.NewModule(ctx.Database),
 		bucket.NewModule(ctx.Database),
 		group.NewModule(ctx.Database),
