@@ -106,7 +106,7 @@ func (w *Worker) blockProcessed(height uint64) (bool, error) {
 // height and associated metadata and export it to a database if it does not exist yet. It returns an
 // error if any export process fails.
 func (w *Worker) ProcessIfNotExists(height uint64) error {
-	exists, err := w.indexer.HasProcessedBlock(w.ctx, height)
+	exists, err := w.indexer.Processed(w.ctx, height)
 	if err != nil {
 		return fmt.Errorf("error while searching for block: %s", err)
 	}

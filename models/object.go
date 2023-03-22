@@ -3,29 +3,31 @@ package models
 import "github.com/forbole/juno/v4/common"
 
 type Object struct {
-	Id                   uint64         `gorm:"id;type:bigint(64);primaryKey"`
-	Creator              common.Address `gorm:"creator_address;type:BINARY(20)"`
-	Owner                common.Address `gorm:"owner;type:BINARY(20);index:idx_owner"`
-	BucketID             int64          `gorm:"bucket_id;type:int;index:idx_bucket_id"`
-	BucketName           string         `gorm:"bucket_name;type:varchar(63)"`  // BucketName length between 3 and 63
-	ObjectName           string         `gorm:"object_name;type:varchar(63);"` // ObjectName length between 3 and 63
-	ObjectID             int64          `gorm:"object_id;type:int;uniqueIndex:uniq_object_id"`
-	PayloadSize          int64          `gorm:"payload_size;type:int"`
-	IsPublic             bool           `gorm:"is_public;type:tinyint(1)"`
-	ContentType          string         `gorm:"content_type;type:varchar(20)"`
-	CreateAt             int64          `gorm:"create_at;type:bigint(64)"`
-	CreateTime           int64          `gorm:"create_time;type:bigint(64)"`
-	ObjectStatus         string         `gorm:"object_status;type:varchar(64)"`
-	RedundancyType       string         `gorm:"redundancy_type;type:varchar(64)"`
-	SourceType           string         `gorm:"source_type;type:varchar(64)"`
-	CheckSums            string         `gorm:"checksums;type:text"`
-	SecondarySpAddresses string         `gorm:"secondary_sp_addresses;type:text"`
-	PrimarySpAddress     common.Address `gorm:"primary_sp_address;type:BINARY(20)"`
-	OperatorAddress      common.Address `gorm:"operator_address;type:BINARY(20)"`
-	LockedBalance        common.Hash    `gorm:"locked_balance;type:BINARY(32)"`
-	Removed              bool           `gorm:"removed"`
-	UpdateTime           int64          `gorm:"update_time;type:bigint(64)"`
-	UpdateAt             int64          `gorm:"update_at;type:bigint(64)"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
+
+	BucketID   common.Hash `gorm:"column:bucket_id;type:BINARY(32);index:idx_bucket_id"`
+	BucketName string      `gorm:"column:bucket_name;type:varchar(63)"`
+	ObjectID   common.Hash `gorm:"column:object_id;type:BINARY(32);uniqueIndex:idx_object_id"`
+	ObjectName string      `gorm:"column:object_name;type:varchar(63)"`
+
+	CreatorAddress       common.Address   `gorm:"column:creator_address;type:BINARY(20)"`
+	OwnerAddress         common.Address   `gorm:"column:owner_address;type:BINARY(20);index:idx_owner"`
+	PrimarySpAddress     common.Address   `gorm:"column:primary_sp_address;type:BINARY(20)"`
+	OperatorAddress      common.Address   `gorm:"column:operator_address;type:BINARY(20)"`
+	SecondarySpAddresses []common.Address `gorm:"secondary_sp_addresses;type:BINARY(80)"`
+	PayloadSize          uint64           `gorm:"column:payload_size"`
+	IsPublic             bool             `gorm:"column:is_public"`
+	ContentType          string           `gorm:"column:content_type"`
+	Status               string           `gorm:"column:status;type:VARCHAR(50)"`
+	RedundancyType       string           `gorm:"column:redundancy_type;type:VARCHAR(50)"`
+	SourceType           string           `gorm:"column:source_type;type:VARCHAR(50)"`
+	CheckSums            [][]byte         `gorm:"column:checksums;type:blob"`
+
+	CreateAt   int64 `gorm:"column:create_at"`
+	CreateTime int64 `gorm:"column:create_time"`
+	UpdateAt   int64 `gorm:"column:update_at"`
+	UpdateTime int64 `gorm:"column:update_time"`
+	Removed    bool  `gorm:"column:removed;default:false"`
 }
 
 func (*Object) TableName() string {

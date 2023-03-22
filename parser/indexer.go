@@ -26,9 +26,9 @@ type Indexer interface {
 	// It returns an error if any export process fails.
 	Process(height uint64) error
 
-	// HasProcessedBlock tells whether the current Indexer has already processed the given height of Block
+	// Processed tells whether the current Indexer has already processed the given height of Block
 	// An error is returned if the operation fails.
-	HasProcessedBlock(ctx context.Context, height uint64) (bool, error)
+	Processed(ctx context.Context, height uint64) (bool, error)
 
 	// ExportBlock accepts a finalized block and persists then inside the database.
 	// An error is returned if write fails.
@@ -175,7 +175,7 @@ func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, eve
 		if eventModule, ok := module.(modules.EventModule); ok {
 			err := eventModule.HandleEvent(ctx, block, event)
 			if err != nil {
-				log.Errorw("failed to handle event", "module", module, "event", event, "error", err)
+				log.Errorw("failed to handle event", "module", module.Name(), "event", event, "error", err)
 			}
 		}
 	}
@@ -391,8 +391,8 @@ func (i *Impl) ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, bl
 	return nil
 }
 
-// HasProcessedBlock tells whether the current Indexer has already processed the given height of Block
+// Processed tells whether the current Indexer has already processed the given height of Block
 // An error is returned if the operation fails.
-func (i *Impl) HasProcessedBlock(ctx context.Context, height uint64) (bool, error) {
+func (i *Impl) Processed(ctx context.Context, height uint64) (bool, error) {
 	return i.DB.HasBlock(ctx, height)
 }

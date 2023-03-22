@@ -12,7 +12,7 @@ import (
 )
 
 type Tx struct {
-	ID uint64 `gorm:"column:id;primaryKey"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	Hash    common.Hash `gorm:"column:hash;type:BINARY(32);not null;uniqueIndex:idx_hash"`
 	Height  uint64      `gorm:"column:height;not null;uniqueIndex:idx_height_tx_index,priority:1"`

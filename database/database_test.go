@@ -1,12 +1,15 @@
 package database
 
 import (
-	"github.com/forbole/juno/v4/common"
-	"github.com/forbole/juno/v4/models"
+	"testing"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"testing"
+
+	"github.com/forbole/juno/v4/common"
+	"github.com/forbole/juno/v4/models"
+
 	//"gorm.io/driver/postgres"
 )
 
@@ -17,7 +20,7 @@ type DBType struct {
 }
 
 type Block struct {
-	ID uint64 `gorm:"column:id;primaryKey"`
+	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	Hash     common.Hash `gorm:"column:hash;uniqueIndex:idx_hash"`
 	Height   uint64      `gorm:"column:height;uniqueIndex:idx_height"`

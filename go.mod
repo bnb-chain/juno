@@ -17,7 +17,6 @@ require (
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/prometheus/client_golang v1.12.2
 	github.com/rs/zerolog v1.29.0
-	github.com/rs/zerolog v1.27.0
 	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0
@@ -97,6 +96,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
 	github.com/esimonov/ifshort v1.0.4 // indirect
+	github.com/ethereum/go-ethereum v1.10.19 // indirect
 	github.com/ettle/strcase v0.1.1 // indirect
 	github.com/evmos/ethermint v0.6.1-0.20220919141022-34226aa7b1fa // indirect
 	github.com/fatih/color v1.13.0 // indirect

@@ -1,30 +1,44 @@
 package group
 
 import (
+	"context"
 	"fmt"
 
+	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gogo/protobuf/proto"
+	abci "github.com/tendermint/tendermint/abci/types"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
-	eventutil "github.com/forbole/juno/v4/types/event"
+	"github.com/forbole/juno/v4/log"
 )
 
-func (m *Module) HandleEvent(index int, event sdk.Event) error {
-	eventType, err := eventutil.GetEventType(event)
-	if err == nil {
-		switch eventType {
-		case eventutil.EventCreateGroup:
-			handleEventCreateGroup(event)
-		case eventutil.EventDeleteGroup:
-			handleEventDeleteGroup(event)
-		case eventutil.EventLeaveGroup:
-			handleEventLeaveGroup(event)
-		case eventutil.EventUpdateGroupMember:
-			handleEventUpdateGroupMember(event)
-		default:
-			return nil
-		}
+var (
+	EventCreateGroup       = proto.MessageName(&storagetypes.EventCreateGroup{})
+	EventDeleteGroup       = proto.MessageName(&storagetypes.EventDeleteGroup{})
+	EventLeaveGroup        = proto.MessageName(&storagetypes.EventLeaveGroup{})
+	EventUpdateGroupMember = proto.MessageName(&storagetypes.EventUpdateGroupMember{})
+)
+
+var groupEvents = map[string]bool{
+	EventCreateGroup:       true,
+	EventDeleteGroup:       true,
+	EventLeaveGroup:        true,
+	EventUpdateGroupMember: true,
+}
+
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
+	if !groupEvents[event.Type] {
+		return nil
 	}
-	return err
+
+	_, err := sdk.ParseTypedEvent(abci.Event(event))
+	if err != nil {
+		log.Errorw("parse typed events error", "module", m.Name(), "event", event, "err", err)
+		return err
+	}
+
+	return nil
 }
 
 func handleEventCreateGroup(event sdk.Event) {

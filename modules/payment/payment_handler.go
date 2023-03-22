@@ -2,89 +2,91 @@ package payment
 
 import (
 	"context"
-	"strings"
+	"errors"
 
+	paymenttypes "github.com/bnb-chain/greenfield/x/payment/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/shopspring/decimal"
+	"github.com/gogo/protobuf/proto"
+	jsoniter "github.com/json-iterator/go"
+	abci "github.com/tendermint/tendermint/abci/types"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
-	"github.com/forbole/juno/v4/modules/parse"
-	eventutil "github.com/forbole/juno/v4/types/event"
 )
 
+var (
+	EventPaymentAccountUpdate = proto.MessageName(&paymenttypes.EventPaymentAccountUpdate{})
+	EventStreamRecordUpdate   = proto.MessageName(&paymenttypes.EventStreamRecordUpdate{})
+)
+
+var paymentEvents = map[string]bool{
+	EventPaymentAccountUpdate: true,
+	EventStreamRecordUpdate:   true,
+}
+
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
-	fieldMap := make(map[string]interface{})
-	var parseErr error
-	for _, attr := range event.Attributes {
-		parseFunc, ok := parse.PaymentParseFuncMap[string(attr.Key)]
+	if !paymentEvents[event.Type] {
+		return nil
+	}
+
+	typedEvent, err := sdk.ParseTypedEvent(abci.Event(event))
+	if err != nil {
+		log.Errorw("parse typed events error", "module", m.Name(), "event", event, "err", err)
+		return err
+	}
+
+	switch event.Type {
+	case EventPaymentAccountUpdate:
+		paymentAccountUpdate, ok := typedEvent.(*paymenttypes.EventPaymentAccountUpdate)
 		if !ok {
-			continue
+			log.Errorw("type assert error", "type", "EventPaymentAccountUpdate", "event", typedEvent)
+			return errors.New("update payment account event assert error")
 		}
-		value := strings.Trim(string(attr.Value), "\"")
-		fieldMap[string(attr.Key)], parseErr = parseFunc(value)
-		if parseErr != nil {
-			log.Errorf("parse failed err: %v", parseErr)
-			return parseErr
+		return m.handlePaymentAccountUpdate(ctx, block, paymentAccountUpdate)
+	case EventStreamRecordUpdate:
+		streamRecordUpdate, ok := typedEvent.(*paymenttypes.EventStreamRecordUpdate)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventStreamRecordUpdate", "event", typedEvent)
+			return errors.New("update stream record event assert error")
 		}
+		return m.handleEventStreamRecordUpdate(ctx, streamRecordUpdate)
 	}
-	if block != nil && block.Block != nil {
-		fieldMap["timestamp"] = block.Block.Time.Unix()
-		fieldMap["block_update"] = block.Block.Height
-	}
-	log.Infof("map: %+v", fieldMap)
-	eventType, err := eventutil.GetEventType(event)
-	if err == nil {
-		switch eventType {
-		case eventutil.EventPaymentAccountUpdate:
-			return m.handlePaymentAccountUpdate(ctx, fieldMap)
-		case eventutil.EventStreamRecordUpdate:
-			return m.handleEventStreamRecordUpdate(ctx, fieldMap)
-		default:
-			return nil
-		}
-	}
+
 	return nil
 }
 
-func (m *Module) handlePaymentAccountUpdate(ctx context.Context, fieldMap map[string]interface{}) error {
+func (m *Module) handlePaymentAccountUpdate(ctx context.Context, block *tmctypes.ResultBlock, paymentAccountUpdate *paymenttypes.EventPaymentAccountUpdate) error {
 	paymentAccount := &models.PaymentAccount{
-		Addr:       fieldMap[parse.Addr].(common.Address),
-		Owner:      fieldMap[parse.Owner].(common.Address),
-		Refundable: fieldMap[parse.Refundable].(bool),
+		Addr:       common.HexToAddress(paymentAccountUpdate.Addr),
+		Owner:      common.HexToAddress(paymentAccountUpdate.Owner),
+		Refundable: paymentAccountUpdate.Refundable,
+		UpdateAt:   block.Block.Height,
+		UpdateTime: block.Block.Time.UTC().UnixNano(),
 	}
 
-	if timeInter, ok := fieldMap["timestamp"]; ok {
-		paymentAccount.UpdateTime = timeInter.(int64)
-	}
-
-	if blockUpdate, ok := fieldMap["block_update"]; ok {
-		paymentAccount.UpdateAt = blockUpdate.(int64)
-	}
-
-	if err := m.db.SavePaymentAccount(ctx, paymentAccount); err != nil {
-		return err
-	}
-	return nil
+	return m.db.SavePaymentAccount(ctx, paymentAccount)
 }
 
-func (m *Module) handleEventStreamRecordUpdate(ctx context.Context, fieldMap map[string]interface{}) error {
+func (m *Module) handleEventStreamRecordUpdate(ctx context.Context, streamRecordUpdate *paymenttypes.EventStreamRecordUpdate) error {
 	streamRecord := &models.StreamRecord{
-		Account:         fieldMap[parse.Account].(common.Address),
-		CrudTimestamp:   fieldMap[parse.CrudTimestamp].(int64),
-		NetflowRate:     fieldMap[parse.NetflowRate].(decimal.Decimal),
-		StaticBalance:   fieldMap[parse.StaticBalance].(decimal.Decimal),
-		BufferBalance:   fieldMap[parse.BufferBalance].(decimal.Decimal),
-		LockBalance:     fieldMap[parse.LockBalance].(decimal.Decimal),
-		Status:          fieldMap[parse.Status].(string),
-		SettleTimestamp: fieldMap[parse.SettleTimestamp].(int64),
-		OutFlows:        fieldMap[parse.OutFlows].(string),
+		Account:         common.HexToAddress(streamRecordUpdate.Account),
+		CrudTimestamp:   streamRecordUpdate.CrudTimestamp,
+		NetflowRate:     (*common.Big)(streamRecordUpdate.NetflowRate.BigInt()),
+		StaticBalance:   (*common.Big)(streamRecordUpdate.StaticBalance.BigInt()),
+		BufferBalance:   (*common.Big)(streamRecordUpdate.BufferBalance.BigInt()),
+		LockBalance:     (*common.Big)(streamRecordUpdate.LockBalance.BigInt()),
+		Status:          streamRecordUpdate.Status.String(),
+		SettleTimestamp: streamRecordUpdate.SettleTimestamp,
 	}
 
-	if err := m.db.SaveStreamRecord(ctx, streamRecord); err != nil {
-		return err
+	outflows, err := jsoniter.Marshal(streamRecordUpdate.OutFlows)
+	if err != nil {
+		return errors.New("marshal stream record outflows failed")
 	}
-	return nil
+
+	streamRecord.OutFlows = outflows
+
+	return m.db.SaveStreamRecord(ctx, streamRecord)
 }
