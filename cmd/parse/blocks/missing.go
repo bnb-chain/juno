@@ -28,6 +28,7 @@ func newMissingCmd(parseConfig *parsecmdtypes.Config) *cobra.Command {
 			if err != nil {
 				return err
 			}
+
 			workerCtx := parser.NewContext(parseCtx.EncodingConfig, parseCtx.Node, parseCtx.Database, parseCtx.Modules, nil)
 			worker := parser.NewWorker(workerCtx, nil, 0, false)
 
