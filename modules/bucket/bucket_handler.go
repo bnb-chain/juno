@@ -74,7 +74,7 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 		PrimarySpAddress: common.HexToAddress(createBucket.PrimarySpAddress),
 		SourceType:       createBucket.SourceType.String(),
 		ReadQuota:        createBucket.ReadQuota,
-		//IsPublic:         createBucket.IsPublic,
+		IsPublic:         createBucket.IsPublic,
 
 		Removed: false,
 
