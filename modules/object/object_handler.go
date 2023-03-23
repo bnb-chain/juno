@@ -3,7 +3,6 @@ package object
 import (
 	"context"
 	"errors"
-
 	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gogo/protobuf/proto"
@@ -102,12 +101,12 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 		OwnerAddress:     common.HexToAddress(createObject.OwnerAddress),
 		PrimarySpAddress: common.HexToAddress(createObject.PrimarySpAddress),
 		PayloadSize:      createObject.PayloadSize,
-		IsPublic:         createObject.IsPublic,
-		ContentType:      createObject.ContentType,
-		Status:           createObject.Status.String(),
-		RedundancyType:   createObject.RedundancyType.String(),
-		SourceType:       createObject.SourceType.String(),
-		CheckSums:        createObject.Checksums,
+		//IsPublic:         createObject.IsPublic,
+		ContentType:    createObject.ContentType,
+		Status:         createObject.Status.String(),
+		RedundancyType: createObject.RedundancyType.String(),
+		SourceType:     createObject.SourceType.String(),
+		CheckSums:      createObject.Checksums,
 
 		CreateAt:   block.Block.Height,
 		CreateTime: block.Block.Time.UTC().UnixNano(),
@@ -121,8 +120,9 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlock, sealObject *storagetypes.EventSealObject) error {
 	object := &models.Object{
-		ObjectID:        common.BigToHash(sealObject.Id.BigInt()),
-		OperatorAddress: common.HexToAddress(sealObject.OperatorAddress),
+		ObjectID:             common.BigToHash(sealObject.ObjectId.BigInt()),
+		OperatorAddress:      common.HexToAddress(sealObject.OperatorAddress),
+		SecondarySpAddresses: sealObject.SecondarySpAddresses,
 
 		Status: sealObject.Status.String(),
 
@@ -131,16 +131,12 @@ func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlo
 		Removed:    false,
 	}
 
-	for _, v := range sealObject.SecondarySpAddress {
-		object.SecondarySpAddresses = append(object.SecondarySpAddresses, common.HexToAddress(v))
-	}
-
 	return m.db.UpdateObject(ctx, object)
 }
 
 func (m *Module) handleCancelCreateObject(ctx context.Context, block *tmctypes.ResultBlock, cancelCreateObject *storagetypes.EventCancelCreateObject) error {
 	object := &models.Object{
-		ObjectID:         common.BigToHash(cancelCreateObject.Id.BigInt()),
+		ObjectID:         common.BigToHash(cancelCreateObject.ObjectId.BigInt()),
 		OperatorAddress:  common.HexToAddress(cancelCreateObject.OperatorAddress),
 		PrimarySpAddress: common.HexToAddress(cancelCreateObject.PrimarySpAddress),
 		UpdateAt:         block.Block.Height,
@@ -172,17 +168,18 @@ func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlo
 
 func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultBlock, deleteObject *storagetypes.EventDeleteObject) error {
 	object := &models.Object{
-		ObjectID:         common.BigToHash(deleteObject.Id.BigInt()),
-		PrimarySpAddress: common.HexToAddress(deleteObject.PrimarySpAddress),
+		ObjectID:             common.BigToHash(deleteObject.ObjectId.BigInt()),
+		PrimarySpAddress:     common.HexToAddress(deleteObject.PrimarySpAddress),
+		SecondarySpAddresses: deleteObject.SecondarySpAddresses,
 
 		UpdateAt:   block.Block.Height,
 		UpdateTime: block.Block.Time.UTC().UnixNano(),
 		Removed:    true,
 	}
 
-	for _, v := range deleteObject.SecondarySpAddresses {
-		object.SecondarySpAddresses = append(object.SecondarySpAddresses, common.HexToAddress(v))
-	}
+	//for _, v := range deleteObject.SecondarySpAddresses {
+	//	object.SecondarySpAddresses = append(object.SecondarySpAddresses, common.HexToAddress(v))
+	//}
 
 	return m.db.UpdateObject(ctx, object)
 }
@@ -191,7 +188,7 @@ func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultB
 // handle logic is set as removed, no need to set status
 func (m *Module) handleRejectSealObject(ctx context.Context, block *tmctypes.ResultBlock, rejectSealObject *storagetypes.EventRejectSealObject) error {
 	object := &models.Object{
-		ObjectID:        common.BigToHash(rejectSealObject.Id.BigInt()),
+		ObjectID:        common.BigToHash(rejectSealObject.ObjectId.BigInt()),
 		OperatorAddress: common.HexToAddress(rejectSealObject.OperatorAddress),
 
 		UpdateAt:   block.Block.Height,

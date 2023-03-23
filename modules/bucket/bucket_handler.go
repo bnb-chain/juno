@@ -67,14 +67,14 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, e
 
 func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultBlock, createBucket *storagetypes.EventCreateBucket) error {
 	bucket := &models.Bucket{
-		BucketID:         common.BigToHash(createBucket.Id.BigInt()),
+		BucketID:         common.BigToHash(createBucket.BucketId.BigInt()),
 		BucketName:       createBucket.BucketName,
 		OwnerAddress:     common.HexToAddress(createBucket.OwnerAddress),
 		PaymentAddress:   common.HexToAddress(createBucket.PaymentAddress),
 		PrimarySpAddress: common.HexToAddress(createBucket.PrimarySpAddress),
 		SourceType:       createBucket.SourceType.String(),
 		ReadQuota:        createBucket.ReadQuota,
-		IsPublic:         createBucket.IsPublic,
+		//IsPublic:         createBucket.IsPublic,
 
 		Removed: false,
 
@@ -89,7 +89,7 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultBlock, deleteBucket *storagetypes.EventDeleteBucket) error {
 	bucket := &models.Bucket{
-		BucketID:        common.BigToHash(deleteBucket.Id.BigInt()),
+		BucketID:        common.BigToHash(deleteBucket.BucketId.BigInt()),
 		BucketName:      deleteBucket.BucketName,
 		OperatorAddress: common.HexToAddress(deleteBucket.OperatorAddress),
 		Removed:         true,
@@ -102,7 +102,7 @@ func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.ResultBlock, updateBucket *storagetypes.EventUpdateBucketInfo) error {
 	bucket := &models.Bucket{
-		BucketID:        common.BigToHash(updateBucket.Id.BigInt()),
+		BucketID:        common.BigToHash(updateBucket.BucketId.BigInt()),
 		BucketName:      updateBucket.BucketName,
 		ReadQuota:       updateBucket.ReadQuotaAfter,
 		OperatorAddress: common.HexToAddress(updateBucket.OperatorAddress),
