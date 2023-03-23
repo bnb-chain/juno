@@ -121,7 +121,7 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlock, sealObject *storagetypes.EventSealObject) error {
 	object := &models.Object{
-		ObjectID:        common.BigToHash(sealObject.Id.BigInt()),
+		ObjectID:        common.BigToHash(sealObject.ObjectId.BigInt()),
 		OperatorAddress: common.HexToAddress(sealObject.OperatorAddress),
 
 		Status: sealObject.Status.String(),
@@ -131,7 +131,7 @@ func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlo
 		Removed:    false,
 	}
 
-	for _, v := range sealObject.SecondarySpAddress {
+	for _, v := range sealObject.SecondarySpAddresses {
 		object.SecondarySpAddresses = append(object.SecondarySpAddresses, common.HexToAddress(v))
 	}
 
@@ -140,7 +140,7 @@ func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlo
 
 func (m *Module) handleCancelCreateObject(ctx context.Context, block *tmctypes.ResultBlock, cancelCreateObject *storagetypes.EventCancelCreateObject) error {
 	object := &models.Object{
-		ObjectID:         common.BigToHash(cancelCreateObject.Id.BigInt()),
+		ObjectID:         common.BigToHash(cancelCreateObject.ObjectId.BigInt()),
 		OperatorAddress:  common.HexToAddress(cancelCreateObject.OperatorAddress),
 		PrimarySpAddress: common.HexToAddress(cancelCreateObject.PrimarySpAddress),
 		UpdateAt:         block.Block.Height,
@@ -172,7 +172,7 @@ func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlo
 
 func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultBlock, deleteObject *storagetypes.EventDeleteObject) error {
 	object := &models.Object{
-		ObjectID:         common.BigToHash(deleteObject.Id.BigInt()),
+		ObjectID:         common.BigToHash(deleteObject.ObjectId.BigInt()),
 		PrimarySpAddress: common.HexToAddress(deleteObject.PrimarySpAddress),
 
 		UpdateAt:   block.Block.Height,
@@ -191,7 +191,7 @@ func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultB
 // handle logic is set as removed, no need to set status
 func (m *Module) handleRejectSealObject(ctx context.Context, block *tmctypes.ResultBlock, rejectSealObject *storagetypes.EventRejectSealObject) error {
 	object := &models.Object{
-		ObjectID:        common.BigToHash(rejectSealObject.Id.BigInt()),
+		ObjectID:        common.BigToHash(rejectSealObject.ObjectId.BigInt()),
 		OperatorAddress: common.HexToAddress(rejectSealObject.OperatorAddress),
 
 		UpdateAt:   block.Block.Height,
