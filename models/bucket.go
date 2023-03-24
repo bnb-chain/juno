@@ -13,7 +13,7 @@ type Bucket struct {
 	OperatorAddress  common.Address `gorm:"column:operator_address;type:BINARY(20)"`
 	SourceType       string         `gorm:"column:source_type;type:VARCHAR(50)"`
 	ReadQuota        uint64         `gorm:"column:read_quota"`
-	Visibility       int32          `gorm:"column:visibility"`
+	Visibility       string         `gorm:"column:visibility"`
 
 	CreateAt   int64 `gorm:"column:create_at"`
 	CreateTime int64 `gorm:"column:create_time"`

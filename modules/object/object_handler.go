@@ -101,7 +101,7 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 		OwnerAddress:     common.HexToAddress(createObject.OwnerAddress),
 		PrimarySpAddress: common.HexToAddress(createObject.PrimarySpAddress),
 		PayloadSize:      createObject.PayloadSize,
-		Visibility:       int32(createObject.Visibility),
+		Visibility:       createObject.Visibility.String(),
 		ContentType:      createObject.ContentType,
 		Status:           createObject.Status.String(),
 		RedundancyType:   createObject.RedundancyType.String(),

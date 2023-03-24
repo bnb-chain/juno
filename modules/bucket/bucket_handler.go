@@ -73,7 +73,7 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 		PaymentAddress:   common.HexToAddress(createBucket.PaymentAddress),
 		PrimarySpAddress: common.HexToAddress(createBucket.PrimarySpAddress),
 		SourceType:       createBucket.SourceType.String(),
-		Visibility:       int32(createBucket.Visibility),
+		Visibility:       createBucket.Visibility.String(),
 		ReadQuota:        createBucket.ChargedReadQuota,
 
 		Removed: false,
