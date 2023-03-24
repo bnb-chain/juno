@@ -73,15 +73,15 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 		PaymentAddress:   common.HexToAddress(createBucket.PaymentAddress),
 		PrimarySpAddress: common.HexToAddress(createBucket.PrimarySpAddress),
 		SourceType:       createBucket.SourceType.String(),
-		ReadQuota:        createBucket.ReadQuota,
-		IsPublic:         createBucket.IsPublic,
+		Visibility:       int32(createBucket.Visibility),
+		ReadQuota:        createBucket.ChargedReadQuota,
 
 		Removed: false,
 
 		CreateAt:   block.Block.Height,
-		CreateTime: block.Block.Time.UTC().UnixNano(),
+		CreateTime: createBucket.CreateAt,
 		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		UpdateTime: createBucket.CreateAt,
 	}
 
 	return m.db.SaveBucket(ctx, bucket)
@@ -104,7 +104,7 @@ func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.Res
 	bucket := &models.Bucket{
 		BucketID:        common.BigToHash(updateBucket.BucketId.BigInt()),
 		BucketName:      updateBucket.BucketName,
-		ReadQuota:       updateBucket.ReadQuotaAfter,
+		ReadQuota:       updateBucket.ChargedReadQuotaAfter,
 		OperatorAddress: common.HexToAddress(updateBucket.OperatorAddress),
 		PaymentAddress:  common.HexToAddress(updateBucket.PaymentAddressAfter),
 		UpdateAt:        block.Block.Height,
