@@ -3,6 +3,7 @@ package registrar
 import (
 	"github.com/bnb-chain/greenfield/app/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/forbole/juno/v4/modules/permission"
 
 	"github.com/forbole/juno/v4/database"
@@ -97,6 +98,7 @@ func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 		epoch.NewModule(ctx.Database),
 		payment.NewModule(ctx.Database),
 		permission.NewModule(ctx.Database),
+		group.NewModule(ctx.Database),
 	}
 }
 

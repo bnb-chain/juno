@@ -114,6 +114,18 @@ type Database interface {
 	// An error is returned if the operation fails.
 	UpdatePermission(ctx context.Context, permission *models.Permission) error
 
+	// CreateGroup will be called to save each group contained inside a event.
+	// An error is returned if the operation fails.
+	CreateGroup(ctx context.Context, group []*models.Group) error
+
+	// UpdateGroup will be called to update each group
+	// An error is returned if the operation fails.
+	UpdateGroup(ctx context.Context, group *models.Group) error
+
+	// DeleteGroup will be called to delete each group
+	// An error is returned if the operation fails.
+	DeleteGroup(ctx context.Context, group *models.Group) error
+
 	// MultiSaveStatement will be called to save each statement contained inside a policy.
 	// An error is returned if the operation fails.
 	MultiSaveStatement(ctx context.Context, statements []*models.Statements) error
@@ -490,6 +502,22 @@ func (db *Impl) SavePermission(ctx context.Context, permission *models.Permissio
 
 func (db *Impl) UpdatePermission(ctx context.Context, permission *models.Permission) error {
 	return db.Db.WithContext(ctx).Table((&models.Permission{}).TableName()).Where("policy_id = ?", permission.PolicyID).Updates(permission).Error
+}
+
+func (db *Impl) CreateGroup(ctx context.Context, group []*models.Group) error {
+	err := db.Db.Table((&models.Group{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "group_id"}, {Name: "account_id"}},
+		UpdateAll: true,
+	}).Create(group).Error
+	return err
+}
+
+func (db *Impl) UpdateGroup(ctx context.Context, group *models.Group) error {
+	return db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Where("group_id = ? AND account_id = ?", group.GroupID, group.AccountID).Updates(group).Error
+}
+
+func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
+	return db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Where("group_id = ?", group.GroupID).Updates(group).Error
 }
 
 func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Statements) error {
