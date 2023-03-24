@@ -19,7 +19,7 @@ type Object struct {
 	OperatorAddress      common.Address `gorm:"column:operator_address;type:BINARY(20)"`
 	SecondarySpAddresses pq.StringArray `gorm:"column:secondary_sp_addresses;type:MEDIUMTEXT"`
 	PayloadSize          uint64         `gorm:"column:payload_size"`
-	IsPublic             bool           `gorm:"column:is_public"`
+	Visibility           int32          `gorm:"column:is_public"`
 	ContentType          string         `gorm:"column:content_type"`
 	Status               string         `gorm:"column:status;type:VARCHAR(50)"`
 	RedundancyType       string         `gorm:"column:redundancy_type;type:VARCHAR(50)"`

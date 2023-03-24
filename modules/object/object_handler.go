@@ -101,7 +101,7 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 		OwnerAddress:     common.HexToAddress(createObject.OwnerAddress),
 		PrimarySpAddress: common.HexToAddress(createObject.PrimarySpAddress),
 		PayloadSize:      createObject.PayloadSize,
-		IsPublic:         createObject.IsPublic,
+		Visibility:       int32(createObject.Visibility),
 		ContentType:      createObject.ContentType,
 		Status:           createObject.Status.String(),
 		RedundancyType:   createObject.RedundancyType.String(),
@@ -109,9 +109,9 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 		CheckSums:        createObject.Checksums,
 
 		CreateAt:   block.Block.Height,
-		CreateTime: block.Block.Time.UTC().UnixNano(),
+		CreateTime: createObject.CreateAt,
 		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		UpdateTime: createObject.CreateAt,
 		Removed:    false,
 	}
 
