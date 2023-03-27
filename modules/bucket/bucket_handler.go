@@ -74,7 +74,7 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 		PrimarySpAddress: common.HexToAddress(createBucket.PrimarySpAddress),
 		SourceType:       createBucket.SourceType.String(),
 		Visibility:       createBucket.Visibility.String(),
-		ReadQuota:        createBucket.ChargedReadQuota,
+		ChargedReadQuota: createBucket.ChargedReadQuota,
 
 		Removed: false,
 
@@ -102,13 +102,13 @@ func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.ResultBlock, updateBucket *storagetypes.EventUpdateBucketInfo) error {
 	bucket := &models.Bucket{
-		BucketID:        common.BigToHash(updateBucket.BucketId.BigInt()),
-		BucketName:      updateBucket.BucketName,
-		ReadQuota:       updateBucket.ChargedReadQuotaAfter,
-		OperatorAddress: common.HexToAddress(updateBucket.OperatorAddress),
-		PaymentAddress:  common.HexToAddress(updateBucket.PaymentAddressAfter),
-		UpdateAt:        block.Block.Height,
-		UpdateTime:      block.Block.Time.UTC().UnixNano(),
+		BucketID:         common.BigToHash(updateBucket.BucketId.BigInt()),
+		BucketName:       updateBucket.BucketName,
+		ChargedReadQuota: updateBucket.ChargedReadQuotaAfter,
+		OperatorAddress:  common.HexToAddress(updateBucket.OperatorAddress),
+		PaymentAddress:   common.HexToAddress(updateBucket.PaymentAddressAfter),
+		UpdateAt:         block.Block.Height,
+		UpdateTime:       block.Block.Time.UTC().UnixNano(),
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)
