@@ -67,7 +67,7 @@ type Indexer interface {
 	HandleMessage(index int, msg sdk.Msg, tx *types.Tx)
 
 	// HandleEvent accepts the transaction and handles events contained inside the transaction.
-	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event)
+	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event)
 
 	// ExportEpoch accepts a finalized block height and block hash then inside the database.
 	ExportEpoch(block *tmctypes.ResultBlock) error
@@ -170,10 +170,10 @@ func (i *Impl) HandleMessage(index int, msg sdk.Msg, tx *types.Tx) {
 }
 
 // HandleEvent accepts the transaction and handles events contained inside the transaction.
-func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) {
+func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) {
 	for _, module := range i.Modules {
 		if eventModule, ok := module.(modules.EventModule); ok {
-			err := eventModule.HandleEvent(ctx, block, event)
+			err := eventModule.HandleEvent(ctx, block, txHash, event)
 			if err != nil {
 				log.Errorw("failed to handle event", "module", module.Name(), "event", event, "error", err)
 			}
@@ -201,17 +201,7 @@ func (i *Impl) Process(height uint64) error {
 		return fmt.Errorf("failed to get transactions for block: %s", err)
 	}
 
-	vals, err := i.Node.Validators(int64(height))
-	if err != nil {
-		return fmt.Errorf("failed to get validators for block: %s", err)
-	}
-
-	err = i.ExportBlock(block, blockResults, txs, vals)
-	if err != nil {
-		return err
-	}
-
-	err = i.ExportValidators(block, vals)
+	err = i.ExportBlock(block, blockResults, txs, nil)
 	if err != nil {
 		return err
 	}
@@ -226,7 +216,7 @@ func (i *Impl) Process(height uint64) error {
 		return err
 	}
 
-	err = i.ExportEvents(i.Ctx, block, blockResults)
+	err = i.ExportEventsByTxs(i.Ctx, block, txs)
 	if err != nil {
 		return err
 	}
@@ -385,7 +375,17 @@ func (i *Impl) ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, bl
 
 	for _, tx := range txsResults {
 		for _, event := range tx.Events {
-			i.HandleEvent(ctx, block, sdk.Event(event))
+			i.HandleEvent(ctx, block, common.Hash{}, sdk.Event(event))
+		}
+	}
+	return nil
+}
+
+func (i *Impl) ExportEventsByTxs(ctx context.Context, block *tmctypes.ResultBlock, txs []*types.Tx) error {
+	for _, tx := range txs {
+		txHash := common.HexToHash(tx.TxHash)
+		for _, event := range tx.Events {
+			i.HandleEvent(ctx, block, txHash, sdk.Event(event))
 		}
 	}
 	return nil

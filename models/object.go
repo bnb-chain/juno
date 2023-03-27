@@ -3,7 +3,7 @@ package models
 import "github.com/forbole/juno/v4/common"
 
 type Object struct {
-	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
+	ID uint64 `gorm:"column:id;primaryKey"`
 
 	BucketID   common.Hash `gorm:"column:bucket_id;type:BINARY(32);index:idx_bucket_id"`
 	BucketName string      `gorm:"column:bucket_name;type:varchar(63)"`
@@ -16,18 +16,20 @@ type Object struct {
 	OperatorAddress      common.Address   `gorm:"column:operator_address;type:BINARY(20)"`
 	SecondarySpAddresses []common.Address `gorm:"secondary_sp_addresses;type:BINARY(80)"`
 	PayloadSize          uint64           `gorm:"column:payload_size"`
-	IsPublic             bool             `gorm:"column:is_public"`
+	Visibility           string           `gorm:"column:visibility;type:VARCHAR(50)"`
 	ContentType          string           `gorm:"column:content_type"`
 	Status               string           `gorm:"column:status;type:VARCHAR(50)"`
 	RedundancyType       string           `gorm:"column:redundancy_type;type:VARCHAR(50)"`
 	SourceType           string           `gorm:"column:source_type;type:VARCHAR(50)"`
 	CheckSums            [][]byte         `gorm:"column:checksums;type:blob"`
 
-	CreateAt   int64 `gorm:"column:create_at"`
-	CreateTime int64 `gorm:"column:create_time"`
-	UpdateAt   int64 `gorm:"column:update_at"`
-	UpdateTime int64 `gorm:"column:update_time"`
-	Removed    bool  `gorm:"column:removed;default:false"`
+	CreateAt     int64       `gorm:"column:create_at"`
+	CreateTxHash common.Hash `gorm:"column:create_tx_hash;type:BINARY(32);not null"`
+	CreateTime   int64       `gorm:"column:create_time"`
+	UpdateAt     int64       `gorm:"column:update_at"`
+	UpdateTxHash common.Hash `gorm:"column:update_tx_hash;type:BINARY(32);not null"`
+	UpdateTime   int64       `gorm:"column:update_time"`
+	Removed      bool        `gorm:"column:removed;default:false"`
 }
 
 func (*Object) TableName() string {

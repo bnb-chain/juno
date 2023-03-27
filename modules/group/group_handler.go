@@ -10,6 +10,7 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
+	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
 )
 
@@ -27,7 +28,7 @@ var groupEvents = map[string]bool{
 	EventUpdateGroupMember: true,
 }
 
-func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
 	if !groupEvents[event.Type] {
 		return nil
 	}

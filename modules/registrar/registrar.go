@@ -91,7 +91,6 @@ func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 		group.NewModule(ctx.Database),
 		object.NewModule(ctx.Database),
 		pruning.NewModule(ctx.JunoConfig, ctx.Database),
-		messages.NewModule(r.parser, ctx.EncodingConfig.Marshaler, ctx.Database),
 		telemetry.NewModule(ctx.JunoConfig),
 		epoch.NewModule(ctx.Database),
 		payment.NewModule(ctx.Database),
