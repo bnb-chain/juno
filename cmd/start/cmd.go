@@ -56,13 +56,13 @@ func NewStartCmd(cmdCfg *parsecmdtypes.Config) *cobra.Command {
 				}
 			}
 
-			return startParsing(ctx)
+			return Parsing(ctx)
 		},
 	}
 }
 
-// startParsing represents the function that should be called when the parse command is executed
-func startParsing(ctx *parser.Context) error {
+// Parsing represents the function that should be called when the parse command is executed
+func Parsing(ctx *parser.Context) error {
 	// Get the config
 	cfg := config.Cfg.Parser
 	log.StartHeight.Add(float64(cfg.StartHeight))
