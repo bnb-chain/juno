@@ -10,9 +10,9 @@ type Object struct {
 	ID uint64 `gorm:"column:id;primaryKey"`
 
 	BucketID   common.Hash `gorm:"column:bucket_id;type:BINARY(32);index:idx_bucket_id"`
-	BucketName string      `gorm:"column:bucket_name;type:varchar(63)"`
+	BucketName string      `gorm:"column:bucket_name;type:varchar(64)"`
 	ObjectID   common.Hash `gorm:"column:object_id;type:BINARY(32);uniqueIndex:idx_object_id"`
-	ObjectName string      `gorm:"column:object_name;type:varchar(63)"`
+	ObjectName string      `gorm:"column:object_name;type:varchar(1024)"`
 
 	CreatorAddress       common.Address `gorm:"column:creator_address;type:BINARY(20)"`
 	OwnerAddress         common.Address `gorm:"column:owner_address;type:BINARY(20);index:idx_owner"`
