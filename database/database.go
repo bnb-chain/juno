@@ -100,6 +100,42 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error
 
+	// SavePermission will be called to save each policy contained inside a event.
+	// An error is returned if the operation fails.
+	SavePermission(ctx context.Context, permission *models.Permission) error
+
+	// UpdatePermission will be called to update each policy
+	// An error is returned if the operation fails.
+	UpdatePermission(ctx context.Context, permission *models.Permission) error
+
+	// CreateGroup will be called to save each group contained inside an event.
+	// An error is returned if the operation fails.
+	CreateGroup(ctx context.Context, groupMembers []*models.Group) error
+
+	// UpdateGroup will be called to update each group
+	// An error is returned if the operation fails.
+	UpdateGroup(ctx context.Context, group *models.Group) error
+
+	// DeleteGroup will be called to delete each group
+	// An error is returned if the operation fails.
+	DeleteGroup(ctx context.Context, group *models.Group) error
+
+	// MultiSaveStatement will be called to save each statement contained inside a policy.
+	// An error is returned if the operation fails.
+	MultiSaveStatement(ctx context.Context, statements []*models.Statements) error
+
+	RemoveStatements(ctx context.Context, policyID common.Hash) error
+
+	// Begin begins a transaction with any transaction options opts
+	Begin(ctx context.Context) *Impl
+
+	// Rollback rollbacks the changes in a transaction
+	Rollback()
+
+	// Commit commits the changes in a transaction
+	// An error is returned if the operation fails.
+	Commit() error
+
 	// Close closes the connection to the database
 	Close()
 }
@@ -352,14 +388,14 @@ func (db *Impl) SaveCommitSignatures(ctx context.Context, signatures []*types.Co
 
 func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
 	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "bucket_name"}},
+		Columns:   []clause.Column{{Name: "bucket_id"}},
 		UpdateAll: true,
 	}).Create(bucket).Error
 	return err
 }
 
 func (db *Impl) UpdateBucket(ctx context.Context, bucket *models.Bucket) error {
-	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Updates(bucket).Error
+	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Where("bucket_id = ?", bucket.BucketID).Updates(bucket).Error
 	return err
 }
 
@@ -372,7 +408,7 @@ func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
 }
 
 func (db *Impl) UpdateObject(ctx context.Context, object *models.Object) error {
-	err := db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Updates(object).Error
+	err := db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Where("object_id = ?", object.ObjectID).Updates(object).Error
 	return err
 }
 
@@ -419,6 +455,55 @@ func (db *Impl) GetEpoch(ctx context.Context) (*models.Epoch, error) {
 		return nil, err
 	}
 	return &epoch, nil
+}
+
+func (db *Impl) SavePermission(ctx context.Context, permission *models.Permission) error {
+	return db.Db.WithContext(ctx).Table((&models.Permission{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "principal_type"}, {Name: "principal_value"}, {Name: "resource_type"}, {Name: "resource_id"}},
+		UpdateAll: true,
+	}).Create(permission).Error
+}
+
+func (db *Impl) UpdatePermission(ctx context.Context, permission *models.Permission) error {
+	return db.Db.WithContext(ctx).Table((&models.Permission{}).TableName()).Where("policy_id = ?", permission.PolicyID).Updates(permission).Error
+}
+
+func (db *Impl) CreateGroup(ctx context.Context, groupMembers []*models.Group) error {
+	err := db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "group_id"}, {Name: "account_id"}},
+		UpdateAll: true,
+	}).Create(groupMembers).Error
+	return err
+}
+
+func (db *Impl) UpdateGroup(ctx context.Context, group *models.Group) error {
+	return db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Where("group_id = ? AND account_id = ?", group.GroupID, group.AccountID).Updates(group).Error
+}
+
+func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
+	return db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Where("group_id = ?", group.GroupID).Updates(group).Error
+}
+
+func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Statements) error {
+	return db.Db.WithContext(ctx).Table((&models.Statements{}).TableName()).Create(statements).Error
+}
+
+func (db *Impl) RemoveStatements(ctx context.Context, policyID common.Hash) error {
+	return db.Db.WithContext(ctx).Table((&models.Statements{}).TableName()).Where("policy_id = ?", policyID).Update("removed", true).Error
+}
+
+func (db *Impl) Begin(ctx context.Context) *Impl {
+	return &Impl{
+		Db: db.Db.WithContext(ctx).Begin(),
+	}
+}
+
+func (db *Impl) Rollback() {
+	db.Db.Rollback()
+}
+
+func (db *Impl) Commit() error {
+	return db.Db.Commit().Error
 }
 
 // Close implements database.Database

@@ -17,10 +17,10 @@ type Bucket struct {
 
 	CreateAt     int64       `gorm:"column:create_at"`
 	CreateTxHash common.Hash `gorm:"column:create_tx_hash;type:BINARY(32);not null"`
-	CreateTime   int64       `gorm:"column:create_time"`
+	CreateTime   int64       `gorm:"column:create_time"` // seconds
 	UpdateAt     int64       `gorm:"column:update_at"`
 	UpdateTxHash common.Hash `gorm:"column:update_tx_hash;type:BINARY(32);not null"`
-	UpdateTime   int64       `gorm:"column:update_time"`
+	UpdateTime   int64       `gorm:"column:update_time"` // seconds
 	Removed      bool        `gorm:"column:removed;default:false"`
 }
 

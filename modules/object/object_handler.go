@@ -3,7 +3,6 @@ package object
 import (
 	"context"
 	"errors"
-
 	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gogo/protobuf/proto"
@@ -111,10 +110,10 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 
 		CreateTxHash: txHash,
 		CreateAt:     block.Block.Height,
-		CreateTime:   block.Block.Time.UTC().UnixNano(),
+		CreateTime:   createObject.CreateAt,
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
-		UpdateTime:   block.Block.Time.UTC().UnixNano(),
+		UpdateTime:   createObject.CreateAt,
 		Removed:      false,
 	}
 
@@ -123,20 +122,17 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, sealObject *storagetypes.EventSealObject) error {
 	object := &models.Object{
-		BucketName:      sealObject.BucketName,
-		ObjectName:      sealObject.ObjectName,
-		ObjectID:        common.BigToHash(sealObject.ObjectId.BigInt()),
-		OperatorAddress: common.HexToAddress(sealObject.OperatorAddress),
-		Status:          sealObject.Status.String(),
+		BucketName:           sealObject.BucketName,
+		ObjectName:           sealObject.ObjectName,
+		ObjectID:             common.BigToHash(sealObject.ObjectId.BigInt()),
+		OperatorAddress:      common.HexToAddress(sealObject.OperatorAddress),
+		SecondarySpAddresses: sealObject.SecondarySpAddresses,
+		Status:               sealObject.Status.String(),
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
-		UpdateTime:   block.Block.Time.UTC().UnixNano(),
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 		Removed:      false,
-	}
-
-	for _, v := range sealObject.SecondarySpAddresses {
-		object.SecondarySpAddresses = append(object.SecondarySpAddresses, common.HexToAddress(v))
 	}
 
 	return m.db.UpdateObject(ctx, object)
@@ -151,7 +147,7 @@ func (m *Module) handleCancelCreateObject(ctx context.Context, block *tmctypes.R
 		PrimarySpAddress: common.HexToAddress(cancelCreateObject.PrimarySpAddress),
 		UpdateAt:         block.Block.Height,
 		UpdateTxHash:     txHash,
-		UpdateTime:       block.Block.Time.UTC().UnixNano(),
+		UpdateTime:       block.Block.Time.UTC().Unix(),
 		Removed:          true,
 	}
 
@@ -170,10 +166,10 @@ func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlo
 	destObject.OperatorAddress = common.HexToAddress(copyObject.OperatorAddress)
 	destObject.CreateAt = block.Block.Height
 	destObject.CreateTxHash = txHash
-	destObject.CreateTime = block.Block.Time.UTC().UnixNano()
+	destObject.CreateTime = block.Block.Time.UTC().Unix()
 	destObject.UpdateAt = block.Block.Height
 	destObject.UpdateTxHash = txHash
-	destObject.UpdateTime = block.Block.Time.UTC().UnixNano()
+	destObject.UpdateTime = block.Block.Time.UTC().Unix()
 	destObject.Removed = false
 
 	return m.db.UpdateObject(ctx, destObject)
@@ -181,19 +177,16 @@ func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlo
 
 func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, deleteObject *storagetypes.EventDeleteObject) error {
 	object := &models.Object{
-		BucketName:       deleteObject.BucketName,
-		ObjectName:       deleteObject.ObjectName,
-		ObjectID:         common.BigToHash(deleteObject.ObjectId.BigInt()),
-		PrimarySpAddress: common.HexToAddress(deleteObject.PrimarySpAddress),
+		BucketName:           deleteObject.BucketName,
+		ObjectName:           deleteObject.ObjectName,
+		ObjectID:             common.BigToHash(deleteObject.ObjectId.BigInt()),
+		PrimarySpAddress:     common.HexToAddress(deleteObject.PrimarySpAddress),
+		SecondarySpAddresses: deleteObject.SecondarySpAddresses,
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
-		UpdateTime:   block.Block.Time.UTC().UnixNano(),
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 		Removed:      true,
-	}
-
-	for _, v := range deleteObject.SecondarySpAddresses {
-		object.SecondarySpAddresses = append(object.SecondarySpAddresses, common.HexToAddress(v))
 	}
 
 	return m.db.UpdateObject(ctx, object)
@@ -210,7 +203,7 @@ func (m *Module) handleRejectSealObject(ctx context.Context, block *tmctypes.Res
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
-		UpdateTime:   block.Block.Time.UTC().UnixNano(),
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 		Removed:      true,
 	}
 

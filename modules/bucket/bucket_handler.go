@@ -80,10 +80,10 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 
 		CreateAt:     block.Block.Height,
 		CreateTxHash: txHash,
-		CreateTime:   block.Block.Time.UTC().UnixNano(),
+		CreateTime:   createBucket.CreateAt,
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
-		UpdateTime:   block.Block.Time.UTC().UnixNano(),
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.SaveBucket(ctx, bucket)
@@ -97,7 +97,7 @@ func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultB
 		Removed:         true,
 		UpdateAt:        block.Block.Height,
 		UpdateTxHash:    txHash,
-		UpdateTime:      block.Block.Time.UTC().UnixNano(),
+		UpdateTime:      block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)
@@ -105,14 +105,14 @@ func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, updateBucket *storagetypes.EventUpdateBucketInfo) error {
 	bucket := &models.Bucket{
-		BucketID:        common.BigToHash(updateBucket.BucketId.BigInt()),
-		BucketName:      updateBucket.BucketName,
+		BucketID:         common.BigToHash(updateBucket.BucketId.BigInt()),
+		BucketName:       updateBucket.BucketName,
 		ChargedReadQuota: updateBucket.ChargedReadQuotaAfter,
-		OperatorAddress: common.HexToAddress(updateBucket.OperatorAddress),
-		PaymentAddress:  common.HexToAddress(updateBucket.PaymentAddressAfter),
-		UpdateAt:        block.Block.Height,
-		UpdateTxHash:    txHash,
-		UpdateTime:      block.Block.Time.UTC().UnixNano(),
+		OperatorAddress:  common.HexToAddress(updateBucket.OperatorAddress),
+		PaymentAddress:   common.HexToAddress(updateBucket.PaymentAddressAfter),
+		UpdateAt:         block.Block.Height,
+		UpdateTxHash:     txHash,
+		UpdateTime:       block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)
