@@ -28,7 +28,16 @@ var WorkerHeight = promauto.NewGaugeVec(
 	[]string{"worker_index", "chain_id"},
 )
 
-var DbBlockCount = promauto.NewGauge(
+var WorkerLatencyHist = promauto.NewHistogram(
+	prometheus.HistogramOpts{
+		Namespace: Namespace,
+		Subsystem: "worker",
+		Name:      "latency",
+		Buckets:   prometheus.ExponentialBuckets(0.01, 3, 15),
+	},
+)
+
+var DBBlockCount = promauto.NewGauge(
 	prometheus.GaugeOpts{
 		Namespace: Namespace,
 		Subsystem: "db",
@@ -37,12 +46,21 @@ var DbBlockCount = promauto.NewGauge(
 	},
 )
 
-// DbLatestHeight represents the Telemetry counter used to track the last indexed height in the database
-var DbLatestHeight = promauto.NewGauge(
+// DBLatestHeight represents the Telemetry counter used to track the last indexed height in the database
+var DBLatestHeight = promauto.NewGauge(
 	prometheus.GaugeOpts{
 		Namespace: Namespace,
 		Subsystem: "db",
 		Name:      "latest_height",
 		Help:      "Latest block height in the database.",
+	},
+)
+
+var DBLatencyHist = promauto.NewHistogram(
+	prometheus.HistogramOpts{
+		Namespace: Namespace,
+		Subsystem: "db",
+		Name:      "latency",
+		Buckets:   prometheus.ExponentialBuckets(0.01, 3, 15),
 	},
 )

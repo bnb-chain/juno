@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -187,6 +188,8 @@ func (i *Impl) Process(height uint64) error {
 		return fmt.Errorf("failed to get block from node: %s", err)
 	}
 
+	log.WorkerLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
+
 	blockResults, err := i.Node.BlockResults(int64(height))
 	if err != nil {
 		return fmt.Errorf("failed to get block results from node: %s", err)
@@ -211,6 +214,8 @@ func (i *Impl) Process(height uint64) error {
 	if err != nil {
 		return err
 	}
+
+	log.DBLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
 
 	return nil
 }
