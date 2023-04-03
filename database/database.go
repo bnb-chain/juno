@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/bnb-chain/greenfield/app/params"
-	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
@@ -19,7 +18,6 @@ import (
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/types"
-	"github.com/forbole/juno/v4/types/config"
 )
 
 // Database represents an abstract database that can be used to save data inside it
@@ -70,10 +68,6 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveCommitSignatures(ctx context.Context, signatures []*types.CommitSig) error
 
-	// SaveMessage stores a single message.
-	// An error is returned if the operation fails.
-	SaveMessage(ctx context.Context, msg *types.Message) error
-
 	// SaveBucket will be called to save each bucket contained inside a block.
 	// An error is returned if the operation fails.
 	SaveBucket(ctx context.Context, bucket *models.Bucket) error
@@ -114,9 +108,9 @@ type Database interface {
 	// An error is returned if the operation fails.
 	UpdatePermission(ctx context.Context, permission *models.Permission) error
 
-	// CreateGroup will be called to save each group contained inside a event.
+	// CreateGroup will be called to save each group contained inside an event.
 	// An error is returned if the operation fails.
-	CreateGroup(ctx context.Context, group []*models.Group) error
+	CreateGroup(ctx context.Context, groupMembers []*models.Group) error
 
 	// UpdateGroup will be called to update each group
 	// An error is returned if the operation fails.
@@ -392,21 +386,6 @@ func (db *Impl) SaveCommitSignatures(ctx context.Context, signatures []*types.Co
 	return err
 }
 
-// SaveMessage implements database.Database
-func (db *Impl) SaveMessage(ctx context.Context, msg *types.Message) error {
-	var partitionID int64
-	partitionSize := config.Cfg.Database.PartitionSize
-	if partitionSize > 0 {
-		partitionID = msg.Height / partitionSize
-		err := db.createPartitionIfNotExists("message", partitionID)
-		if err != nil {
-			return err
-		}
-	}
-
-	return db.saveMessageInsidePartition(msg, partitionID)
-}
-
 func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
 	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "bucket_id"}},
@@ -460,21 +439,6 @@ func (db *Impl) SavePaymentAccount(ctx context.Context, paymentAccount *models.P
 	return err
 }
 
-// saveMessageInsidePartition stores the given message inside the partition having the provided id
-func (db *Impl) saveMessageInsidePartition(msg *types.Message, partitionID int64) error {
-	stmt := `
-INSERT INTO message(transaction_hash, index, type, value, involved_accounts_addresses, height, partition_id) 
-VALUES ($1, $2, $3, $4, $5, $6, $7) 
-ON CONFLICT (transaction_hash, index, partition_id) DO UPDATE 
-	SET height = excluded.height, 
-		type = excluded.type,
-		value = excluded.value,
-		involved_accounts_addresses = excluded.involved_accounts_addresses`
-
-	err := db.Db.Exec(stmt, msg.TxHash, msg.Index, msg.Type, msg.Value, pq.Array(msg.Addresses), msg.Height, partitionID).Error
-	return err
-}
-
 func (db *Impl) SaveEpoch(ctx context.Context, epoch *models.Epoch) error {
 	err := db.Db.Table((&models.Epoch{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "one_row_id"}},
@@ -504,11 +468,11 @@ func (db *Impl) UpdatePermission(ctx context.Context, permission *models.Permiss
 	return db.Db.WithContext(ctx).Table((&models.Permission{}).TableName()).Where("policy_id = ?", permission.PolicyID).Updates(permission).Error
 }
 
-func (db *Impl) CreateGroup(ctx context.Context, group []*models.Group) error {
-	err := db.Db.Table((&models.Group{}).TableName()).Clauses(clause.OnConflict{
+func (db *Impl) CreateGroup(ctx context.Context, groupMembers []*models.Group) error {
+	err := db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "group_id"}, {Name: "account_id"}},
 		UpdateAll: true,
-	}).Create(group).Error
+	}).Create(groupMembers).Error
 	return err
 }
 

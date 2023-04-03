@@ -26,7 +26,7 @@ var paymentEvents = map[string]bool{
 	EventStreamRecordUpdate:   true,
 }
 
-func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
 	if !paymentEvents[event.Type] {
 		return nil
 	}

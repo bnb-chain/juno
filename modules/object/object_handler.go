@@ -3,6 +3,7 @@ package object
 import (
 	"context"
 	"errors"
+
 	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gogo/protobuf/proto"
@@ -32,7 +33,7 @@ var objectEvents = map[string]bool{
 	EventRejectSealObject:   true,
 }
 
-func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
 	if !objectEvents[event.Type] {
 		return nil
 	}
@@ -50,48 +51,48 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, e
 			log.Errorw("type assert error", "type", "EventCreateObject", "event", typedEvent)
 			return errors.New("create object event assert error")
 		}
-		return m.handleCreateObject(ctx, block, createObject)
+		return m.handleCreateObject(ctx, block, txHash, createObject)
 	case EventCancelCreateObject:
 		cancelCreateObject, ok := typedEvent.(*storagetypes.EventCancelCreateObject)
 		if !ok {
 			log.Errorw("type assert error", "type", "EventCancelCreateObject", "event", typedEvent)
 			return errors.New("cancel create object event assert error")
 		}
-		return m.handleCancelCreateObject(ctx, block, cancelCreateObject)
+		return m.handleCancelCreateObject(ctx, block, txHash, cancelCreateObject)
 	case EventSealObject:
 		sealObject, ok := typedEvent.(*storagetypes.EventSealObject)
 		if !ok {
 			log.Errorw("type assert error", "type", "EventSealObject", "event", typedEvent)
 			return errors.New("seal object event assert error")
 		}
-		return m.handleSealObject(ctx, block, sealObject)
+		return m.handleSealObject(ctx, block, txHash, sealObject)
 	case EventCopyObject:
 		copyObject, ok := typedEvent.(*storagetypes.EventCopyObject)
 		if !ok {
 			log.Errorw("type assert error", "type", "EventCopyObject", "event", typedEvent)
 			return errors.New("copy object event assert error")
 		}
-		return m.handleCopyObject(ctx, block, copyObject)
+		return m.handleCopyObject(ctx, block, txHash, copyObject)
 	case EventDeleteObject:
 		deleteObject, ok := typedEvent.(*storagetypes.EventDeleteObject)
 		if !ok {
 			log.Errorw("type assert error", "type", "EventDeleteObject", "event", typedEvent)
 			return errors.New("delete object event assert error")
 		}
-		return m.handleDeleteObject(ctx, block, deleteObject)
+		return m.handleDeleteObject(ctx, block, txHash, deleteObject)
 	case EventRejectSealObject:
 		rejectSealObject, ok := typedEvent.(*storagetypes.EventRejectSealObject)
 		if !ok {
 			log.Errorw("type assert error", "type", "EventRejectSealObject", "event", typedEvent)
 			return errors.New("reject seal object event assert error")
 		}
-		return m.handleRejectSealObject(ctx, block, rejectSealObject)
+		return m.handleRejectSealObject(ctx, block, txHash, rejectSealObject)
 	}
 
 	return nil
 }
 
-func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultBlock, createObject *storagetypes.EventCreateObject) error {
+func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, createObject *storagetypes.EventCreateObject) error {
 	object := &models.Object{
 		BucketID:         common.BigToHash(createObject.BucketId.BigInt()),
 		BucketName:       createObject.BucketName,
@@ -108,38 +109,45 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 		SourceType:       createObject.SourceType.String(),
 		CheckSums:        createObject.Checksums,
 
-		CreateAt:   block.Block.Height,
-		CreateTime: createObject.CreateAt,
-		UpdateAt:   block.Block.Height,
-		UpdateTime: createObject.CreateAt,
-		Removed:    false,
+		CreateTxHash: txHash,
+		CreateAt:     block.Block.Height,
+		CreateTime:   createObject.CreateAt,
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   createObject.CreateAt,
+		Removed:      false,
 	}
 
 	return m.db.SaveObject(ctx, object)
 }
 
-func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlock, sealObject *storagetypes.EventSealObject) error {
+func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, sealObject *storagetypes.EventSealObject) error {
 	object := &models.Object{
+		BucketName:           sealObject.BucketName,
+		ObjectName:           sealObject.ObjectName,
 		ObjectID:             common.BigToHash(sealObject.ObjectId.BigInt()),
 		OperatorAddress:      common.HexToAddress(sealObject.OperatorAddress),
 		SecondarySpAddresses: sealObject.SecondarySpAddresses,
+		Status:               sealObject.Status.String(),
 
-		Status: sealObject.Status.String(),
-
-		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().Unix(),
-		Removed:    false,
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
+		Removed:      false,
 	}
 
 	return m.db.UpdateObject(ctx, object)
 }
 
-func (m *Module) handleCancelCreateObject(ctx context.Context, block *tmctypes.ResultBlock, cancelCreateObject *storagetypes.EventCancelCreateObject) error {
+func (m *Module) handleCancelCreateObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, cancelCreateObject *storagetypes.EventCancelCreateObject) error {
 	object := &models.Object{
+		BucketName:       cancelCreateObject.BucketName,
+		ObjectName:       cancelCreateObject.ObjectName,
 		ObjectID:         common.BigToHash(cancelCreateObject.ObjectId.BigInt()),
 		OperatorAddress:  common.HexToAddress(cancelCreateObject.OperatorAddress),
 		PrimarySpAddress: common.HexToAddress(cancelCreateObject.PrimarySpAddress),
 		UpdateAt:         block.Block.Height,
+		UpdateTxHash:     txHash,
 		UpdateTime:       block.Block.Time.UTC().Unix(),
 		Removed:          true,
 	}
@@ -147,7 +155,7 @@ func (m *Module) handleCancelCreateObject(ctx context.Context, block *tmctypes.R
 	return m.db.UpdateObject(ctx, object)
 }
 
-func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlock, copyObject *storagetypes.EventCopyObject) error {
+func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, copyObject *storagetypes.EventCopyObject) error {
 	destObject, err := m.db.GetObject(ctx, common.BigToHash(copyObject.SrcObjectId.BigInt()))
 	if err != nil {
 		return err
@@ -158,42 +166,47 @@ func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlo
 	destObject.BucketName = copyObject.DstBucketName
 	destObject.OperatorAddress = common.HexToAddress(copyObject.OperatorAddress)
 	destObject.CreateAt = block.Block.Height
+
+	destObject.CreateTxHash = txHash
 	destObject.CreateTime = block.Block.Time.UTC().Unix()
 	destObject.UpdateAt = block.Block.Height
+	destObject.UpdateTxHash = txHash
 	destObject.UpdateTime = block.Block.Time.UTC().Unix()
 	destObject.Removed = false
 
 	return m.db.UpdateObject(ctx, destObject)
 }
 
-func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultBlock, deleteObject *storagetypes.EventDeleteObject) error {
+func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, deleteObject *storagetypes.EventDeleteObject) error {
 	object := &models.Object{
+		BucketName:           deleteObject.BucketName,
+		ObjectName:           deleteObject.ObjectName,
 		ObjectID:             common.BigToHash(deleteObject.ObjectId.BigInt()),
 		PrimarySpAddress:     common.HexToAddress(deleteObject.PrimarySpAddress),
 		SecondarySpAddresses: deleteObject.SecondarySpAddresses,
 
-		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().Unix(),
-		Removed:    true,
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
+		Removed:      true,
 	}
-
-	//for _, v := range deleteObject.SecondarySpAddresses {
-	//	object.SecondarySpAddresses = append(object.SecondarySpAddresses, common.HexToAddress(v))
-	//}
 
 	return m.db.UpdateObject(ctx, object)
 }
 
 // RejectSeal event won't emit a delete event, need to be deleted manually here in metadata service
 // handle logic is set as removed, no need to set status
-func (m *Module) handleRejectSealObject(ctx context.Context, block *tmctypes.ResultBlock, rejectSealObject *storagetypes.EventRejectSealObject) error {
+func (m *Module) handleRejectSealObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, rejectSealObject *storagetypes.EventRejectSealObject) error {
 	object := &models.Object{
+		BucketName:      rejectSealObject.BucketName,
+		ObjectName:      rejectSealObject.ObjectName,
 		ObjectID:        common.BigToHash(rejectSealObject.ObjectId.BigInt()),
 		OperatorAddress: common.HexToAddress(rejectSealObject.OperatorAddress),
 
-		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().Unix(),
-		Removed:    true,
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
+		Removed:      true,
 	}
 
 	return m.db.UpdateObject(ctx, object)
