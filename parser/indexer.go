@@ -330,15 +330,6 @@ func (i *Impl) ExportTxs(block *tmctypes.ResultBlock, txs []*types.Tx) error {
 		}
 	}
 
-	totalBlocks := i.DB.GetTotalBlocks(context.TODO())
-	log.DbBlockCount.WithLabelValues("total_blocks_in_db").Set(float64(totalBlocks))
-
-	dbLatestHeight, err := i.DB.GetLastBlockHeight(context.TODO())
-	if err != nil {
-		return err
-	}
-	log.DbLatestHeight.WithLabelValues("db_latest_height").Set(float64(dbLatestHeight))
-
 	return nil
 }
 
