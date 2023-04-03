@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/x/authz"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/authz"
 	"github.com/go-co-op/gocron"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
+	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/types"
 )
 
@@ -117,7 +117,7 @@ type AuthzMessageModule interface {
 
 type EventModule interface {
 	//HandleEvent index param here to save possible sequence order
-	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error
+	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error
 }
 
 type EpochModule interface {

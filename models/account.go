@@ -35,16 +35,3 @@ type AccountGroup struct {
 func (*AccountGroup) TableName() string {
 	return "account_groups"
 }
-
-// AccountRelation currently only need by explorer
-type AccountRelation struct {
-	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
-
-	Owner   common.Address `gorm:"column:owner;type:BINARY(20);not null;index:idx_owner;uniqueIndex:idx_owner_payment,priority:1"`
-	Payment common.Address `gorm:"column:payment;type:BINARY(20);not null;index:idx_payment;uniqueIndex:idx_owner_payment,priority:2"`
-	Index   uint64         `gorm:"column:index"`
-}
-
-func (*AccountRelation) TableName() string {
-	return "account_relations"
-}

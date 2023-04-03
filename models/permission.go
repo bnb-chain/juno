@@ -4,10 +4,10 @@ import "github.com/forbole/juno/v4/common"
 
 type Permission struct {
 	ID              uint64      `gorm:"id;type:bigint(64);primaryKey"`
-	PrincipalType   int32       `gorm:"principal_type;type:int;uniqueIndex:uniq_policy,priority:1"`
-	PrincipalValue  string      `gorm:"principal_value;type:varchar(128);uniqueIndex:uniq_policy,priority:2"`
-	ResourceType    string      `gorm:"resource_type;type:varchar(64);uniqueIndex:uniq_policy,priority:3"`
-	ResourceID      common.Hash `gorm:"resource_id;type:BINARY(32);uniqueIndex:uniq_policy,priority:4"`
+	PrincipalType   int32       `gorm:"principal_type;type:int;uniqueIndex:idx_policy,priority:1"`
+	PrincipalValue  string      `gorm:"principal_value;type:varchar(128);uniqueIndex:idx_policy,priority:2"`
+	ResourceType    string      `gorm:"resource_type;type:varchar(64);uniqueIndex:idx_policy,priority:3"`
+	ResourceID      common.Hash `gorm:"resource_id;type:BINARY(32);uniqueIndex:idx_policy,priority:4"`
 	PolicyID        common.Hash `gorm:"policy_id;type:BINARY(32);index:idx_policy_id"`
 	CreateTimestamp int64       `gorm:"create_timestamp;type:bigint(64)"`
 	UpdateTimestamp int64       `gorm:"update_timestamp;type:bigint(64)"`

@@ -4,8 +4,6 @@ import (
 	"github.com/bnb-chain/greenfield/app/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/forbole/juno/v4/modules/permission"
-
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
@@ -16,6 +14,7 @@ import (
 	"github.com/forbole/juno/v4/modules/messages"
 	"github.com/forbole/juno/v4/modules/object"
 	"github.com/forbole/juno/v4/modules/payment"
+	"github.com/forbole/juno/v4/modules/permission"
 	"github.com/forbole/juno/v4/modules/pruning"
 	"github.com/forbole/juno/v4/modules/telemetry"
 	"github.com/forbole/juno/v4/modules/validator"
@@ -93,7 +92,6 @@ func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 		group.NewModule(ctx.Database),
 		object.NewModule(ctx.Database),
 		pruning.NewModule(ctx.JunoConfig, ctx.Database),
-		messages.NewModule(r.parser, ctx.EncodingConfig.Marshaler, ctx.Database),
 		telemetry.NewModule(ctx.JunoConfig),
 		epoch.NewModule(ctx.Database),
 		payment.NewModule(ctx.Database),
