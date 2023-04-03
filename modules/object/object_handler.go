@@ -127,7 +127,7 @@ func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlo
 		Status: sealObject.Status.String(),
 
 		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		UpdateTime: block.Block.Time.UTC().Unix(),
 		Removed:    false,
 	}
 
@@ -140,7 +140,7 @@ func (m *Module) handleCancelCreateObject(ctx context.Context, block *tmctypes.R
 		OperatorAddress:  common.HexToAddress(cancelCreateObject.OperatorAddress),
 		PrimarySpAddress: common.HexToAddress(cancelCreateObject.PrimarySpAddress),
 		UpdateAt:         block.Block.Height,
-		UpdateTime:       block.Block.Time.UTC().UnixNano(),
+		UpdateTime:       block.Block.Time.UTC().Unix(),
 		Removed:          true,
 	}
 
@@ -158,9 +158,9 @@ func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlo
 	destObject.BucketName = copyObject.DstBucketName
 	destObject.OperatorAddress = common.HexToAddress(copyObject.OperatorAddress)
 	destObject.CreateAt = block.Block.Height
-	destObject.CreateTime = block.Block.Time.UTC().UnixNano()
+	destObject.CreateTime = block.Block.Time.UTC().Unix()
 	destObject.UpdateAt = block.Block.Height
-	destObject.UpdateTime = block.Block.Time.UTC().UnixNano()
+	destObject.UpdateTime = block.Block.Time.UTC().Unix()
 	destObject.Removed = false
 
 	return m.db.UpdateObject(ctx, destObject)
@@ -173,7 +173,7 @@ func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultB
 		SecondarySpAddresses: deleteObject.SecondarySpAddresses,
 
 		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		UpdateTime: block.Block.Time.UTC().Unix(),
 		Removed:    true,
 	}
 
@@ -192,7 +192,7 @@ func (m *Module) handleRejectSealObject(ctx context.Context, block *tmctypes.Res
 		OperatorAddress: common.HexToAddress(rejectSealObject.OperatorAddress),
 
 		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		UpdateTime: block.Block.Time.UTC().Unix(),
 		Removed:    true,
 	}
 

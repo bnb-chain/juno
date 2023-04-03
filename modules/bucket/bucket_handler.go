@@ -94,7 +94,7 @@ func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultB
 		OperatorAddress: common.HexToAddress(deleteBucket.OperatorAddress),
 		Removed:         true,
 		UpdateAt:        block.Block.Height,
-		UpdateTime:      block.Block.Time.UTC().UnixNano(),
+		UpdateTime:      block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)
@@ -108,7 +108,7 @@ func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.Res
 		OperatorAddress:  common.HexToAddress(updateBucket.OperatorAddress),
 		PaymentAddress:   common.HexToAddress(updateBucket.PaymentAddressAfter),
 		UpdateAt:         block.Block.Height,
-		UpdateTime:       block.Block.Time.UTC().UnixNano(),
+		UpdateTime:       block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)
