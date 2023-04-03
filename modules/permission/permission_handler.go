@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	permissiontypes "github.com/bnb-chain/greenfield/x/permission/types"
 
+	permissiontypes "github.com/bnb-chain/greenfield/x/permission/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/forbole/juno/v4/common"
-	"github.com/forbole/juno/v4/log"
-	"github.com/forbole/juno/v4/models"
 	"github.com/gogo/protobuf/proto"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+
+	"github.com/forbole/juno/v4/common"
+	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/models"
 )
 
 var (
@@ -71,7 +72,6 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, e
 }
 
 func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBlock, policy *permissiontypes.EventPutPolicy) error {
-	log.Infof("handlePutPolicy height: %d", block.Block.Height)
 	p := &models.Permission{
 		PrincipalType:   int32(policy.Principal.Type),
 		PrincipalValue:  policy.Principal.Value,
@@ -116,12 +116,10 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 		log.Errorw("failed to save policy", "permission err", err1, "statement err", err2, "commit err", err3)
 		return errors.New("save policy transaction failed")
 	}
-	log.Infof("handlePutPolicy done")
 	return nil
 }
 
 func (m *Module) handleDeletePolicy(ctx context.Context, block *tmctypes.ResultBlock, event *permissiontypes.EventDeletePolicy) error {
-	log.Infof("handleDeletePolicy height: %d", block.Block.Height)
 	// begin transaction
 	tx := m.db.Begin(ctx)
 	policyIDHash := common.BigToHash(event.PolicyId.BigInt())
@@ -137,6 +135,5 @@ func (m *Module) handleDeletePolicy(ctx context.Context, block *tmctypes.ResultB
 		log.Errorw("failed to delete policy", "permission err", err1, "statement err", err2, "commit err", err3)
 		return errors.New("delete policy transaction failed")
 	}
-	log.Infof("handleDeletePolicy done")
 	return nil
 }
