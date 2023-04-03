@@ -63,7 +63,7 @@ func (m *Module) handlePaymentAccountUpdate(ctx context.Context, block *tmctypes
 		Owner:      common.HexToAddress(paymentAccountUpdate.Owner),
 		Refundable: paymentAccountUpdate.Refundable,
 		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		UpdateTime: block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.SavePaymentAccount(ctx, paymentAccount)

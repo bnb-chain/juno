@@ -450,7 +450,7 @@ func (i *Big) Scan(value interface{}) error {
 }
 
 func (i Big) Value() (driver.Value, error) {
-	return i.Raw().Bytes(), nil
+	return i.Raw().GobEncode()
 }
 
 func (i *Big) Raw() *big.Int {
