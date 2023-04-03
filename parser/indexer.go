@@ -46,10 +46,6 @@ type Indexer interface {
 	// An error is returned if write fails.
 	ExportCommit(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) error
 
-	// ExportAccounts accepts a slice of transactions and persists accounts inside the database.
-	// An error is returned if write fails.
-	ExportAccounts(block *tmctypes.ResultBlock, txs []*types.Tx) error
-
 	// ExportEvents accepts a slice of transactions and get events in order to save in database.
 	ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults) error
 
@@ -64,7 +60,7 @@ type Indexer interface {
 
 	// HandleMessage accepts the transaction and handles messages contained
 	// inside the transaction.
-	HandleMessage(index int, msg sdk.Msg, tx *types.Tx)
+	HandleMessage(block *tmctypes.ResultBlock, index int, msg sdk.Msg, tx *types.Tx)
 
 	// HandleEvent accepts the transaction and handles events contained inside the transaction.
 	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event)
@@ -135,11 +131,11 @@ func (i *Impl) HandleTx(tx *types.Tx) {
 	}
 }
 
-func (i *Impl) HandleMessage(index int, msg sdk.Msg, tx *types.Tx) {
+func (i *Impl) HandleMessage(block *tmctypes.ResultBlock, index int, msg sdk.Msg, tx *types.Tx) {
 	// Allow modules to handle the message
 	for _, module := range i.Modules {
 		if messageModule, ok := module.(modules.MessageModule); ok {
-			err := messageModule.HandleMsg(index, msg, tx)
+			err := messageModule.HandleMsg(block, index, msg, tx)
 			if err != nil {
 				log.Errorw("error while handling message", "module", module, "height", tx.Height,
 					"txHash", tx.TxHash, "msg", proto.MessageName(msg), "err", err)
@@ -207,11 +203,6 @@ func (i *Impl) Process(height uint64) error {
 	}
 
 	err = i.ExportTxs(block, txs)
-	if err != nil {
-		return err
-	}
-
-	err = i.ExportAccounts(block, txs)
 	if err != nil {
 		return err
 	}
@@ -326,38 +317,10 @@ func (i *Impl) ExportTxs(block *tmctypes.ResultBlock, txs []*types.Tx) error {
 
 		// call the msg handlers
 		for ind, sdkMsg := range sdkMsgs {
-			i.HandleMessage(ind, sdkMsg, tx)
+			i.HandleMessage(block, ind, sdkMsg, tx)
 		}
 	}
 
-	return nil
-}
-
-// ExportAccounts accepts a slice of transactions and persists accounts inside the database.
-// An error is returned if write fails.
-func (i *Impl) ExportAccounts(block *tmctypes.ResultBlock, txs []*types.Tx) error {
-	// save account
-	for _, tx := range txs {
-		accounts := make(map[common.Address]bool)
-		for _, event := range tx.Events {
-			for _, attr := range event.Attributes {
-				if common.IsHexAddress(string(attr.Value)) {
-					accounts[common.HexToAddress(string(attr.Value))] = true
-				}
-			}
-		}
-		for v, _ := range accounts {
-			account := &models.Account{
-				Address:             v,
-				TxCount:             1,
-				LastActiveTimestamp: uint64(block.Block.Time.UTC().UnixNano()),
-			}
-			err := i.DB.SaveAccount(context.TODO(), account)
-			if err != nil {
-				return fmt.Errorf("error while storing account: %s", err)
-			}
-		}
-	}
 	return nil
 }
 

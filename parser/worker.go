@@ -123,13 +123,13 @@ func (w *Worker) Process(height uint64) error {
 		log.Infow("processed block", "height", height)
 
 		totalBlocks := w.db.GetTotalBlocks(context.TODO())
-		log.DbBlockCount.WithLabelValues("total_blocks_in_db").Set(float64(totalBlocks))
+		log.DbBlockCount.Set(float64(totalBlocks))
 
 		dbLatestHeight, err := w.db.GetLastBlockHeight(context.TODO())
 		if err != nil {
 			return err
 		}
-		log.DbLatestHeight.WithLabelValues("db_latest_height").Set(float64(dbLatestHeight))
+		log.DbLatestHeight.Set(float64(dbLatestHeight))
 	}
 
 	return err
