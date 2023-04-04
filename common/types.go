@@ -445,8 +445,7 @@ func (i *Big) Scan(value interface{}) error {
 		return errors.New(fmt.Sprint("Failed to unmarshal Big value:", value))
 	}
 
-	i.Raw().SetBytes(bytes)
-	return nil
+	return i.Raw().GobDecode(bytes)
 }
 
 func (i Big) Value() (driver.Value, error) {
