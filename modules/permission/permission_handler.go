@@ -79,6 +79,7 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 		ResourceID:      common.BigToHash(policy.ResourceId.BigInt()),
 		PolicyID:        common.BigToHash(policy.PolicyId.BigInt()),
 		CreateTimestamp: block.Block.Time.Unix(),
+		ExpirationTime:  int64(policy.ExpirationTime.Second()),
 	}
 
 	statements := make([]*models.Statements, 0, 0)
