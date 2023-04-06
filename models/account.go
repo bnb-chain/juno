@@ -17,7 +17,7 @@ type Account struct {
 	Balance         *common.Big    `gorm:"column:balance" json:"-"`
 	TxCount         uint64         `gorm:"column:tx_count;not null;default:0"`
 	UpdateHeight    uint64         `gorm:"update_height"`
-	UpdateTimestamp uint64         `gorm:"update_timestamp"`
+	ActiveTimestamp uint64         `gorm:"active_timestamp"`
 
 	BalanceString string `gorm:"-" json:"balance"`
 }
