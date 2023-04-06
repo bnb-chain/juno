@@ -49,10 +49,6 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx *types.Tx) error
 
-	// SaveAccount will be called to save each account contained inside a tx.
-	// An error is returned if the operation fails.
-	SaveAccount(ctx context.Context, account *models.Account) error
-
 	// GetAccountByAddress get account by address
 	GetAccountByAddress(ctx context.Context, address common.Address) (*models.Account, error)
 
