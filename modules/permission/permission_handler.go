@@ -41,7 +41,7 @@ var actionTypeMap = map[permissiontypes.ActionType]int{
 	//permissiontypes.ACTION_GROUP_MEMBER:        11,
 }
 
-func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
 	if !policyEvents[event.Type] {
 		return nil
 	}
@@ -72,6 +72,12 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, e
 }
 
 func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBlock, policy *permissiontypes.EventPutPolicy) error {
+	var expireTime int64
+	if policy.ExpirationTime == nil {
+		expireTime = 0
+	} else {
+		expireTime = policy.ExpirationTime.Unix()
+	}
 	p := &models.Permission{
 		PrincipalType:   int32(policy.Principal.Type),
 		PrincipalValue:  policy.Principal.Value,
@@ -79,7 +85,7 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 		ResourceID:      common.BigToHash(policy.ResourceId.BigInt()),
 		PolicyID:        common.BigToHash(policy.PolicyId.BigInt()),
 		CreateTimestamp: block.Block.Time.Unix(),
-		ExpirationTime:  int64(policy.ExpirationTime.Second()),
+		ExpirationTime:  expireTime,
 	}
 
 	statements := make([]*models.Statements, 0, 0)
