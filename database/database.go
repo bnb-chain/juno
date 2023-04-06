@@ -319,17 +319,6 @@ func (db *Impl) SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx
 	return err
 }
 
-// SaveAccount implements database.Database
-func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error {
-	err := db.Db.WithContext(ctx).Table((&models.Account{}).TableName()).Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "address"}},
-		DoUpdates: []clause.Assignment{
-			{Column: clause.Column{Name: "tx_count"}, Value: gorm.Expr("tx_count+1")},
-			{Column: clause.Column{Name: "last_active_timestamp"}, Value: account.LastActiveTimestamp}},
-	}).Create(account).Error
-	return err
-}
-
 // GetAccountByAddress returns the account by address
 func (db *Impl) GetAccountByAddress(ctx context.Context, address common.Address) (*models.Account, error) {
 	stmt := `SELECT * FROM accounts where address = ?`

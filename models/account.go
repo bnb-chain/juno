@@ -12,11 +12,12 @@ const (
 type Account struct {
 	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
-	Address             common.Address `gorm:"column:address;type:BINARY(20);uniqueIndex:idx_address"`
-	Type                AccountType    `gorm:"column:type;not null;default:'general'"`
-	Balance             *common.Big    `gorm:"column:balance" json:"-"`
-	TxCount             uint64         `gorm:"column:tx_count;not null;default:0"`
-	LastActiveTimestamp uint64         `gorm:"last_active_timestamp"`
+	Address         common.Address `gorm:"column:address;type:BINARY(20);uniqueIndex:idx_address"`
+	Type            AccountType    `gorm:"column:type;not null;default:'general'"`
+	Balance         *common.Big    `gorm:"column:balance" json:"-"`
+	TxCount         uint64         `gorm:"column:tx_count;not null;default:0"`
+	UpdateHeight    uint64         `gorm:"update_height"`
+	UpdateTimestamp uint64         `gorm:"update_timestamp" json:"update_timestamp"`
 
 	BalanceString string `gorm:"-" json:"balance"`
 }
