@@ -166,7 +166,6 @@ func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlo
 	destObject.BucketName = copyObject.DstBucketName
 	destObject.OperatorAddress = common.HexToAddress(copyObject.OperatorAddress)
 	destObject.CreateAt = block.Block.Height
-
 	destObject.CreateTxHash = txHash
 	destObject.CreateTime = block.Block.Time.UTC().Unix()
 	destObject.UpdateAt = block.Block.Height
