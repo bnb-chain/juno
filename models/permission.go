@@ -25,7 +25,7 @@ type Statements struct {
 	ActionValue    int         `gorm:"action_value;type:int"`
 	Resources      string      `gorm:"resources;type:text"`
 	ExpirationTime int64       `gorm:"expiration_time;type:bigint(64)"`
-	LimitSize      int64       `gorm:"limit_size;type:bigint(64)"`
+	LimitSize      uint64      `gorm:"limit_size;type:bigint(64)"`
 	Removed        bool        `gorm:"removed;"`
 }
 

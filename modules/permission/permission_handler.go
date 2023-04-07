@@ -92,9 +92,11 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 			actionValue |= value
 		}
 		s := &models.Statements{
-			PolicyID:    common.HexToHash(policy.PolicyId.String()),
-			Effect:      statement.Effect.String(),
-			ActionValue: actionValue,
+			PolicyID:       common.HexToHash(policy.PolicyId.String()),
+			Effect:         statement.Effect.String(),
+			ActionValue:    actionValue,
+			ExpirationTime: statement.ExpirationTime.UTC().Unix(),
+			LimitSize:      statement.LimitSize.Value,
 		}
 		if len(statement.Resources) != 0 {
 			resources, err := json.Marshal(statement.Resources)
