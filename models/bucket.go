@@ -6,7 +6,7 @@ type Bucket struct {
 	ID uint64 `gorm:"column:id;primaryKey"`
 
 	BucketID         common.Hash    `gorm:"column:bucket_id;type:BINARY(32);uniqueIndex:idx_bucket_id"`
-	BucketName       string         `gorm:"column:bucket_name;type:varchar(63);uniqueIndex:idx_bucket_name"` // BucketName length between 3 and 63
+	BucketName       string         `gorm:"column:bucket_name;type:varchar(64);uniqueIndex:idx_bucket_name"` // BucketName length between 3 and 63
 	OwnerAddress     common.Address `gorm:"column:owner_address;type:BINARY(20);index:idx_owner"`            // OwnerAddress bucket creator
 	PaymentAddress   common.Address `gorm:"column:payment_address;type:BINARY(20)"`
 	PrimarySpAddress common.Address `gorm:"column:primary_sp_address;type:BINARY(20)"`
