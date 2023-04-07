@@ -65,7 +65,6 @@ func NewStartCmd(cmdCfg *parsecmdtypes.Config) *cobra.Command {
 func Parsing(ctx *parser.Context) error {
 	// Get the config
 	cfg := config.Cfg.Parser
-	log.StartHeight.Add(float64(cfg.StartHeight))
 
 	// Start periodic operations
 	scheduler := gocron.NewScheduler(time.UTC)

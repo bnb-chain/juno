@@ -49,13 +49,6 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx *types.Tx) error
 
-	// SaveAccount will be called to save each account contained inside a tx.
-	// An error is returned if the operation fails.
-	SaveAccount(ctx context.Context, account *models.Account) error
-
-	// GetAccountByAddress get account by address
-	GetAccountByAddress(ctx context.Context, address common.Address) (*models.Account, error)
-
 	// HasValidator returns true if a given validator by consensus address exists.
 	// An error is returned if the operation fails.
 	HasValidator(ctx context.Context, address common.Address) (bool, error)
@@ -317,31 +310,6 @@ func (db *Impl) SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx
 		UpdateAll: true,
 	}).Create(dbTx).Error
 	return err
-}
-
-// SaveAccount implements database.Database
-func (db *Impl) SaveAccount(ctx context.Context, account *models.Account) error {
-	err := db.Db.WithContext(ctx).Table((&models.Account{}).TableName()).Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "address"}},
-		DoUpdates: []clause.Assignment{
-			{Column: clause.Column{Name: "tx_count"}, Value: gorm.Expr("tx_count+1")},
-			{Column: clause.Column{Name: "last_active_timestamp"}, Value: account.LastActiveTimestamp}},
-	}).Create(account).Error
-	return err
-}
-
-// GetAccountByAddress returns the account by address
-func (db *Impl) GetAccountByAddress(ctx context.Context, address common.Address) (*models.Account, error) {
-	stmt := `SELECT * FROM accounts where address = ?`
-
-	var account models.Account
-	err := db.Db.WithContext(ctx).Raw(stmt, address).Take(&account).Error
-
-	if errIsNotFound(err) {
-		return nil, nil
-	}
-
-	return &account, err
 }
 
 // HasValidator implements database.Database

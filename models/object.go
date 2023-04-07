@@ -18,7 +18,7 @@ type Object struct {
 	OwnerAddress         common.Address `gorm:"column:owner_address;type:BINARY(20);index:idx_owner"`
 	PrimarySpAddress     common.Address `gorm:"column:primary_sp_address;type:BINARY(20)"`
 	OperatorAddress      common.Address `gorm:"column:operator_address;type:BINARY(20)"`
-	SecondarySpAddresses pq.StringArray `gorm:"column:secondary_sp_addresses;type:BINARY(80)"`
+	SecondarySpAddresses pq.StringArray `gorm:"column:secondary_sp_addresses;type:MEDIUMTEXT"`
 	PayloadSize          uint64         `gorm:"column:payload_size"`
 	Visibility           string         `gorm:"column:visibility;type:VARCHAR(50)"`
 	ContentType          string         `gorm:"column:content_type"`
