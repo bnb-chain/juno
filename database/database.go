@@ -25,6 +25,9 @@ type Database interface {
 	// PrepareTables create tables
 	PrepareTables(ctx context.Context, tables []schema.Tabler) error
 
+	// RecreateTables recreate tables when given table exists
+	RecreateTables(ctx context.Context, tables []schema.Tabler) error
+
 	// HasBlock tells whether the database has already stored the block having the given height.
 	// An error is returned if the operation fails.
 	HasBlock(ctx context.Context, height uint64) (bool, error)
@@ -210,6 +213,23 @@ func (db *Impl) PrepareTables(ctx context.Context, tables []schema.Tabler) error
 		}
 	}
 
+	return nil
+}
+
+func (db *Impl) RecreateTables(ctx context.Context, tables []schema.Tabler) error {
+	m := db.Db.Migrator()
+	for _, t := range tables {
+		if m.HasTable(t.TableName()) {
+			if err := m.DropTable(t.TableName()); err != nil {
+				log.Errorw("delete table failed", "table", t.TableName(), "err", err)
+				return err
+			}
+		}
+		if err := m.CreateTable(t); err != nil {
+			log.Errorw("create table failed", "table", t.TableName(), "err", err)
+			return err
+		}
+	}
 	return nil
 }
 

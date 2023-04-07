@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/forbole/juno/v4/common"
+
 	"github.com/lib/pq"
 )
 
@@ -14,6 +15,7 @@ type Permission struct {
 	PolicyID        common.Hash `gorm:"policy_id;type:BINARY(32);index:idx_policy_id"`
 	CreateTimestamp int64       `gorm:"create_timestamp;type:bigint(64)"`
 	UpdateTimestamp int64       `gorm:"update_timestamp;type:bigint(64)"`
+	ExpirationTime  int64       `gorm:"expiration_time;type:bigint(64)"` // seconds
 	Removed         bool        `gorm:"removed;"`
 }
 

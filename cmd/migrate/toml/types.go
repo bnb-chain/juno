@@ -9,11 +9,12 @@ import (
 )
 
 type TomlConfig struct {
-	Chain    config.ChainConfig
-	Node     NodeConfig
-	Parser   parserconfig.Config
-	Database databaseconfig.Config
-	Logging  loggingconfig.Config
+	Chain          config.ChainConfig
+	Node           NodeConfig
+	Parser         parserconfig.Config
+	Database       databaseconfig.Config
+	Logging        loggingconfig.Config
+	RecreateTables bool
 }
 
 type NodeConfig struct {

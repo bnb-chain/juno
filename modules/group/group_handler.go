@@ -29,7 +29,7 @@ var groupEvents = map[string]bool{
 	EventUpdateGroupMember: true,
 }
 
-func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
 	if !groupEvents[event.Type] {
 		return nil
 	}
