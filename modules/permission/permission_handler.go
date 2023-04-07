@@ -2,7 +2,6 @@ package permission
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
 	permissiontypes "github.com/bnb-chain/greenfield/x/permission/types"
@@ -103,12 +102,14 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 			Effect:      statement.Effect.String(),
 			ActionValue: actionValue,
 		}
+		if statement.ExpirationTime != nil {
+			s.ExpirationTime = statement.ExpirationTime.UTC().Unix()
+		}
+		if statement.LimitSize != nil {
+			s.LimitSize = statement.LimitSize.Value
+		}
 		if len(statement.Resources) != 0 {
-			resources, err := json.Marshal(statement.Resources)
-			if err != nil {
-				return err
-			}
-			s.Resources = string(resources)
+			s.Resources = statement.Resources
 		}
 		statements = append(statements, s)
 	}
