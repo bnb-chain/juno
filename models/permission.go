@@ -1,6 +1,9 @@
 package models
 
-import "github.com/forbole/juno/v4/common"
+import (
+	"github.com/forbole/juno/v4/common"
+	"github.com/lib/pq"
+)
 
 type Permission struct {
 	ID              uint64      `gorm:"id;type:bigint(64);primaryKey"`
@@ -19,14 +22,14 @@ func (p Permission) TableName() string {
 }
 
 type Statements struct {
-	ID             uint64      `gorm:"id;type:bigint(64);primaryKey"`
-	PolicyID       common.Hash `gorm:"policy_id;type:BINARY(32);index:idx_policy_id"`
-	Effect         string      `gorm:"effect;type:varchar(32)"`
-	ActionValue    int         `gorm:"action_value;type:int"`
-	Resources      string      `gorm:"resources;type:text"`
-	ExpirationTime int64       `gorm:"expiration_time;type:bigint(64)"`
-	LimitSize      int64       `gorm:"limit_size;type:bigint(64)"`
-	Removed        bool        `gorm:"removed;"`
+	ID             uint64         `gorm:"id;type:bigint(64);primaryKey"`
+	PolicyID       common.Hash    `gorm:"policy_id;type:BINARY(32);index:idx_policy_id"`
+	Effect         string         `gorm:"effect;type:varchar(32)"`
+	ActionValue    int            `gorm:"action_value;type:int"`
+	Resources      pq.StringArray `gorm:"resources;type:text"`
+	ExpirationTime int64          `gorm:"expiration_time;type:bigint(64)"`
+	LimitSize      uint64         `gorm:"limit_size;type:bigint(64)"`
+	Removed        bool           `gorm:"removed;"`
 }
 
 func (s Statements) TableName() string {
