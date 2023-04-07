@@ -64,3 +64,13 @@ var DBLatencyHist = promauto.NewHistogram(
 		Buckets:   prometheus.ExponentialBuckets(0.01, 3, 15),
 	},
 )
+
+var IndexerLatencyHist = promauto.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Namespace: Namespace,
+		Subsystem: "indexer",
+		Name:      "latency",
+		Buckets:   prometheus.ExponentialBuckets(0.01, 3, 15),
+	},
+	[]string{"procedure"},
+)

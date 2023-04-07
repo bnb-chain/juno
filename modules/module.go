@@ -91,14 +91,6 @@ type BlockModule interface {
 	HandleBlock(block *tmctypes.ResultBlock, results *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators) error
 }
 
-type TransactionModule interface {
-	// HandleTx handles a single transaction.
-	// For each message present inside the transaction, HandleMsg will be called as well.
-	// NOTE. The returned error will be logged using the TxError method. All other modules' handlers
-	// will still be called.
-	HandleTx(tx *types.Tx) error
-}
-
 type MessageModule interface {
 	// HandleMsg handles a single message.
 	// For convenience of use, the index of the message inside the transaction and the transaction itself

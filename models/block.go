@@ -62,7 +62,7 @@ func (b *Block) ToTmBlock() *tmctypes.ResultBlock {
 		Version: tmversion.Consensus{Block: version.BlockProtocol},
 		//ChainID: ,
 		Height: int64(b.Height),
-		Time:   time.Unix(0, int64(b.Timestamp)).UTC(),
+		Time:   time.Unix(int64(b.Timestamp), 0).UTC(),
 		//LastBlockID: ,
 	}
 	header.LastCommitHash, _ = hex.DecodeString(b.LastResultsHash.Hex()[2:])
@@ -110,7 +110,7 @@ func NewBlockFromTmBlock(blk *tmctypes.ResultBlock, totalGas uint64) *Block {
 			common.HexToHash(blk.Block.Header.LastResultsHash.String()),
 			common.HexToHash(blk.Block.Header.EvidenceHash.String()),
 			common.HexToAddress(blk.Block.Header.ProposerAddress.String()),
-			uint64(blk.Block.Time.UTC().UnixNano()),
+			uint64(blk.Block.Time.UTC().Unix()),
 		},
 		NumTxs:   uint64(len(blk.Block.Txs)),
 		TotalGas: totalGas,

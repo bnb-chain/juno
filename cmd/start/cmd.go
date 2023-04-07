@@ -1,7 +1,6 @@
 package start
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"sync"
@@ -17,7 +16,6 @@ import (
 	"github.com/forbole/juno/v4/parser"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
-	"github.com/forbole/juno/v4/types/utils"
 )
 
 var (
@@ -82,12 +80,9 @@ func Parsing(ctx *parser.Context) error {
 	exportQueue := types.NewQueue(25)
 
 	// Create workers
-	workers := make([]*parser.Worker, cfg.Workers)
-	for i := range workers {
-		workers[i] = parser.NewWorker(ctx, exportQueue, i, cfg.ConcurrentSync)
-		if ctx.Indexer != nil {
-			workers[i].SetIndexer(ctx.Indexer)
-		}
+	worker := parser.NewWorker(ctx, exportQueue, 0, cfg.ConcurrentSync)
+	if ctx.Indexer != nil {
+		worker.SetIndexer(ctx.Indexer)
 	}
 
 	waitGroup.Add(1)
@@ -101,117 +96,28 @@ func Parsing(ctx *parser.Context) error {
 
 	// Start each blocking worker in a go-routine where the worker consumes jobs
 	// off of the export queue.
-	for i, w := range workers {
-		log.Debugw("starting worker...", "number", i+1)
-		go w.Start()
-	}
+
+	log.Debugw("starting worker...", "number", 0)
+	go worker.Start()
 
 	// Listen for and trap any OS signal to gracefully shutdown and exit
 	trapSignal(ctx)
 
 	if cfg.ParseOldBlocks {
 		if cfg.ConcurrentSync {
-			go enqueueMissingBlocks(exportQueue, ctx)
+			go worker.EnqueueMissingBlocks(exportQueue, ctx)
 		} else {
-			enqueueMissingBlocks(exportQueue, ctx)
+			worker.EnqueueMissingBlocks(exportQueue, ctx)
 		}
 	}
 
 	if cfg.ParseNewBlocks {
-		go enqueueNewBlocks(exportQueue, ctx)
+		go worker.EnqueueNewBlocks(exportQueue, ctx)
 	}
 
 	// Block main process (signal capture will call WaitGroup's Done)
 	waitGroup.Wait()
 	return nil
-}
-
-// enqueueMissingBlocks enqueues jobs (block heights) for missed blocks starting
-// at the startHeight up until the latest known height.
-func enqueueMissingBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
-	// Get the config
-	cfg := config.Cfg.Parser
-
-	// Get the latest height
-	latestBlockHeight := mustGetLatestHeight(ctx)
-
-	lastDbBlockHeight, err := ctx.Database.GetLastBlockHeight(context.TODO())
-	if err != nil {
-		log.Errorw("failed to get last block height from database", "error", err)
-	}
-
-	// Get the start height, default to the config's height
-	startHeight := cfg.StartHeight
-
-	// Set startHeight to the latest height in database
-	// if is not set inside config.yaml file
-	if startHeight == 0 {
-		startHeight = utils.MaxUint64(0, lastDbBlockHeight)
-	}
-
-	if cfg.FastSync {
-		log.Infow("fast sync is enabled, ignoring all previous blocks", "latest_block_height", latestBlockHeight)
-		for _, module := range ctx.Modules {
-			if mod, ok := module.(modules.FastSyncModule); ok {
-				err := mod.DownloadState(int64(latestBlockHeight))
-				if err != nil {
-					log.Error("error while performing fast sync",
-						"err", err,
-						"last_block_height", latestBlockHeight,
-						"module", module.Name(),
-					)
-				}
-			}
-		}
-	} else {
-		log.Infow("syncing missing blocks...", "latest_block_height", latestBlockHeight)
-		for _, i := range ctx.Database.GetMissingHeights(context.TODO(), startHeight, latestBlockHeight) {
-			log.Debugw("enqueueing missing block", "height", i)
-			exportQueue <- i
-		}
-	}
-}
-
-// enqueueNewBlocks enqueues new block heights onto the provided queue.
-func enqueueNewBlocks(exportQueue types.HeightQueue, ctx *parser.Context) {
-	currHeight, err := ctx.Database.GetLastBlockHeight(context.TODO())
-	if err != nil {
-		log.Errorw("failed to get last block height from database", "error", err)
-	}
-
-	currHeight += 1
-
-	// Enqueue upcoming heights
-	for {
-		latestBlockHeight := mustGetLatestHeight(ctx)
-
-		// Enqueue all heights from the current height up to the latest height
-		for ; currHeight <= latestBlockHeight; currHeight++ {
-			log.Debugw("enqueueing new block", "height", currHeight)
-			exportQueue <- currHeight
-		}
-		time.Sleep(config.GetAvgBlockTime())
-	}
-}
-
-// mustGetLatestHeight tries getting the latest height from the RPC client.
-// If after 50 tries no latest height can be found, it returns 0.
-func mustGetLatestHeight(ctx *parser.Context) uint64 {
-	for retryCount := 0; retryCount < 50; retryCount++ {
-		latestBlockHeight, err := ctx.Node.LatestHeight()
-		if err == nil {
-			return uint64(latestBlockHeight)
-		}
-
-		log.Errorw("failed to get last block from RPCConfig client",
-			"err", err,
-			"retry interval", config.GetAvgBlockTime(),
-			"retry count", retryCount)
-
-		time.Sleep(config.GetAvgBlockTime())
-	}
-
-	return 0
 }
 
 // trapSignal will listen for any OS signal and invoke Done on the main
