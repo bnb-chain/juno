@@ -13,6 +13,7 @@ import (
 
 	parsecmdtypes "github.com/forbole/juno/v4/cmd/parse/types"
 	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/metrics"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/parser"
 	"github.com/forbole/juno/v4/types"
@@ -89,6 +90,8 @@ func Parsing(ctx *parser.Context) error {
 			workers[i].SetIndexer(ctx.Indexer)
 		}
 	}
+
+	parser.MetricsRecorder = metrics.DefaultMetrics()
 
 	waitGroup.Add(1)
 

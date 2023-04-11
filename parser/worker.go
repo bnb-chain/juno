@@ -9,11 +9,16 @@ import (
 
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/metrics"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/forbole/juno/v4/types/utils"
+)
+
+var (
+	MetricsRecorder = metrics.DefaultMetrics()
 )
 
 // Worker defines a job consumer that is responsible for getting and
@@ -55,7 +60,13 @@ func (w *Worker) SetIndexer(indexer Indexer) {
 // Start starts a worker by listening for new jobs (block heights) from the
 // given worker queue. Any failed job is logged and re-enqueued.
 func (w *Worker) Start() {
-	log.WorkerCount.Inc()
+	//log.WorkerCount.Inc()
+	//w.indexer.MetricsRecorder().RecordWorkerCount()
+	//if MetricsRecorder == nil {
+	//	MetricsRecorder = metrics.DefaultMetrics()
+	//}
+	MetricsRecorder.TestRecorder()
+	MetricsRecorder.RecordWorkerCount()
 	chainID, err := w.node.ChainID()
 	if err != nil {
 		log.Errorw("error while getting chain ID from the node ", "err", err)
@@ -79,7 +90,8 @@ func (w *Worker) Start() {
 				err = w.ProcessIfNotExists(i)
 			}
 		} else {
-			log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
+			//log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
+			MetricsRecorder.RecordWorkerHeight(w.index, chainID, i)
 		}
 	}
 }
@@ -123,13 +135,16 @@ func (w *Worker) Process(height uint64) error {
 		log.Infow("processed block", "height", height)
 
 		totalBlocks := w.db.GetTotalBlocks(context.TODO())
-		log.DBBlockCount.Set(float64(totalBlocks))
+		//log.DBBlockCount.Set(float64(totalBlocks))
+		MetricsRecorder.RecordDBBlockCount(totalBlocks)
 
 		dbLatestHeight, err := w.db.GetLastBlockHeight(context.TODO())
 		if err != nil {
 			return err
 		}
-		log.DBLatestHeight.Set(float64(dbLatestHeight))
+		//log.DBLatestHeight.Set(float64(dbLatestHeight))
+		MetricsRecorder.RecordDBLatestHeight(dbLatestHeight)
+
 	}
 
 	return err

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -16,6 +15,7 @@ import (
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/metrics"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/node"
@@ -77,18 +77,17 @@ func DefaultIndexer(codec codec.Codec, proxy node.Node, db database.Database, mo
 		Node:    proxy,
 		DB:      db,
 		Modules: modules,
+		Metrics: metrics.DefaultMetrics(),
 	}
 }
 
 type Impl struct {
-	Ctx context.Context
-
+	Ctx     context.Context
 	Modules []modules.Module
-
-	codec codec.Codec
-
-	Node node.Node
-	DB   database.Database
+	codec   codec.Codec
+	Node    node.Node
+	DB      database.Database
+	Metrics metrics.Metrics
 }
 
 func (i *Impl) ExportEpoch(block *tmctypes.ResultBlock) error {
@@ -188,7 +187,8 @@ func (i *Impl) Process(height uint64) error {
 		return fmt.Errorf("failed to get block from node: %s", err)
 	}
 
-	log.WorkerLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
+	//log.WorkerLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
+	i.Metrics.RecordWorkerLatencyHist(block.Block.Time)
 
 	blockResults, err := i.Node.BlockResults(int64(height))
 	if err != nil {
@@ -215,7 +215,8 @@ func (i *Impl) Process(height uint64) error {
 		return err
 	}
 
-	log.DBLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
+	//log.DBLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
+	i.Metrics.RecordDBLatencyHist(block.Block.Time)
 
 	return nil
 }
