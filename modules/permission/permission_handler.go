@@ -95,7 +95,7 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 			if !ok {
 				return errors.New("unknown action type action")
 			}
-			actionValue |= value
+			actionValue |= 1 << value
 		}
 		s := &models.Statements{
 			PolicyID:    common.HexToHash(policy.PolicyId.String()),
