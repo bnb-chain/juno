@@ -1,9 +1,9 @@
 package models
 
 import (
-	"github.com/forbole/juno/v4/common"
-
 	"github.com/lib/pq"
+
+	"github.com/forbole/juno/v4/common"
 )
 
 type Object struct {
@@ -25,7 +25,7 @@ type Object struct {
 	Status               string         `gorm:"column:status;type:VARCHAR(50)"`
 	RedundancyType       string         `gorm:"column:redundancy_type;type:VARCHAR(50)"`
 	SourceType           string         `gorm:"column:source_type;type:VARCHAR(50)"`
-	CheckSums            pq.ByteaArray  `gorm:"column:checksums;type:blob"`
+	CheckSums            pq.ByteaArray  `gorm:"column:checksums;type:text"`
 
 	CreateAt     int64       `gorm:"column:create_at"`
 	CreateTxHash common.Hash `gorm:"column:create_tx_hash;type:BINARY(32);not null"`

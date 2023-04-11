@@ -29,7 +29,7 @@ var groupEvents = map[string]bool{
 	EventUpdateGroupMember: true,
 }
 
-func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
 	if !groupEvents[event.Type] {
 		return nil
 	}
@@ -86,9 +86,9 @@ func (m *Module) handleCreateGroup(ctx context.Context, block *tmctypes.ResultBl
 			AccountID:  common.HexToHash(member),
 
 			CreateAt:   block.Block.Height,
-			CreateTime: block.Block.Time.UTC().UnixNano(),
+			CreateTime: block.Block.Time.UTC().Unix(),
 			UpdateAt:   block.Block.Height,
-			UpdateTime: block.Block.Time.UTC().UnixNano(),
+			UpdateTime: block.Block.Time.UTC().Unix(),
 			Removed:    false,
 		}
 		membersToAddList = append(membersToAddList, groupItem)
@@ -104,7 +104,7 @@ func (m *Module) handleDeleteGroup(ctx context.Context, block *tmctypes.ResultBl
 		GroupName: deleteGroup.GroupName,
 
 		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		UpdateTime: block.Block.Time.UTC().Unix(),
 		Removed:    true,
 	}
 	return m.db.DeleteGroup(ctx, group)
@@ -118,7 +118,7 @@ func (m *Module) handleLeaveGroup(ctx context.Context, block *tmctypes.ResultBlo
 		AccountID: common.HexToHash(leaveGroup.MemberAddress),
 
 		UpdateAt:   block.Block.Height,
-		UpdateTime: block.Block.Time.UTC().UnixNano(),
+		UpdateTime: block.Block.Time.UTC().Unix(),
 		Removed:    true,
 	}
 	return m.db.UpdateGroup(ctx, group)
@@ -139,7 +139,7 @@ func (m *Module) handleUpdateGroupMember(ctx context.Context, block *tmctypes.Re
 			OperatorAddress: common.HexToAddress(updateGroupMember.OperatorAddress),
 
 			UpdateAt:   block.Block.Height,
-			UpdateTime: block.Block.Time.UTC().UnixNano(),
+			UpdateTime: block.Block.Time.UTC().Unix(),
 			Removed:    false,
 		}
 		membersToAddList = append(membersToAddList, groupItem)
@@ -156,7 +156,7 @@ func (m *Module) handleUpdateGroupMember(ctx context.Context, block *tmctypes.Re
 			OperatorAddress: common.HexToAddress(updateGroupMember.OperatorAddress),
 
 			UpdateAt:   block.Block.Height,
-			UpdateTime: block.Block.Time.UTC().UnixNano(),
+			UpdateTime: block.Block.Time.UTC().Unix(),
 			Removed:    true,
 		}
 		m.db.UpdateGroup(ctx, groupItem)
