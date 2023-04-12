@@ -26,6 +26,8 @@ type Object struct {
 	RedundancyType       string         `gorm:"column:redundancy_type;type:VARCHAR(50)"`
 	SourceType           string         `gorm:"column:source_type;type:VARCHAR(50)"`
 	CheckSums            pq.ByteaArray  `gorm:"column:checksums;type:text"`
+	DeleteAt             int64          `gorm:"column:delete_at"`
+	DeleteReason         string         `gorm:"column:delete_reason;type:varchar(256);"`
 
 	CreateAt     int64       `gorm:"column:create_at"`
 	CreateTxHash common.Hash `gorm:"column:create_tx_hash;type:BINARY(32);not null"`

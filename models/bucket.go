@@ -1,6 +1,8 @@
 package models
 
-import "github.com/forbole/juno/v4/common"
+import (
+	"github.com/forbole/juno/v4/common"
+)
 
 type Bucket struct {
 	ID uint64 `gorm:"column:id;primaryKey"`
@@ -14,6 +16,9 @@ type Bucket struct {
 	SourceType       string         `gorm:"column:source_type;type:VARCHAR(50)"`
 	ChargedReadQuota uint64         `gorm:"column:charged_read_quota"`
 	Visibility       string         `gorm:"column:visibility;type:VARCHAR(50)"`
+	Status           string         `gorm:"column:status;type:varchar(64);"`
+	DeleteAt         int64          `gorm:"column:delete_at"`
+	DeleteReason     string         `gorm:"column:delete_reason;type:varchar(256);"`
 
 	CreateAt     int64       `gorm:"column:create_at"`
 	CreateTxHash common.Hash `gorm:"column:create_tx_hash;type:BINARY(32);not null"`
