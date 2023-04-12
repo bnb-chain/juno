@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -68,6 +67,9 @@ type Indexer interface {
 
 	// ExportEpoch accepts a finalized block height and block hash then inside the database.
 	ExportEpoch(block *tmctypes.ResultBlock) error
+
+	// RecordMetrics record metrics of the given metric type
+	RecordMetrics(metricsType log.MetricsType) func(metrics interface{}) error
 }
 
 func DefaultIndexer(codec codec.Codec, proxy node.Node, db database.Database, modules []modules.Module) Indexer {
@@ -188,7 +190,8 @@ func (i *Impl) Process(height uint64) error {
 		return fmt.Errorf("failed to get block from node: %s", err)
 	}
 
-	log.WorkerLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
+	//log.WorkerLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
+	i.RecordMetrics(log.DBLatencyHistType)(block.Block.Time)
 
 	blockResults, err := i.Node.BlockResults(int64(height))
 	if err != nil {
@@ -215,7 +218,8 @@ func (i *Impl) Process(height uint64) error {
 		return err
 	}
 
-	log.DBLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
+	//log.DBLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
+	i.RecordMetrics(log.DBLatencyHistType)(block.Block.Time)
 
 	return nil
 }
@@ -354,4 +358,22 @@ func (i *Impl) ExportEventsByTxs(ctx context.Context, block *tmctypes.ResultBloc
 // An error is returned if the operation fails.
 func (i *Impl) Processed(ctx context.Context, height uint64) (bool, error) {
 	return i.DB.HasBlock(ctx, height)
+}
+
+func (i *Impl) RecordMetrics(metricsType log.MetricsType) func(metrics interface{}) error {
+	switch metricsType {
+	case log.WorkerCountType:
+		return log.RecordWorkerCount
+	case log.WorkerHeightType:
+		return log.RecordWorkerHeight
+	case log.WorkerLatencyHistType:
+		return log.RecordDBLatencyHist
+	case log.DBLatestHeightType:
+		return log.RecordDBLatestHeight
+	case log.DBBlockCountType:
+		return log.RecordDBBlockCount
+	case log.DBLatencyHistType:
+		return log.RecordWorkerLatencyHist
+	}
+	return nil
 }

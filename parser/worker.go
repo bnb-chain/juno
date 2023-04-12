@@ -55,7 +55,8 @@ func (w *Worker) SetIndexer(indexer Indexer) {
 // Start starts a worker by listening for new jobs (block heights) from the
 // given worker queue. Any failed job is logged and re-enqueued.
 func (w *Worker) Start() {
-	log.WorkerCount.Inc()
+	//log.WorkerCount.Inc()
+	w.indexer.RecordMetrics(log.WorkerCountType)
 	chainID, err := w.node.ChainID()
 	if err != nil {
 		log.Errorw("error while getting chain ID from the node ", "err", err)
@@ -79,7 +80,12 @@ func (w *Worker) Start() {
 				err = w.ProcessIfNotExists(i)
 			}
 		} else {
-			log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
+			//log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
+			w.indexer.RecordMetrics(log.WorkerHeightType)(&log.WorkerHeightLabels{
+				WorkerIdx:   w.index,
+				ChainID:     chainID,
+				BlockHeight: i,
+			})
 		}
 	}
 }
@@ -123,13 +129,16 @@ func (w *Worker) Process(height uint64) error {
 		log.Infow("processed block", "height", height)
 
 		totalBlocks := w.db.GetTotalBlocks(context.TODO())
-		log.DBBlockCount.Set(float64(totalBlocks))
+		//log.DBBlockCount.Set(float64(totalBlocks))
+		w.indexer.RecordMetrics(log.DBBlockCountType)(totalBlocks)
 
 		dbLatestHeight, err := w.db.GetLastBlockHeight(context.TODO())
 		if err != nil {
 			return err
 		}
-		log.DBLatestHeight.Set(float64(dbLatestHeight))
+		//log.DBLatestHeight.Set(float64(dbLatestHeight))
+		w.indexer.RecordMetrics(log.DBLatestHeightType)(dbLatestHeight)
+
 	}
 
 	return err

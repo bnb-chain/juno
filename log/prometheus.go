@@ -1,11 +1,32 @@
 package log
 
 import (
+	"errors"
+	"fmt"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const Namespace = "juno"
+
+type MetricsType int
+
+const (
+	WorkerCountType MetricsType = iota
+	WorkerHeightType
+	WorkerLatencyHistType
+	DBBlockCountType
+	DBLatestHeightType
+	DBLatencyHistType
+)
+
+type WorkerHeightLabels struct {
+	WorkerIdx   int
+	ChainID     string
+	BlockHeight uint64
+}
 
 // WorkerCount represents the Telemetry counter used to track the worker count
 var WorkerCount = promauto.NewCounter(
@@ -64,3 +85,45 @@ var DBLatencyHist = promauto.NewHistogram(
 		Buckets:   prometheus.ExponentialBuckets(0.01, 3, 15),
 	},
 )
+
+func RecordWorkerCount(_ interface{}) error {
+	WorkerCount.Inc()
+	return nil
+}
+
+func RecordWorkerHeight(workerHeightLabels interface{}) error {
+
+	if heightMetrics, ok := workerHeightLabels.(WorkerHeightLabels); ok {
+		WorkerHeight.WithLabelValues(fmt.Sprintf("%d", heightMetrics.WorkerIdx), heightMetrics.ChainID).Set(float64(heightMetrics.BlockHeight))
+		return nil
+	}
+	return errors.New("type error")
+}
+
+func RecordDBLatestHeight(dbLatestHeight interface{}) error {
+	if dbLatestHeightMetrics, ok := dbLatestHeight.(uint64); ok {
+		DBLatestHeight.Set(float64(dbLatestHeightMetrics))
+	}
+	return errors.New("type error")
+}
+
+func RecordDBLatencyHist(dbLatencyHist interface{}) error {
+	if dbLatencyHistMetrics, ok := dbLatencyHist.(time.Time); ok {
+		DBLatencyHist.Observe(float64(time.Since(dbLatencyHistMetrics).Milliseconds()))
+	}
+	return errors.New("type error")
+}
+
+func RecordWorkerLatencyHist(workerLatencyHist interface{}) error {
+	if workerLatencyHistMetrics, ok := workerLatencyHist.(time.Time); ok {
+		WorkerLatencyHist.Observe(float64(time.Since(workerLatencyHistMetrics).Milliseconds()))
+	}
+	return errors.New("type error")
+}
+
+func RecordDBBlockCount(dbBlockCount interface{}) error {
+	if dbBlockCountMetrics, ok := dbBlockCount.(int64); ok {
+		DBBlockCount.Set(float64(dbBlockCountMetrics))
+	}
+	return errors.New("type error")
+}

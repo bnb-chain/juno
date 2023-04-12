@@ -32,7 +32,7 @@ type Database interface {
 	// An error is returned if the operation fails.
 	HasBlock(ctx context.Context, height uint64) (bool, error)
 
-	// GetLastBlockHeight returns the last block height stored in database..
+	// GetLastBlockHeight returns the last block height stored in database.
 	// An error is returned if the operation fails.
 	GetLastBlockHeight(ctx context.Context) (uint64, error)
 
