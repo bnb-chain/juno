@@ -16,15 +16,17 @@ import (
 )
 
 var (
-	EventCreateBucket     = proto.MessageName(&storagetypes.EventCreateBucket{})
-	EventDeleteBucket     = proto.MessageName(&storagetypes.EventDeleteBucket{})
-	EventUpdateBucketInfo = proto.MessageName(&storagetypes.EventUpdateBucketInfo{})
+	EventCreateBucket      = proto.MessageName(&storagetypes.EventCreateBucket{})
+	EventDeleteBucket      = proto.MessageName(&storagetypes.EventDeleteBucket{})
+	EventUpdateBucketInfo  = proto.MessageName(&storagetypes.EventUpdateBucketInfo{})
+	EventDiscontinueBucket = proto.MessageName(&storagetypes.EventDiscontinueBucket{})
 )
 
 var bucketEvents = map[string]bool{
-	EventCreateBucket:     true,
-	EventDeleteBucket:     true,
-	EventUpdateBucketInfo: true,
+	EventCreateBucket:      true,
+	EventDeleteBucket:      true,
+	EventUpdateBucketInfo:  true,
+	EventDiscontinueBucket: true,
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
@@ -60,6 +62,13 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 			return errors.New("update bucket event assert error")
 		}
 		return m.handleUpdateBucketInfo(ctx, block, txHash, updateBucketInfo)
+	case EventDiscontinueBucket:
+		discontinueBucket, ok := typedEvent.(*storagetypes.EventDiscontinueBucket)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventDiscontinueBucket", "event", typedEvent)
+			return errors.New("discontinue bucket event assert error")
+		}
+		return m.handleDiscontinueBucket(ctx, block, txHash, discontinueBucket)
 	}
 
 	return nil
@@ -76,9 +85,9 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 		SourceType:       createBucket.SourceType.String(),
 		ChargedReadQuota: createBucket.ChargedReadQuota,
 		Visibility:       createBucket.Visibility.String(),
+		Status:           createBucket.Status.String(),
 
-		Removed: false,
-
+		Removed:      false,
 		CreateAt:     block.Block.Height,
 		CreateTxHash: txHash,
 		CreateTime:   createBucket.CreateAt,
@@ -102,6 +111,20 @@ func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultB
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)
+}
+
+func (m *Module) handleDiscontinueBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, discontinueBucket *storagetypes.EventDiscontinueBucket) error {
+	bucket := &models.Bucket{
+		BucketName:   discontinueBucket.BucketName,
+		DeleteReason: discontinueBucket.Reason,
+		DeleteAt:     discontinueBucket.DeleteAt,
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
+	}
+
+	return m.db.UpdateBucketByName(ctx, bucket)
 }
 
 func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, updateBucket *storagetypes.EventUpdateBucketInfo) error {

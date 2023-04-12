@@ -138,6 +138,8 @@ func (m *Module) handleUpdateGroupMember(ctx context.Context, block *tmctypes.Re
 			AccountID:       common.HexToHash(memberToAdd),
 			OperatorAddress: common.HexToAddress(updateGroupMember.OperatorAddress),
 
+			CreateAt:   block.Block.Height,
+			CreateTime: block.Block.Time.UTC().Unix(),
 			UpdateAt:   block.Block.Height,
 			UpdateTime: block.Block.Time.UTC().Unix(),
 			Removed:    false,

@@ -22,6 +22,7 @@ var (
 	EventCopyObject         = proto.MessageName(&storagetypes.EventCopyObject{})
 	EventDeleteObject       = proto.MessageName(&storagetypes.EventDeleteObject{})
 	EventRejectSealObject   = proto.MessageName(&storagetypes.EventRejectSealObject{})
+	EventDiscontinueObject  = proto.MessageName(&storagetypes.EventDiscontinueObject{})
 )
 
 var objectEvents = map[string]bool{
@@ -31,6 +32,7 @@ var objectEvents = map[string]bool{
 	EventCopyObject:         true,
 	EventDeleteObject:       true,
 	EventRejectSealObject:   true,
+	EventDiscontinueObject:  true,
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
@@ -87,6 +89,13 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 			return errors.New("reject seal object event assert error")
 		}
 		return m.handleRejectSealObject(ctx, block, txHash, rejectSealObject)
+	case EventDiscontinueObject:
+		discontinueObject, ok := typedEvent.(*storagetypes.EventDiscontinueObject)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventDiscontinueObject", "event", typedEvent)
+			return errors.New("discontinue object event assert error")
+		}
+		return m.handleEventDiscontinueObject(ctx, block, txHash, discontinueObject)
 	}
 
 	return nil
@@ -201,6 +210,22 @@ func (m *Module) handleRejectSealObject(ctx context.Context, block *tmctypes.Res
 		ObjectName:      rejectSealObject.ObjectName,
 		ObjectID:        common.BigToHash(rejectSealObject.ObjectId.BigInt()),
 		OperatorAddress: common.HexToAddress(rejectSealObject.OperatorAddress),
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
+		Removed:      true,
+	}
+
+	return m.db.UpdateObject(ctx, object)
+}
+
+func (m *Module) handleEventDiscontinueObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, discontinueObject *storagetypes.EventDiscontinueObject) error {
+	object := &models.Object{
+		BucketName:   discontinueObject.BucketName,
+		ObjectID:     common.BigToHash(discontinueObject.ObjectId.BigInt()),
+		DeleteReason: discontinueObject.Reason,
+		DeleteAt:     discontinueObject.DeleteAt,
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
