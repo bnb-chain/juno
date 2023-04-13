@@ -121,8 +121,15 @@ func (w *Worker) Process(height uint64) error {
 
 	if err == nil {
 		log.Infow("processed block", "height", height)
-		log.DBBlockCount.Set(float64(height))
-		log.DBLatestHeight.Set(float64(height))
+
+		totalBlocks := w.db.GetTotalBlocks(context.TODO())
+		log.DBBlockCount.Set(float64(totalBlocks))
+
+		dbLatestHeight, err := w.db.GetLastBlockHeight(context.TODO())
+		if err != nil {
+			return err
+		}
+		log.DBLatestHeight.Set(float64(dbLatestHeight))
 	}
 
 	return err
@@ -155,89 +162,4 @@ func (w *Worker) ProcessEvents(height int64) error {
 	}
 
 	return w.indexer.ExportEvents(w.ctx, block, blockResults)
-}
-
-// EnqueueMissingBlocks enqueues jobs (block heights) for missed blocks starting
-// at the startHeight up until the latest known height.
-func (w *Worker) EnqueueMissingBlocks(exportQueue types.HeightQueue, ctx *Context) {
-	// Get the config
-	cfg := config.Cfg.Parser
-
-	// Get the latest height
-	latestBlockHeight := mustGetLatestHeight(ctx)
-
-	lastDbBlockHeight := w.indexer.GetLatestHeight(context.TODO())
-
-	// Get the start height, default to the config's height
-	startHeight := cfg.StartHeight
-
-	// Set startHeight to the latest height in database
-	// if is not set inside config.yaml file
-	if startHeight == 0 {
-		startHeight = utils.MaxUint64(0, uint64(lastDbBlockHeight))
-	}
-
-	if cfg.FastSync {
-		log.Infow("fast sync is enabled, ignoring all previous blocks", "latest_block_height", latestBlockHeight)
-		for _, module := range ctx.Modules {
-			if mod, ok := module.(modules.FastSyncModule); ok {
-				err := mod.DownloadState(int64(latestBlockHeight))
-				if err != nil {
-					log.Error("error while performing fast sync",
-						"err", err,
-						"last_block_height", latestBlockHeight,
-						"module", module.Name(),
-					)
-				}
-			}
-		}
-	} else {
-		log.Infow("syncing missing blocks...", "latest_block_height", latestBlockHeight)
-		for i := startHeight; i <= latestBlockHeight; i++ {
-			log.Debugw("enqueueing missing block", "height", i)
-			exportQueue <- i
-		}
-	}
-}
-
-// EnqueueNewBlocks enqueues new block heights onto the provided queue.
-func (w *Worker) EnqueueNewBlocks(exportQueue types.HeightQueue, ctx *Context) {
-	currHeight, err := w.db.GetLastBlockHeight(context.TODO())
-	if err != nil {
-		log.Errorw("failed to get last block height from database", "error", err)
-	}
-
-	currHeight += 1
-
-	// Enqueue upcoming heights
-	for {
-		latestBlockHeight := mustGetLatestHeight(ctx)
-
-		// Enqueue all heights from the current height up to the latest height
-		for ; currHeight <= latestBlockHeight; currHeight++ {
-			log.Debugw("enqueueing new block", "height", currHeight)
-			exportQueue <- currHeight
-		}
-		time.Sleep(config.GetAvgBlockTime())
-	}
-}
-
-// mustGetLatestHeight tries getting the latest height from the RPC client.
-// If after 50 tries no latest height can be found, it returns 0.
-func mustGetLatestHeight(ctx *Context) uint64 {
-	for retryCount := 0; retryCount < 50; retryCount++ {
-		latestBlockHeight, err := ctx.Node.LatestHeight()
-		if err == nil {
-			return uint64(latestBlockHeight)
-		}
-
-		log.Errorw("failed to get last block from RPCConfig client",
-			"err", err,
-			"retry interval", config.GetAvgBlockTime(),
-			"retry count", retryCount)
-
-		time.Sleep(config.GetAvgBlockTime())
-	}
-
-	return 0
 }

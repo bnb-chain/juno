@@ -18,10 +18,8 @@ import (
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
-	blockmodule "github.com/forbole/juno/v4/modules/block"
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types"
-	"github.com/forbole/juno/v4/utils/syncutils"
 )
 
 type Indexer interface {
@@ -32,8 +30,6 @@ type Indexer interface {
 	// Processed tells whether the current Indexer has already processed the given height of Block
 	// An error is returned if the operation fails.
 	Processed(ctx context.Context, height uint64) (bool, error)
-
-	GetLatestHeight(ctx context.Context) uint64
 
 	// ExportBlock accepts a finalized block and persists then inside the database.
 	// An error is returned if write fails.
@@ -60,6 +56,9 @@ type Indexer interface {
 
 	HandleBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators)
 
+	// HandleTx accepts the transaction and calls the tx handlers.
+	HandleTx(tx *types.Tx)
+
 	// HandleMessage accepts the transaction and handles messages contained
 	// inside the transaction.
 	HandleMessage(block *tmctypes.ResultBlock, index int, msg sdk.Msg, tx *types.Tx)
@@ -74,7 +73,7 @@ type Indexer interface {
 func DefaultIndexer(codec codec.Codec, proxy node.Node, db database.Database, modules []modules.Module) Indexer {
 	return &Impl{
 		Ctx:     context.TODO(),
-		Codec:   codec,
+		codec:   codec,
 		Node:    proxy,
 		DB:      db,
 		Modules: modules,
@@ -86,7 +85,7 @@ type Impl struct {
 
 	Modules []modules.Module
 
-	Codec codec.Codec
+	codec codec.Codec
 
 	Node node.Node
 	DB   database.Database
@@ -120,6 +119,19 @@ func (i *Impl) HandleBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultB
 	}
 }
 
+func (i *Impl) HandleTx(tx *types.Tx) {
+	// Call the tx handlers
+	for _, module := range i.Modules {
+		if transactionModule, ok := module.(modules.TransactionModule); ok {
+			err := transactionModule.HandleTx(tx)
+			if err != nil {
+				log.Errorw("error while handling transaction", "module", module.Name(), "height", tx.Height,
+					"txHash", tx.TxHash, "err", err)
+			}
+		}
+	}
+}
+
 func (i *Impl) HandleMessage(block *tmctypes.ResultBlock, index int, msg sdk.Msg, tx *types.Tx) {
 	// Allow modules to handle the message
 	for _, module := range i.Modules {
@@ -131,14 +143,12 @@ func (i *Impl) HandleMessage(block *tmctypes.ResultBlock, index int, msg sdk.Msg
 			}
 		}
 	}
-}
 
-func (i *Impl) HandleMsgExec(block *tmctypes.ResultBlock, index int, msg sdk.Msg, tx *types.Tx) {
-	//If it's a MsgExecute, we need to make sure the included messages are handled as well
+	// If it's a MsgExecute, we need to make sure the included messages are handled as well
 	if msgExec, ok := msg.(*authz.MsgExec); ok {
 		for authzIndex, msgAny := range msgExec.Msgs {
 			var executedMsg sdk.Msg
-			err := i.Codec.UnpackAny(msgAny, &executedMsg)
+			err := i.codec.UnpackAny(msgAny, &executedMsg)
 			if err != nil {
 				log.Errorw("unable to unpack MsgExec inner message", "index", authzIndex, "error", err)
 			}
@@ -158,24 +168,13 @@ func (i *Impl) HandleMsgExec(block *tmctypes.ResultBlock, index int, msg sdk.Msg
 
 // HandleEvent accepts the transaction and handles events contained inside the transaction.
 func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) {
-	br := syncutils.NewBatchRunner()
-
 	for _, module := range i.Modules {
-		module := module
-		br.AddTasks(func() error {
-			if eventModule, ok := module.(modules.EventModule); ok {
-				err := eventModule.HandleEvent(ctx, block, txHash, event)
-				if err != nil {
-					log.Errorw("failed to handle event", "module", module.Name(), "event", event, "error", err)
-				}
+		if eventModule, ok := module.(modules.EventModule); ok {
+			err := eventModule.HandleEvent(ctx, block, txHash, event)
+			if err != nil {
+				log.Errorw("failed to handle event", "module", module.Name(), "event", event, "error", err)
 			}
-			return nil
-		})
-	}
-
-	err := br.Exec()
-	if err != nil {
-		log.Errorw("failed to handle event in batch runner", "error", err)
+		}
 	}
 }
 
@@ -184,8 +183,6 @@ func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txH
 func (i *Impl) Process(height uint64) error {
 	log.Debugw("processing block", "height", height)
 
-	start := time.Now()
-
 	block, err := i.Node.Block(int64(height))
 	if err != nil {
 		return fmt.Errorf("failed to get block from node: %s", err)
@@ -193,79 +190,34 @@ func (i *Impl) Process(height uint64) error {
 
 	log.WorkerLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
 
+	blockResults, err := i.Node.BlockResults(int64(height))
+	if err != nil {
+		return fmt.Errorf("failed to get block results from node: %s", err)
+	}
+
 	txs, err := i.Node.Txs(block)
 	if err != nil {
 		return fmt.Errorf("failed to get transactions for block: %s", err)
 	}
 
-	log.IndexerLatencyHist.WithLabelValues("rpc").Observe(float64(time.Since(start).Milliseconds()))
-
-	err = syncutils.BatchRun(
-		func() error {
-			return i.ProcessBlock(block, txs)
-		},
-		func() error {
-			return i.ProcessTxs(block, txs)
-		},
-		func() error {
-			return i.ProcessEvents(block, txs)
-		},
-	)
-
-	log.DBLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
-	log.IndexerLatencyHist.WithLabelValues("processing").Observe(float64(time.Since(start).Milliseconds()))
-
+	err = i.ExportBlock(block, blockResults, txs, nil)
 	if err != nil {
 		return err
 	}
 
-	return i.DB.SaveEpoch(context.TODO(), &models.Epoch{BlockHeight: int64(height), BlockHash: common.HexToHash(block.Block.Hash().String())})
-}
-
-func (i *Impl) ProcessBlock(block *tmctypes.ResultBlock, txs []*types.Tx) error {
-	todo := false
-	for _, module := range i.Modules {
-		if module.Name() == (&blockmodule.Module{}).Name() {
-			todo = true
-			break
-		}
-	}
-	if !todo {
-		return nil
+	err = i.ExportTxs(block, txs)
+	if err != nil {
+		return err
 	}
 
-	defer func(start time.Time) {
-		log.IndexerLatencyHist.WithLabelValues("export_block").Observe(float64(time.Since(start).Milliseconds()))
-	}(time.Now())
-
-	return i.ExportBlock(block, nil, txs, nil)
-}
-
-func (i *Impl) ProcessTxs(block *tmctypes.ResultBlock, txs []*types.Tx) error {
-	todo := false
-	for _, module := range i.Modules {
-		if module.Name() == (&blockmodule.Module{}).Name() {
-			todo = true
-			break
-		}
-	}
-	if !todo {
-		return nil
+	err = i.ExportEventsByTxs(i.Ctx, block, txs)
+	if err != nil {
+		return err
 	}
 
-	defer func(start time.Time) {
-		log.IndexerLatencyHist.WithLabelValues("export_txs").Observe(float64(time.Since(start).Milliseconds()))
-	}(time.Now())
+	log.DBLatencyHist.Observe(float64(time.Since(block.Block.Time).Milliseconds()))
 
-	return i.ExportTxs(block, txs)
-}
-
-func (i *Impl) ProcessEvents(block *tmctypes.ResultBlock, txs []*types.Tx) error {
-	defer func(start time.Time) {
-		log.IndexerLatencyHist.WithLabelValues("export_events").Observe(float64(time.Since(start).Milliseconds()))
-	}(time.Now())
-
-	return i.ExportEventsByTxs(i.Ctx, block, txs)
+	return nil
 }
 
 // ExportBlock accepts a finalized block and persists then inside the database.
@@ -278,6 +230,8 @@ func (i *Impl) ExportBlock(
 	if err != nil {
 		return fmt.Errorf("failed to persist block: %s", err)
 	}
+
+	i.HandleBlock(block, events, txs, vals)
 
 	return nil
 }
@@ -345,39 +299,31 @@ func (i *Impl) ExportCommit(block *tmctypes.ResultBlock, vals *tmctypes.ResultVa
 // An error is returned if write fails.
 func (i *Impl) ExportTxs(block *tmctypes.ResultBlock, txs []*types.Tx) error {
 	// handle all transactions inside the block
-	br := syncutils.NewBatchRunner()
-
 	for ind, tx := range txs {
-		ind, tx := ind, tx
-		br.AddTasks(func() error {
-			// save the transaction
-			err := i.DB.SaveTx(context.TODO(), uint64(block.Block.Time.UTC().Unix()), ind, tx)
+		// save the transaction
+		err := i.DB.SaveTx(context.TODO(), uint64(block.Block.Time.UTC().UnixNano()), ind, tx)
+		if err != nil {
+			return fmt.Errorf("error while storing tx with hash %s, %s", tx.TxHash, err)
+		}
+
+		// call the tx handlers
+		i.HandleTx(tx)
+
+		// handle all messages contained inside the transaction
+		sdkMsgs := make([]sdk.Msg, len(tx.Body.Messages))
+		for ind, msg := range tx.Body.Messages {
+			var stdMsg sdk.Msg
+			err := i.codec.UnpackAny(msg, &stdMsg)
 			if err != nil {
-				return fmt.Errorf("error while storing todo with hash %s, %s", tx.TxHash, err)
+				return err
 			}
+			sdkMsgs[ind] = stdMsg
+		}
 
-			// handle all messages contained inside the transaction
-			sdkMsgs := make([]sdk.Msg, len(tx.Body.Messages))
-			for ind, msg := range tx.Body.Messages {
-				var stdMsg sdk.Msg
-				err := i.Codec.UnpackAny(msg, &stdMsg)
-				if err != nil {
-					return err
-				}
-				sdkMsgs[ind] = stdMsg
-			}
-
-			// call the msg handlers
-			for ind, sdkMsg := range sdkMsgs {
-				i.HandleMessage(block, ind, sdkMsg, tx)
-			}
-			return nil
-		})
-	}
-
-	err := br.Exec()
-	if err != nil {
-		return err
+		// call the msg handlers
+		for ind, sdkMsg := range sdkMsgs {
+			i.HandleMessage(block, ind, sdkMsg, tx)
+		}
 	}
 
 	return nil
@@ -396,10 +342,9 @@ func (i *Impl) ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, bl
 
 func (i *Impl) ExportEventsByTxs(ctx context.Context, block *tmctypes.ResultBlock, txs []*types.Tx) error {
 	for _, tx := range txs {
-		if tx.Successful() {
-			for _, event := range tx.Events {
-				i.HandleEvent(ctx, block, common.HexToHash(tx.TxHash), sdk.Event(event))
-			}
+		txHash := common.HexToHash(tx.TxHash)
+		for _, event := range tx.Events {
+			i.HandleEvent(ctx, block, txHash, sdk.Event(event))
 		}
 	}
 	return nil
@@ -408,22 +353,5 @@ func (i *Impl) ExportEventsByTxs(ctx context.Context, block *tmctypes.ResultBloc
 // Processed tells whether the current Indexer has already processed the given height of Block
 // An error is returned if the operation fails.
 func (i *Impl) Processed(ctx context.Context, height uint64) (bool, error) {
-	epoch, err := i.DB.GetEpoch(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	if epoch.BlockHeight == 0 && epoch.BlockHash == common.EmptyHash {
-		return false, nil
-	}
-
-	return uint64(epoch.BlockHeight) >= height, nil
-}
-
-func (i *Impl) GetLatestHeight(ctx context.Context) uint64 {
-	ep, err := i.DB.GetEpoch(context.Background())
-	if err != nil {
-		return 0
-	}
-	return uint64(ep.BlockHeight)
+	return i.DB.HasBlock(ctx, height)
 }
