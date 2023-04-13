@@ -42,6 +42,8 @@ func (m *Module) PrepareTables() error {
 		&models.AverageBlockTimePerHour{},
 		&models.AverageBlockTimePerMinute{},
 
+		&models.Epoch{},
+
 		&models.Tx{},
 	})
 }
