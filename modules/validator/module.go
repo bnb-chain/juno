@@ -3,10 +3,11 @@ package validator
 import (
 	"context"
 
+	"gorm.io/gorm/schema"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
-	"gorm.io/gorm/schema"
 )
 
 var (
@@ -34,6 +35,18 @@ func (m *Module) Name() string {
 // PrepareTables implements
 func (m *Module) PrepareTables() error {
 	return m.db.PrepareTables(context.TODO(), []schema.Tabler{
+		&models.Validator{},
+		&models.ValidatorInfo{},
+		&models.ValidatorDescription{},
+		&models.ValidatorCommission{},
+		&models.ValidatorVotingPower{},
+		&models.ValidatorStatus{},
+		&models.ValidatorSigningInfo{}})
+}
+
+// RecreateTables implements
+func (m *Module) RecreateTables() error {
+	return m.db.RecreateTables(context.TODO(), []schema.Tabler{
 		&models.Validator{},
 		&models.ValidatorInfo{},
 		&models.ValidatorDescription{},

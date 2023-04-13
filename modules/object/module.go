@@ -40,3 +40,8 @@ func (m *Module) Name() string {
 func (m *Module) PrepareTables() error {
 	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.Object{}})
 }
+
+// RecreateTables implements
+func (m *Module) RecreateTables() error {
+	return m.db.RecreateTables(context.TODO(), []schema.Tabler{&models.Object{}})
+}

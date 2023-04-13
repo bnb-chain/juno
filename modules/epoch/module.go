@@ -2,10 +2,12 @@ package epoch
 
 import (
 	"context"
+
+	"gorm.io/gorm/schema"
+
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/models"
 	"github.com/forbole/juno/v4/modules"
-	"gorm.io/gorm/schema"
 )
 
 const (
@@ -37,4 +39,9 @@ func (m *Module) Name() string {
 // PrepareTables implements
 func (m *Module) PrepareTables() error {
 	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.Epoch{}})
+}
+
+// RecreateTables implements
+func (m *Module) RecreateTables() error {
+	return m.db.RecreateTables(context.TODO(), []schema.Tabler{&models.Epoch{}})
 }

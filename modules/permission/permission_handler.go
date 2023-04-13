@@ -2,7 +2,6 @@ package permission
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
 	permissiontypes "github.com/bnb-chain/greenfield/x/permission/types"
@@ -41,7 +40,7 @@ var actionTypeMap = map[permissiontypes.ActionType]int{
 	//permissiontypes.ACTION_GROUP_MEMBER:        11,
 }
 
-func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, event sdk.Event) error {
+func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
 	if !policyEvents[event.Type] {
 		return nil
 	}
@@ -72,6 +71,12 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, e
 }
 
 func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBlock, policy *permissiontypes.EventPutPolicy) error {
+	var expireTime int64
+	if policy.ExpirationTime == nil {
+		expireTime = 0
+	} else {
+		expireTime = policy.ExpirationTime.Unix()
+	}
 	p := &models.Permission{
 		PrincipalType:   int32(policy.Principal.Type),
 		PrincipalValue:  policy.Principal.Value,
@@ -79,6 +84,7 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 		ResourceID:      common.BigToHash(policy.ResourceId.BigInt()),
 		PolicyID:        common.BigToHash(policy.PolicyId.BigInt()),
 		CreateTimestamp: block.Block.Time.Unix(),
+		ExpirationTime:  expireTime,
 	}
 
 	statements := make([]*models.Statements, 0, 0)
@@ -89,19 +95,21 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 			if !ok {
 				return errors.New("unknown action type action")
 			}
-			actionValue |= value
+			actionValue |= 1 << value
 		}
 		s := &models.Statements{
 			PolicyID:    common.HexToHash(policy.PolicyId.String()),
 			Effect:      statement.Effect.String(),
 			ActionValue: actionValue,
 		}
+		if statement.ExpirationTime != nil {
+			s.ExpirationTime = statement.ExpirationTime.UTC().Unix()
+		}
+		if statement.LimitSize != nil {
+			s.LimitSize = statement.LimitSize.Value
+		}
 		if len(statement.Resources) != 0 {
-			resources, err := json.Marshal(statement.Resources)
-			if err != nil {
-				return err
-			}
-			s.Resources = string(resources)
+			s.Resources = statement.Resources
 		}
 		statements = append(statements, s)
 	}
