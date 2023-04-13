@@ -68,6 +68,12 @@ type Indexer interface {
 
 	// ExportEpoch accepts a finalized block height and block hash then inside the database.
 	ExportEpoch(block *tmctypes.ResultBlock) error
+
+	// GetBlockRecordNum returns total number of blocks stored in database.
+	GetBlockRecordNum(ctx context.Context) int64
+
+	// GetLastBlockRecordHeight returns the last block height stored inside the database
+	GetLastBlockRecordHeight(ctx context.Context) (uint64, error)
 }
 
 func DefaultIndexer(codec codec.Codec, proxy node.Node, db database.Database, modules []modules.Module) Indexer {
@@ -354,4 +360,14 @@ func (i *Impl) ExportEventsByTxs(ctx context.Context, block *tmctypes.ResultBloc
 // An error is returned if the operation fails.
 func (i *Impl) Processed(ctx context.Context, height uint64) (bool, error) {
 	return i.DB.HasBlock(ctx, height)
+}
+
+// GetBlockRecordNum returns total number of blocks stored in database.
+func (i *Impl) GetBlockRecordNum(ctx context.Context) int64 {
+	return i.DB.GetTotalBlocks(ctx)
+}
+
+// GetLastBlockRecordHeight returns the last block height stored inside the database
+func (i *Impl) GetLastBlockRecordHeight(ctx context.Context) (uint64, error) {
+	return i.DB.GetLastBlockHeight(ctx)
 }
