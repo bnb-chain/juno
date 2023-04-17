@@ -60,7 +60,7 @@ type ValidatorInfo struct {
 	ID uint64 `gorm:"column:id;primaryKey" json:"-"`
 
 	ValidatorAddress    common.Address `gorm:"column:validator_address;type:binary(20);not null;uniqueIndex:idx_address"` // refer validator(consensus_address)
-	OperatorAddress     common.Address `gorm:"column:operator_address"`
+	Operator            common.Address `gorm:"column:operator_address"`
 	SelfDelegateAddress common.Address `gorm:"column:self_delegate_address"` // refer account(addr)
 	MaxChangeRate       string         `gorm:"column:max_change_rate"`
 	MaxRate             string         `gorm:"column:max_rate"`
