@@ -107,8 +107,8 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 		BucketName:       createObject.BucketName,
 		ObjectID:         common.BigToHash(createObject.ObjectId.BigInt()),
 		ObjectName:       createObject.ObjectName,
-		CreatorAddress:   common.HexToAddress(createObject.CreatorAddress),
-		OwnerAddress:     common.HexToAddress(createObject.OwnerAddress),
+		Creator:          common.HexToAddress(createObject.Creator),
+		Owner:            common.HexToAddress(createObject.Owner),
 		PrimarySpAddress: common.HexToAddress(createObject.PrimarySpAddress),
 		PayloadSize:      createObject.PayloadSize,
 		Visibility:       createObject.Visibility.String(),
@@ -135,7 +135,7 @@ func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlo
 		BucketName:           sealObject.BucketName,
 		ObjectName:           sealObject.ObjectName,
 		ObjectID:             common.BigToHash(sealObject.ObjectId.BigInt()),
-		OperatorAddress:      common.HexToAddress(sealObject.OperatorAddress),
+		Operator:             common.HexToAddress(sealObject.Operator),
 		SecondarySpAddresses: sealObject.SecondarySpAddresses,
 		Status:               sealObject.Status.String(),
 
@@ -153,7 +153,7 @@ func (m *Module) handleCancelCreateObject(ctx context.Context, block *tmctypes.R
 		BucketName:       cancelCreateObject.BucketName,
 		ObjectName:       cancelCreateObject.ObjectName,
 		ObjectID:         common.BigToHash(cancelCreateObject.ObjectId.BigInt()),
-		OperatorAddress:  common.HexToAddress(cancelCreateObject.OperatorAddress),
+		Operator:         common.HexToAddress(cancelCreateObject.Operator),
 		PrimarySpAddress: common.HexToAddress(cancelCreateObject.PrimarySpAddress),
 		UpdateAt:         block.Block.Height,
 		UpdateTxHash:     txHash,
@@ -173,7 +173,7 @@ func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlo
 	destObject.ObjectID = common.BigToHash(copyObject.DstObjectId.BigInt())
 	destObject.ObjectName = copyObject.DstObjectName
 	destObject.BucketName = copyObject.DstBucketName
-	destObject.OperatorAddress = common.HexToAddress(copyObject.OperatorAddress)
+	destObject.Operator = common.HexToAddress(copyObject.Operator)
 	destObject.CreateAt = block.Block.Height
 	destObject.CreateTxHash = txHash
 	destObject.CreateTime = block.Block.Time.UTC().Unix()
@@ -206,10 +206,10 @@ func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultB
 // handle logic is set as removed, no need to set status
 func (m *Module) handleRejectSealObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, rejectSealObject *storagetypes.EventRejectSealObject) error {
 	object := &models.Object{
-		BucketName:      rejectSealObject.BucketName,
-		ObjectName:      rejectSealObject.ObjectName,
-		ObjectID:        common.BigToHash(rejectSealObject.ObjectId.BigInt()),
-		OperatorAddress: common.HexToAddress(rejectSealObject.OperatorAddress),
+		BucketName: rejectSealObject.BucketName,
+		ObjectName: rejectSealObject.ObjectName,
+		ObjectID:   common.BigToHash(rejectSealObject.ObjectId.BigInt()),
+		Operator:   common.HexToAddress(rejectSealObject.Operator),
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,

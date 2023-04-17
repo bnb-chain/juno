@@ -78,10 +78,10 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 	bucket := &models.Bucket{
 		BucketID:         common.BigToHash(createBucket.BucketId.BigInt()),
 		BucketName:       createBucket.BucketName,
-		OwnerAddress:     common.HexToAddress(createBucket.OwnerAddress),
+		Owner:            common.HexToAddress(createBucket.Owner),
 		PaymentAddress:   common.HexToAddress(createBucket.PaymentAddress),
 		PrimarySpAddress: common.HexToAddress(createBucket.PrimarySpAddress),
-		OperatorAddress:  common.HexToAddress(createBucket.OwnerAddress),
+		Operator:         common.HexToAddress(createBucket.Owner),
 		SourceType:       createBucket.SourceType.String(),
 		ChargedReadQuota: createBucket.ChargedReadQuota,
 		Visibility:       createBucket.Visibility.String(),
@@ -101,13 +101,13 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, deleteBucket *storagetypes.EventDeleteBucket) error {
 	bucket := &models.Bucket{
-		BucketID:        common.BigToHash(deleteBucket.BucketId.BigInt()),
-		BucketName:      deleteBucket.BucketName,
-		OperatorAddress: common.HexToAddress(deleteBucket.OperatorAddress),
-		Removed:         true,
-		UpdateAt:        block.Block.Height,
-		UpdateTxHash:    txHash,
-		UpdateTime:      block.Block.Time.UTC().Unix(),
+		BucketID:     common.BigToHash(deleteBucket.BucketId.BigInt()),
+		BucketName:   deleteBucket.BucketName,
+		Operator:     common.HexToAddress(deleteBucket.Operator),
+		Removed:      true,
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)
@@ -132,7 +132,7 @@ func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.Res
 		BucketID:         common.BigToHash(updateBucket.BucketId.BigInt()),
 		BucketName:       updateBucket.BucketName,
 		ChargedReadQuota: updateBucket.ChargedReadQuotaAfter,
-		OperatorAddress:  common.HexToAddress(updateBucket.OperatorAddress),
+		Operator:         common.HexToAddress(updateBucket.Operator),
 		PaymentAddress:   common.HexToAddress(updateBucket.PaymentAddressAfter),
 		UpdateAt:         block.Block.Height,
 		UpdateTxHash:     txHash,
