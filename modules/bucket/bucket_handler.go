@@ -118,6 +118,7 @@ func (m *Module) handleDiscontinueBucket(ctx context.Context, block *tmctypes.Re
 		BucketName:   discontinueBucket.BucketName,
 		DeleteReason: discontinueBucket.Reason,
 		DeleteAt:     discontinueBucket.DeleteAt,
+		Status:       storagetypes.BUCKET_STATUS_DISCONTINUED.String(),
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,

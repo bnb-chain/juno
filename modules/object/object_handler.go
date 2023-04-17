@@ -226,11 +226,12 @@ func (m *Module) handleEventDiscontinueObject(ctx context.Context, block *tmctyp
 		ObjectID:     common.BigToHash(discontinueObject.ObjectId.BigInt()),
 		DeleteReason: discontinueObject.Reason,
 		DeleteAt:     discontinueObject.DeleteAt,
+		Status:       storagetypes.OBJECT_STATUS_DISCONTINUED.String(),
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
 		UpdateTime:   block.Block.Time.UTC().Unix(),
-		Removed:      true,
+		Removed:      false,
 	}
 
 	return m.db.UpdateObject(ctx, object)
