@@ -116,6 +116,14 @@ type Database interface {
 	// An error is returned if the operation fails.
 	DeleteGroup(ctx context.Context, group *models.Group) error
 
+	// CreateStorageProvider will be called to save each sp contained inside an event.
+	// An error is returned if the operation fails.
+	CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error
+
+	// UpdateStorageProvider will be called to update each sp
+	// An error is returned if the operation fails.
+	UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error
+
 	// MultiSaveStatement will be called to save each statement contained inside a policy.
 	// An error is returned if the operation fails.
 	MultiSaveStatement(ctx context.Context, statements []*models.Statements) error
@@ -470,6 +478,18 @@ func (db *Impl) UpdateGroup(ctx context.Context, group *models.Group) error {
 
 func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
 	return db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Where("group_id = ?", group.GroupID).Updates(group).Error
+}
+
+func (db *Impl) CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
+	err := db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "operator_address"}},
+		UpdateAll: true,
+	}).Create(storageProvider).Error
+	return err
+}
+
+func (db *Impl) UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
+	return db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Where("operator_address = ? ", storageProvider.OperatorAddress).Updates(storageProvider).Error
 }
 
 func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Statements) error {
