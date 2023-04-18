@@ -23,6 +23,7 @@ var (
 	EventDeleteObject       = proto.MessageName(&storagetypes.EventDeleteObject{})
 	EventRejectSealObject   = proto.MessageName(&storagetypes.EventRejectSealObject{})
 	EventDiscontinueObject  = proto.MessageName(&storagetypes.EventDiscontinueObject{})
+	EventUpdateObjectInfo   = proto.MessageName(&storagetypes.EventUpdateObjectInfo{})
 )
 
 var objectEvents = map[string]bool{
@@ -33,6 +34,7 @@ var objectEvents = map[string]bool{
 	EventDeleteObject:       true,
 	EventRejectSealObject:   true,
 	EventDiscontinueObject:  true,
+	EventUpdateObjectInfo:   true,
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
@@ -96,6 +98,13 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 			return errors.New("discontinue object event assert error")
 		}
 		return m.handleEventDiscontinueObject(ctx, block, txHash, discontinueObject)
+	case EventUpdateObjectInfo:
+		updateObjectInfo, ok := typedEvent.(*storagetypes.EventUpdateObjectInfo)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventUpdateObjectInfo", "event", typedEvent)
+			return errors.New("update object event assert error")
+		}
+		return m.handleUpdateObjectInfo(ctx, block, txHash, updateObjectInfo)
 	}
 
 	return nil
@@ -232,6 +241,22 @@ func (m *Module) handleEventDiscontinueObject(ctx context.Context, block *tmctyp
 		UpdateTxHash: txHash,
 		UpdateTime:   block.Block.Time.UTC().Unix(),
 		Removed:      false,
+	}
+
+	return m.db.UpdateObject(ctx, object)
+}
+
+func (m *Module) handleUpdateObjectInfo(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, updateObject *storagetypes.EventUpdateObjectInfo) error {
+	object := &models.Object{
+		BucketName: updateObject.BucketName,
+		ObjectID:   common.BigToHash(updateObject.ObjectId.BigInt()),
+		ObjectName: updateObject.ObjectName,
+		Operator:   common.HexToAddress(updateObject.Operator),
+		Visibility: updateObject.Visibility.String(),
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateObject(ctx, object)

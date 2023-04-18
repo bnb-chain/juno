@@ -115,6 +115,7 @@ func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleDiscontinueBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, discontinueBucket *storagetypes.EventDiscontinueBucket) error {
 	bucket := &models.Bucket{
+		BucketID:     common.BigToHash(discontinueBucket.BucketId.BigInt()),
 		BucketName:   discontinueBucket.BucketName,
 		DeleteReason: discontinueBucket.Reason,
 		DeleteAt:     discontinueBucket.DeleteAt,
@@ -125,7 +126,7 @@ func (m *Module) handleDiscontinueBucket(ctx context.Context, block *tmctypes.Re
 		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
 
-	return m.db.UpdateBucketByName(ctx, bucket)
+	return m.db.UpdateBucket(ctx, bucket)
 }
 
 func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, updateBucket *storagetypes.EventUpdateBucketInfo) error {

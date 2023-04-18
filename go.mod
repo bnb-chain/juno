@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/aws/aws-sdk-go v1.42.25
-	github.com/bnb-chain/greenfield v0.0.12-0.20230414044835-d8a0b1152570
+	github.com/bnb-chain/greenfield v0.0.12-0.20230418102232-efc0f221748f
 	github.com/cosmos/cosmos-sdk v0.46.7
 	github.com/cosmos/ibc-go/v5 v5.2.0
 	github.com/go-co-op/gocron v1.13.0

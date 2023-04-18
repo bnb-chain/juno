@@ -72,10 +72,6 @@ type Database interface {
 	// An error is returned if the operation fails.
 	UpdateBucket(ctx context.Context, bucket *models.Bucket) error
 
-	// UpdateBucketByName will be called to save each bucket contained inside a block.
-	// An error is returned if the operation fails.
-	UpdateBucketByName(ctx context.Context, bucket *models.Bucket) error
-
 	// SaveObject will be called to save each object contained inside a block.
 	// An error is returned if the operation fails.
 	SaveObject(ctx context.Context, object *models.Object) error
@@ -388,11 +384,6 @@ func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
 
 func (db *Impl) UpdateBucket(ctx context.Context, bucket *models.Bucket) error {
 	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Where("bucket_id = ?", bucket.BucketID).Updates(bucket).Error
-	return err
-}
-
-func (db *Impl) UpdateBucketByName(ctx context.Context, bucket *models.Bucket) error {
-	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Where("bucket_name = ?", bucket.BucketName).Updates(bucket).Error
 	return err
 }
 
