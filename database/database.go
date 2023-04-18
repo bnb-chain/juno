@@ -72,10 +72,6 @@ type Database interface {
 	// An error is returned if the operation fails.
 	UpdateBucket(ctx context.Context, bucket *models.Bucket) error
 
-	// UpdateBucketByName will be called to save each bucket contained inside a block.
-	// An error is returned if the operation fails.
-	UpdateBucketByName(ctx context.Context, bucket *models.Bucket) error
-
 	// SaveObject will be called to save each object contained inside a block.
 	// An error is returned if the operation fails.
 	SaveObject(ctx context.Context, object *models.Object) error
@@ -119,6 +115,14 @@ type Database interface {
 	// DeleteGroup will be called to delete each group
 	// An error is returned if the operation fails.
 	DeleteGroup(ctx context.Context, group *models.Group) error
+
+	// CreateStorageProvider will be called to save each sp contained inside an event.
+	// An error is returned if the operation fails.
+	CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error
+
+	// UpdateStorageProvider will be called to update each sp
+	// An error is returned if the operation fails.
+	UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error
 
 	// MultiSaveStatement will be called to save each statement contained inside a policy.
 	// An error is returned if the operation fails.
@@ -391,11 +395,6 @@ func (db *Impl) UpdateBucket(ctx context.Context, bucket *models.Bucket) error {
 	return err
 }
 
-func (db *Impl) UpdateBucketByName(ctx context.Context, bucket *models.Bucket) error {
-	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Where("bucket_name = ?", bucket.BucketName).Updates(bucket).Error
-	return err
-}
-
 func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
 	err := db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "object_id"}},
@@ -479,6 +478,18 @@ func (db *Impl) UpdateGroup(ctx context.Context, group *models.Group) error {
 
 func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
 	return db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Where("group_id = ?", group.GroupID).Updates(group).Error
+}
+
+func (db *Impl) CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
+	err := db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "operator_address"}},
+		UpdateAll: true,
+	}).Create(storageProvider).Error
+	return err
+}
+
+func (db *Impl) UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
+	return db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Where("operator_address = ? ", storageProvider.OperatorAddress).Updates(storageProvider).Error
 }
 
 func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Statements) error {
