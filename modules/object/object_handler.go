@@ -147,6 +147,7 @@ func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlo
 		Operator:             common.HexToAddress(sealObject.Operator),
 		SecondarySpAddresses: sealObject.SecondarySpAddresses,
 		Status:               sealObject.Status.String(),
+		SealedTxHash:         txHash,
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,

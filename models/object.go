@@ -34,6 +34,7 @@ type Object struct {
 	CreateTime   int64       `gorm:"column:create_time"` // seconds
 	UpdateAt     int64       `gorm:"column:update_at"`
 	UpdateTxHash common.Hash `gorm:"column:update_tx_hash;type:BINARY(32);not null"`
+	SealedTxHash common.Hash `gorm:"column:sealed_tx_hash;type:BINARY(32)"`
 	UpdateTime   int64       `gorm:"column:update_time"` // seconds
 	Removed      bool        `gorm:"column:removed;default:false"`
 }
