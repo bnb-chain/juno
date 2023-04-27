@@ -14,10 +14,10 @@ type Object struct {
 	ObjectID   common.Hash `gorm:"column:object_id;type:BINARY(32);uniqueIndex:idx_object_id"`
 	ObjectName string      `gorm:"column:object_name;type:varchar(1024);uniqueIndex:idx_bucket_name_object_name,priority:2"`
 
-	CreatorAddress       common.Address `gorm:"column:creator_address;type:BINARY(20)"`
-	OwnerAddress         common.Address `gorm:"column:owner_address;type:BINARY(20);index:idx_owner"`
+	Creator              common.Address `gorm:"column:creator;type:BINARY(20)"`
+	Owner                common.Address `gorm:"column:owner;type:BINARY(20);index:idx_owner"`
 	PrimarySpAddress     common.Address `gorm:"column:primary_sp_address;type:BINARY(20)"`
-	OperatorAddress      common.Address `gorm:"column:operator_address;type:BINARY(20)"`
+	Operator             common.Address `gorm:"column:operator;type:BINARY(20)"`
 	SecondarySpAddresses pq.StringArray `gorm:"column:secondary_sp_addresses;type:MEDIUMTEXT"`
 	PayloadSize          uint64         `gorm:"column:payload_size"`
 	Visibility           string         `gorm:"column:visibility;type:VARCHAR(50)"`
@@ -26,12 +26,15 @@ type Object struct {
 	RedundancyType       string         `gorm:"column:redundancy_type;type:VARCHAR(50)"`
 	SourceType           string         `gorm:"column:source_type;type:VARCHAR(50)"`
 	CheckSums            pq.ByteaArray  `gorm:"column:checksums;type:text"`
+	DeleteAt             int64          `gorm:"column:delete_at"`
+	DeleteReason         string         `gorm:"column:delete_reason;type:varchar(256);"`
 
 	CreateAt     int64       `gorm:"column:create_at"`
 	CreateTxHash common.Hash `gorm:"column:create_tx_hash;type:BINARY(32);not null"`
 	CreateTime   int64       `gorm:"column:create_time"` // seconds
 	UpdateAt     int64       `gorm:"column:update_at"`
 	UpdateTxHash common.Hash `gorm:"column:update_tx_hash;type:BINARY(32);not null"`
+	SealedTxHash common.Hash `gorm:"column:sealed_tx_hash;type:BINARY(32)"`
 	UpdateTime   int64       `gorm:"column:update_time"` // seconds
 	Removed      bool        `gorm:"column:removed;default:false"`
 }

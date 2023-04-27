@@ -37,7 +37,7 @@ var actionTypeMap = map[permissiontypes.ActionType]int{
 	permissiontypes.ACTION_LIST_OBJECT:         8,
 	permissiontypes.ACTION_UPDATE_GROUP_MEMBER: 9,
 	permissiontypes.ACTION_DELETE_GROUP:        10,
-	//permissiontypes.ACTION_GROUP_MEMBER:        11,
+	permissiontypes.ACTION_UPDATE_OBJECT_INFO:  11,
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {

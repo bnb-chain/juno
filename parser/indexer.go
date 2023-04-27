@@ -64,7 +64,7 @@ type Indexer interface {
 	HandleMessage(block *tmctypes.ResultBlock, index int, msg sdk.Msg, tx *types.Tx)
 
 	// HandleEvent accepts the transaction and handles events contained inside the transaction.
-	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event)
+	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error
 
 	// ExportEpoch accepts a finalized block height and block hash then inside the database.
 	ExportEpoch(block *tmctypes.ResultBlock) error
@@ -173,15 +173,17 @@ func (i *Impl) HandleMessage(block *tmctypes.ResultBlock, index int, msg sdk.Msg
 }
 
 // HandleEvent accepts the transaction and handles events contained inside the transaction.
-func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) {
+func (i *Impl) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
 	for _, module := range i.Modules {
 		if eventModule, ok := module.(modules.EventModule); ok {
 			err := eventModule.HandleEvent(ctx, block, txHash, event)
 			if err != nil {
 				log.Errorw("failed to handle event", "module", module.Name(), "event", event, "error", err)
+				return err
 			}
 		}
 	}
+	return nil
 }
 
 // Process fetches a block for a given height and associated metadata and export it to a database.
@@ -340,7 +342,9 @@ func (i *Impl) ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, bl
 
 	for _, tx := range txsResults {
 		for _, event := range tx.Events {
-			i.HandleEvent(ctx, block, common.Hash{}, sdk.Event(event))
+			if err := i.HandleEvent(ctx, block, common.Hash{}, sdk.Event(event)); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -350,7 +354,9 @@ func (i *Impl) ExportEventsByTxs(ctx context.Context, block *tmctypes.ResultBloc
 	for _, tx := range txs {
 		txHash := common.HexToHash(tx.TxHash)
 		for _, event := range tx.Events {
-			i.HandleEvent(ctx, block, txHash, sdk.Event(event))
+			if err := i.HandleEvent(ctx, block, txHash, sdk.Event(event)); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

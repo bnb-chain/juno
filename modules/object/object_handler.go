@@ -22,6 +22,8 @@ var (
 	EventCopyObject         = proto.MessageName(&storagetypes.EventCopyObject{})
 	EventDeleteObject       = proto.MessageName(&storagetypes.EventDeleteObject{})
 	EventRejectSealObject   = proto.MessageName(&storagetypes.EventRejectSealObject{})
+	EventDiscontinueObject  = proto.MessageName(&storagetypes.EventDiscontinueObject{})
+	EventUpdateObjectInfo   = proto.MessageName(&storagetypes.EventUpdateObjectInfo{})
 )
 
 var objectEvents = map[string]bool{
@@ -31,6 +33,8 @@ var objectEvents = map[string]bool{
 	EventCopyObject:         true,
 	EventDeleteObject:       true,
 	EventRejectSealObject:   true,
+	EventDiscontinueObject:  true,
+	EventUpdateObjectInfo:   true,
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
@@ -87,6 +91,20 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 			return errors.New("reject seal object event assert error")
 		}
 		return m.handleRejectSealObject(ctx, block, txHash, rejectSealObject)
+	case EventDiscontinueObject:
+		discontinueObject, ok := typedEvent.(*storagetypes.EventDiscontinueObject)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventDiscontinueObject", "event", typedEvent)
+			return errors.New("discontinue object event assert error")
+		}
+		return m.handleEventDiscontinueObject(ctx, block, txHash, discontinueObject)
+	case EventUpdateObjectInfo:
+		updateObjectInfo, ok := typedEvent.(*storagetypes.EventUpdateObjectInfo)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventUpdateObjectInfo", "event", typedEvent)
+			return errors.New("update object event assert error")
+		}
+		return m.handleUpdateObjectInfo(ctx, block, txHash, updateObjectInfo)
 	}
 
 	return nil
@@ -98,8 +116,8 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 		BucketName:       createObject.BucketName,
 		ObjectID:         common.BigToHash(createObject.ObjectId.BigInt()),
 		ObjectName:       createObject.ObjectName,
-		CreatorAddress:   common.HexToAddress(createObject.CreatorAddress),
-		OwnerAddress:     common.HexToAddress(createObject.OwnerAddress),
+		Creator:          common.HexToAddress(createObject.Creator),
+		Owner:            common.HexToAddress(createObject.Owner),
 		PrimarySpAddress: common.HexToAddress(createObject.PrimarySpAddress),
 		PayloadSize:      createObject.PayloadSize,
 		Visibility:       createObject.Visibility.String(),
@@ -126,9 +144,10 @@ func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlo
 		BucketName:           sealObject.BucketName,
 		ObjectName:           sealObject.ObjectName,
 		ObjectID:             common.BigToHash(sealObject.ObjectId.BigInt()),
-		OperatorAddress:      common.HexToAddress(sealObject.OperatorAddress),
+		Operator:             common.HexToAddress(sealObject.Operator),
 		SecondarySpAddresses: sealObject.SecondarySpAddresses,
 		Status:               sealObject.Status.String(),
+		SealedTxHash:         txHash,
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
@@ -144,7 +163,7 @@ func (m *Module) handleCancelCreateObject(ctx context.Context, block *tmctypes.R
 		BucketName:       cancelCreateObject.BucketName,
 		ObjectName:       cancelCreateObject.ObjectName,
 		ObjectID:         common.BigToHash(cancelCreateObject.ObjectId.BigInt()),
-		OperatorAddress:  common.HexToAddress(cancelCreateObject.OperatorAddress),
+		Operator:         common.HexToAddress(cancelCreateObject.Operator),
 		PrimarySpAddress: common.HexToAddress(cancelCreateObject.PrimarySpAddress),
 		UpdateAt:         block.Block.Height,
 		UpdateTxHash:     txHash,
@@ -164,7 +183,7 @@ func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlo
 	destObject.ObjectID = common.BigToHash(copyObject.DstObjectId.BigInt())
 	destObject.ObjectName = copyObject.DstObjectName
 	destObject.BucketName = copyObject.DstBucketName
-	destObject.OperatorAddress = common.HexToAddress(copyObject.OperatorAddress)
+	destObject.Operator = common.HexToAddress(copyObject.Operator)
 	destObject.CreateAt = block.Block.Height
 	destObject.CreateTxHash = txHash
 	destObject.CreateTime = block.Block.Time.UTC().Unix()
@@ -197,15 +216,48 @@ func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultB
 // handle logic is set as removed, no need to set status
 func (m *Module) handleRejectSealObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, rejectSealObject *storagetypes.EventRejectSealObject) error {
 	object := &models.Object{
-		BucketName:      rejectSealObject.BucketName,
-		ObjectName:      rejectSealObject.ObjectName,
-		ObjectID:        common.BigToHash(rejectSealObject.ObjectId.BigInt()),
-		OperatorAddress: common.HexToAddress(rejectSealObject.OperatorAddress),
+		BucketName: rejectSealObject.BucketName,
+		ObjectName: rejectSealObject.ObjectName,
+		ObjectID:   common.BigToHash(rejectSealObject.ObjectId.BigInt()),
+		Operator:   common.HexToAddress(rejectSealObject.Operator),
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
 		UpdateTime:   block.Block.Time.UTC().Unix(),
 		Removed:      true,
+	}
+
+	return m.db.UpdateObject(ctx, object)
+}
+
+func (m *Module) handleEventDiscontinueObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, discontinueObject *storagetypes.EventDiscontinueObject) error {
+	object := &models.Object{
+		BucketName:   discontinueObject.BucketName,
+		ObjectID:     common.BigToHash(discontinueObject.ObjectId.BigInt()),
+		DeleteReason: discontinueObject.Reason,
+		DeleteAt:     discontinueObject.DeleteAt,
+		Status:       storagetypes.OBJECT_STATUS_DISCONTINUED.String(),
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
+		Removed:      false,
+	}
+
+	return m.db.UpdateObject(ctx, object)
+}
+
+func (m *Module) handleUpdateObjectInfo(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, updateObject *storagetypes.EventUpdateObjectInfo) error {
+	object := &models.Object{
+		BucketName: updateObject.BucketName,
+		ObjectID:   common.BigToHash(updateObject.ObjectId.BigInt()),
+		ObjectName: updateObject.ObjectName,
+		Operator:   common.HexToAddress(updateObject.Operator),
+		Visibility: updateObject.Visibility.String(),
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateObject(ctx, object)
