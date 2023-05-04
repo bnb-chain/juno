@@ -96,14 +96,6 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error
 
-	// SavePermission will be called to save each policy contained inside a event.
-	// An error is returned if the operation fails.
-	SavePermission(ctx context.Context, permission *models.Permission) error
-
-	// UpdatePermission will be called to update each policy
-	// An error is returned if the operation fails.
-	UpdatePermission(ctx context.Context, permission *models.Permission) error
-
 	// CreateGroup will be called to save each group contained inside an event.
 	// An error is returned if the operation fails.
 	CreateGroup(ctx context.Context, groupMembers []*models.Group) error
@@ -124,11 +116,13 @@ type Database interface {
 	// An error is returned if the operation fails.
 	UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error
 
-	// MultiSaveStatement will be called to save each statement contained inside a policy.
+	// SavePermissionAndStatementByTx will be called to save each policy contained inside a event by transaction.
 	// An error is returned if the operation fails.
-	MultiSaveStatement(ctx context.Context, statements []*models.Statements) error
+	SavePermissionAndStatementByTx(ctx context.Context, permission *models.Permission, statements []*models.Statements) error
 
-	RemoveStatements(ctx context.Context, policyID common.Hash) error
+	// UpdatePermissionAndStatementByTx will be called to update each policy by tx
+	// An error is returned if the operation fails.
+	UpdatePermissionAndStatementByTx(ctx context.Context, permission *models.Permission, policyID common.Hash) error
 
 	// Begin begins a transaction with any transaction options opts
 	Begin(ctx context.Context) *Impl
@@ -383,6 +377,14 @@ func (db *Impl) SaveCommitSignatures(ctx context.Context, signatures []*types.Co
 }
 
 func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "bucket_id"}},
+			UpdateAll: true,
+		}).Create(bucket).Error
+	}
+
 	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "bucket_id"}},
 		UpdateAll: true,
@@ -391,11 +393,24 @@ func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
 }
 
 func (db *Impl) UpdateBucket(ctx context.Context, bucket *models.Bucket) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.Bucket{}).TableName()).Where("bucket_id = ?", bucket.BucketID).Updates(bucket).Error
+	}
+
 	err := db.Db.WithContext(ctx).Table((&models.Bucket{}).TableName()).Where("bucket_id = ?", bucket.BucketID).Updates(bucket).Error
 	return err
 }
 
 func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "object_id"}},
+			UpdateAll: true,
+		}).Create(object).Error
+	}
+
 	err := db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "object_id"}},
 		UpdateAll: true,
@@ -404,6 +419,11 @@ func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
 }
 
 func (db *Impl) UpdateObject(ctx context.Context, object *models.Object) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.Object{}).TableName()).Where("object_id = ?", object.ObjectID).Updates(object).Error
+	}
+
 	err := db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Where("object_id = ?", object.ObjectID).Updates(object).Error
 	return err
 }
@@ -420,6 +440,14 @@ func (db *Impl) GetObject(ctx context.Context, objectId common.Hash) (*models.Ob
 }
 
 func (db *Impl) SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.StreamRecord{}).TableName()).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "account"}},
+			UpdateAll: true,
+		}).Create(streamRecord).Error
+	}
+
 	err := db.Db.WithContext(ctx).Table((&models.StreamRecord{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "account"}},
 		UpdateAll: true,
@@ -428,6 +456,14 @@ func (db *Impl) SaveStreamRecord(ctx context.Context, streamRecord *models.Strea
 }
 
 func (db *Impl) SavePaymentAccount(ctx context.Context, paymentAccount *models.PaymentAccount) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.PaymentAccount{}).TableName()).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "addr"}},
+			UpdateAll: true,
+		}).Create(paymentAccount).Error
+	}
+
 	err := db.Db.WithContext(ctx).Table((&models.PaymentAccount{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "addr"}},
 		UpdateAll: true,
@@ -436,6 +472,14 @@ func (db *Impl) SavePaymentAccount(ctx context.Context, paymentAccount *models.P
 }
 
 func (db *Impl) SaveEpoch(ctx context.Context, epoch *models.Epoch) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.Epoch{}).TableName()).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "one_row_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"block_height", "block_hash", "update_time"}),
+		}).Create(epoch).Error
+	}
+
 	err := db.Db.Table((&models.Epoch{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "one_row_id"}},
 		DoUpdates: clause.AssignmentColumns([]string{"block_height", "block_hash", "update_time"}),
@@ -453,18 +497,15 @@ func (db *Impl) GetEpoch(ctx context.Context) (*models.Epoch, error) {
 	return &epoch, nil
 }
 
-func (db *Impl) SavePermission(ctx context.Context, permission *models.Permission) error {
-	return db.Db.WithContext(ctx).Table((&models.Permission{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "principal_type"}, {Name: "principal_value"}, {Name: "resource_type"}, {Name: "resource_id"}},
-		UpdateAll: true,
-	}).Create(permission).Error
-}
-
-func (db *Impl) UpdatePermission(ctx context.Context, permission *models.Permission) error {
-	return db.Db.WithContext(ctx).Table((&models.Permission{}).TableName()).Where("policy_id = ?", permission.PolicyID).Updates(permission).Error
-}
-
 func (db *Impl) CreateGroup(ctx context.Context, groupMembers []*models.Group) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.Group{}).TableName()).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "group_id"}, {Name: "account_id"}},
+			UpdateAll: true,
+		}).Create(groupMembers).Error
+	}
+
 	err := db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "group_id"}, {Name: "account_id"}},
 		UpdateAll: true,
@@ -473,14 +514,32 @@ func (db *Impl) CreateGroup(ctx context.Context, groupMembers []*models.Group) e
 }
 
 func (db *Impl) UpdateGroup(ctx context.Context, group *models.Group) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.Group{}).TableName()).Where("group_id = ? AND account_id = ?", group.GroupID, group.AccountID).Updates(group).Error
+	}
+
 	return db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Where("group_id = ? AND account_id = ?", group.GroupID, group.AccountID).Updates(group).Error
 }
 
 func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.Group{}).TableName()).Where("group_id = ?", group.GroupID).Updates(group).Error
+	}
+
 	return db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Where("group_id = ?", group.GroupID).Updates(group).Error
 }
 
 func (db *Impl) CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.StorageProvider{}).TableName()).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "operator_address"}},
+			UpdateAll: true,
+		}).Create(storageProvider).Error
+	}
+
 	err := db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "operator_address"}},
 		UpdateAll: true,
@@ -489,15 +548,53 @@ func (db *Impl) CreateStorageProvider(ctx context.Context, storageProvider *mode
 }
 
 func (db *Impl) UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Table((&models.StorageProvider{}).TableName()).Where("operator_address = ? ", storageProvider.OperatorAddress).Updates(storageProvider).Error
+	}
+
 	return db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Where("operator_address = ? ", storageProvider.OperatorAddress).Updates(storageProvider).Error
 }
 
-func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Statements) error {
-	return db.Db.WithContext(ctx).Table((&models.Statements{}).TableName()).Create(statements).Error
+func (db *Impl) SavePermissionAndStatementByTx(ctx context.Context, permission *models.Permission, statements []*models.Statements) error {
+	f := func(tx *gorm.DB) error {
+		if err := tx.Table((&models.Permission{}).TableName()).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "principal_type"}, {Name: "principal_value"}, {Name: "resource_type"}, {Name: "resource_id"}},
+			UpdateAll: true,
+		}).Create(permission).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Table((&models.Statements{}).TableName()).Create(statements).Error; err != nil {
+			return err
+		}
+
+		return nil
+	}
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Transaction(f)
+	}
+	return db.Db.Transaction(f)
 }
 
-func (db *Impl) RemoveStatements(ctx context.Context, policyID common.Hash) error {
-	return db.Db.WithContext(ctx).Table((&models.Statements{}).TableName()).Where("policy_id = ?", policyID).Update("removed", true).Error
+func (db *Impl) UpdatePermissionAndStatementByTx(ctx context.Context, permission *models.Permission, policyID common.Hash) error {
+	f := func(tx *gorm.DB) error {
+		if err := tx.Table((&models.Permission{}).TableName()).Where("policy_id = ?", permission.PolicyID).Updates(permission).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Table((&models.Statements{}).TableName()).Where("policy_id = ?", policyID).Update("removed", true).Error; err != nil {
+			return err
+		}
+
+		return nil
+	}
+	txAny := ctx.Value("use_transaction")
+	if tx, ok := txAny.(*Impl); ok && tx != nil {
+		return tx.Db.Transaction(f)
+	}
+	return db.Db.Transaction(f)
 }
 
 func (db *Impl) Begin(ctx context.Context) *Impl {

@@ -3,7 +3,6 @@ package permission
 import (
 	"context"
 	"errors"
-
 	permissiontypes "github.com/bnb-chain/greenfield/x/permission/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gogo/protobuf/proto"
@@ -115,32 +114,25 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 	}
 
 	// begin transaction
-	tx := m.db.Begin(ctx)
-	err1 := tx.SavePermission(ctx, p)
-	err2 := tx.MultiSaveStatement(ctx, statements)
-	err3 := tx.Commit()
-	if err1 != nil || err2 != nil || err3 != nil {
-		tx.Rollback()
-		log.Errorw("failed to save policy", "permission err", err1, "statement err", err2, "commit err", err3)
+	err := m.db.SavePermissionAndStatementByTx(ctx, p, statements)
+	if err != nil {
+		log.Errorw("failed to save policy", "err", err)
 		return errors.New("save policy transaction failed")
 	}
+
 	return nil
 }
 
 func (m *Module) handleDeletePolicy(ctx context.Context, block *tmctypes.ResultBlock, event *permissiontypes.EventDeletePolicy) error {
 	// begin transaction
-	tx := m.db.Begin(ctx)
 	policyIDHash := common.BigToHash(event.PolicyId.BigInt())
-	err1 := tx.UpdatePermission(ctx, &models.Permission{
+	err := m.db.UpdatePermissionAndStatementByTx(ctx, &models.Permission{
 		PolicyID:        policyIDHash,
 		Removed:         true,
 		UpdateTimestamp: block.Block.Time.Unix(),
-	})
-	err2 := tx.RemoveStatements(ctx, policyIDHash)
-	err3 := tx.Commit()
-	if err1 != nil || err2 != nil || err3 != nil {
-		tx.Rollback()
-		log.Errorw("failed to delete policy", "permission err", err1, "statement err", err2, "commit err", err3)
+	}, policyIDHash)
+	if err != nil {
+		log.Errorw("failed to delete policy", "err", err)
 		return errors.New("delete policy transaction failed")
 	}
 	return nil

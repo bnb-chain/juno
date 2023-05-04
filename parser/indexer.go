@@ -67,7 +67,7 @@ type Indexer interface {
 	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error
 
 	// ExportEpoch accepts a finalized block height and block hash then inside the database.
-	ExportEpoch(block *tmctypes.ResultBlock) error
+	ExportEpoch(ctx context.Context, block *tmctypes.ResultBlock) error
 
 	// GetBlockRecordNum returns total number of blocks stored in database.
 	GetBlockRecordNum(ctx context.Context) int64
@@ -97,7 +97,7 @@ type Impl struct {
 	DB   database.Database
 }
 
-func (i *Impl) ExportEpoch(block *tmctypes.ResultBlock) error {
+func (i *Impl) ExportEpoch(ctx context.Context, block *tmctypes.ResultBlock) error {
 	return nil
 }
 
