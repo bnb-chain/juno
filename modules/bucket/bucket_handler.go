@@ -88,10 +88,10 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 		Status:           createBucket.Status.String(),
 
 		Removed:      false,
-		CreateAt:     block.Block.Height,
+		CreateHeight: block.Block.Height,
 		CreateTxHash: txHash,
 		CreateTime:   createBucket.CreateAt,
-		UpdateAt:     block.Block.Height,
+		UpdateHeight: block.Block.Height,
 		UpdateTxHash: txHash,
 		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
@@ -101,11 +101,12 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, deleteBucket *storagetypes.EventDeleteBucket) error {
 	bucket := &models.Bucket{
-		BucketID:     common.BigToHash(deleteBucket.BucketId.BigInt()),
-		BucketName:   deleteBucket.BucketName,
-		Operator:     common.HexToAddress(deleteBucket.Operator),
+		BucketID:   common.BigToHash(deleteBucket.BucketId.BigInt()),
+		BucketName: deleteBucket.BucketName,
+		Operator:   common.HexToAddress(deleteBucket.Operator),
+
 		Removed:      true,
-		UpdateAt:     block.Block.Height,
+		UpdateHeight: block.Block.Height,
 		UpdateTxHash: txHash,
 		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
@@ -115,15 +116,15 @@ func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleDiscontinueBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, discontinueBucket *storagetypes.EventDiscontinueBucket) error {
 	bucket := &models.Bucket{
-		BucketID:     common.BigToHash(discontinueBucket.BucketId.BigInt()),
-		BucketName:   discontinueBucket.BucketName,
-		DeleteReason: discontinueBucket.Reason,
-		DeleteAt:     discontinueBucket.DeleteAt,
-		Status:       storagetypes.BUCKET_STATUS_DISCONTINUED.String(),
+		BucketID:   common.BigToHash(discontinueBucket.BucketId.BigInt()),
+		BucketName: discontinueBucket.BucketName,
+		Status:     storagetypes.BUCKET_STATUS_DISCONTINUED.String(),
 
-		UpdateAt:     block.Block.Height,
+		UpdateHeight: block.Block.Height,
 		UpdateTxHash: txHash,
 		UpdateTime:   block.Block.Time.UTC().Unix(),
+		DeleteReason: discontinueBucket.Reason,
+		DeleteTime:   discontinueBucket.DeleteAt,
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)
@@ -136,9 +137,10 @@ func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.Res
 		ChargedReadQuota: updateBucket.ChargedReadQuotaAfter,
 		Operator:         common.HexToAddress(updateBucket.Operator),
 		PaymentAddress:   common.HexToAddress(updateBucket.PaymentAddressAfter),
-		UpdateAt:         block.Block.Height,
-		UpdateTxHash:     txHash,
-		UpdateTime:       block.Block.Time.UTC().Unix(),
+
+		UpdateHeight: block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)
