@@ -20,7 +20,7 @@ import (
 	"github.com/forbole/juno/v4/types"
 )
 
-const UseTx = "use_transaction"
+const UseTransaction = "use_transaction"
 
 // Database represents an abstract database that can be used to save data inside it
 type Database interface {
@@ -379,7 +379,7 @@ func (db *Impl) SaveCommitSignatures(ctx context.Context, signatures []*types.Co
 }
 
 func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.Bucket{}).TableName()).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "bucket_id"}},
@@ -395,7 +395,7 @@ func (db *Impl) SaveBucket(ctx context.Context, bucket *models.Bucket) error {
 }
 
 func (db *Impl) UpdateBucket(ctx context.Context, bucket *models.Bucket) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.Bucket{}).TableName()).Where("bucket_id = ?", bucket.BucketID).Updates(bucket).Error
 	}
@@ -405,7 +405,7 @@ func (db *Impl) UpdateBucket(ctx context.Context, bucket *models.Bucket) error {
 }
 
 func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "object_id"}},
@@ -421,7 +421,7 @@ func (db *Impl) SaveObject(ctx context.Context, object *models.Object) error {
 }
 
 func (db *Impl) UpdateObject(ctx context.Context, object *models.Object) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.Object{}).TableName()).Where("object_id = ?", object.ObjectID).Updates(object).Error
 	}
@@ -442,7 +442,7 @@ func (db *Impl) GetObject(ctx context.Context, objectId common.Hash) (*models.Ob
 }
 
 func (db *Impl) SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.StreamRecord{}).TableName()).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "account"}},
@@ -458,7 +458,7 @@ func (db *Impl) SaveStreamRecord(ctx context.Context, streamRecord *models.Strea
 }
 
 func (db *Impl) SavePaymentAccount(ctx context.Context, paymentAccount *models.PaymentAccount) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.PaymentAccount{}).TableName()).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "addr"}},
@@ -474,7 +474,7 @@ func (db *Impl) SavePaymentAccount(ctx context.Context, paymentAccount *models.P
 }
 
 func (db *Impl) SaveEpoch(ctx context.Context, epoch *models.Epoch) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.Epoch{}).TableName()).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "one_row_id"}},
@@ -500,7 +500,7 @@ func (db *Impl) GetEpoch(ctx context.Context) (*models.Epoch, error) {
 }
 
 func (db *Impl) CreateGroup(ctx context.Context, groupMembers []*models.Group) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.Group{}).TableName()).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "group_id"}, {Name: "account_id"}},
@@ -516,7 +516,7 @@ func (db *Impl) CreateGroup(ctx context.Context, groupMembers []*models.Group) e
 }
 
 func (db *Impl) UpdateGroup(ctx context.Context, group *models.Group) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.Group{}).TableName()).Where("group_id = ? AND account_id = ?", group.GroupID, group.AccountID).Updates(group).Error
 	}
@@ -525,7 +525,7 @@ func (db *Impl) UpdateGroup(ctx context.Context, group *models.Group) error {
 }
 
 func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.Group{}).TableName()).Where("group_id = ?", group.GroupID).Updates(group).Error
 	}
@@ -534,7 +534,7 @@ func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
 }
 
 func (db *Impl) CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.StorageProvider{}).TableName()).Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "operator_address"}},
@@ -550,7 +550,7 @@ func (db *Impl) CreateStorageProvider(ctx context.Context, storageProvider *mode
 }
 
 func (db *Impl) UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Table((&models.StorageProvider{}).TableName()).Where("operator_address = ? ", storageProvider.OperatorAddress).Updates(storageProvider).Error
 	}
@@ -573,7 +573,7 @@ func (db *Impl) SavePermissionAndStatementByTx(ctx context.Context, permission *
 
 		return nil
 	}
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Transaction(f)
 	}
@@ -592,7 +592,7 @@ func (db *Impl) UpdatePermissionAndStatementByTx(ctx context.Context, permission
 
 		return nil
 	}
-	txAny := ctx.Value(UseTx)
+	txAny := ctx.Value(common.UseTx(UseTransaction))
 	if tx, ok := txAny.(*Impl); ok && tx != nil {
 		return tx.Db.Transaction(f)
 	}
