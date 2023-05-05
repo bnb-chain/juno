@@ -205,7 +205,7 @@ func (db *Impl) PrepareTables(ctx context.Context, tables []schema.Tabler) error
 
 	for _, t := range tables {
 		if m.HasTable(t.TableName()) {
-			return nil
+			continue
 		}
 
 		if err := q.Table(t.TableName()).AutoMigrate(t); err != nil {
