@@ -15,6 +15,8 @@ type TomlConfig struct {
 	Database       databaseconfig.Config
 	Logging        loggingconfig.Config
 	RecreateTables bool
+	Backup         bool
+	DsnBackup      string
 }
 
 type NodeConfig struct {
