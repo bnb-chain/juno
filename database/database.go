@@ -500,6 +500,10 @@ func (db *Impl) RemoveStatements(ctx context.Context, policyID common.Hash) erro
 	return db.Db.WithContext(ctx).Table((&models.Statements{}).TableName()).Where("policy_id = ?", policyID).Update("removed", true).Error
 }
 
+func (db *Impl) GetMissingHeights(ctx context.Context, startHeight, endHeight uint64) []uint64 {
+	return nil
+}
+
 func (db *Impl) Begin(ctx context.Context) *Impl {
 	return &Impl{
 		Db: db.Db.WithContext(ctx).Begin(),
