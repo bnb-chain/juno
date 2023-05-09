@@ -20,6 +20,8 @@ import (
 	"github.com/forbole/juno/v4/types"
 )
 
+const UseTransaction = "use_transaction"
+
 // Database represents an abstract database that can be used to save data inside it
 type Database interface {
 	// PrepareTables create tables
@@ -96,14 +98,6 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error
 
-	// SavePermission will be called to save each policy contained inside a event.
-	// An error is returned if the operation fails.
-	SavePermission(ctx context.Context, permission *models.Permission) error
-
-	// UpdatePermission will be called to update each policy
-	// An error is returned if the operation fails.
-	UpdatePermission(ctx context.Context, permission *models.Permission) error
-
 	// CreateGroup will be called to save each group contained inside an event.
 	// An error is returned if the operation fails.
 	CreateGroup(ctx context.Context, groupMembers []*models.Group) error
@@ -124,11 +118,13 @@ type Database interface {
 	// An error is returned if the operation fails.
 	UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error
 
-	// MultiSaveStatement will be called to save each statement contained inside a policy.
+	// SavePermissionAndStatementByTx will be called to save each policy contained inside a event by transaction.
 	// An error is returned if the operation fails.
-	MultiSaveStatement(ctx context.Context, statements []*models.Statements) error
+	SavePermissionAndStatementByTx(ctx context.Context, permission *models.Permission, statements []*models.Statements) error
 
-	RemoveStatements(ctx context.Context, policyID common.Hash) error
+	// UpdatePermissionAndStatementByTx will be called to update each policy by tx
+	// An error is returned if the operation fails.
+	UpdatePermissionAndStatementByTx(ctx context.Context, permission *models.Permission, policyID common.Hash) error
 
 	// Begin begins a transaction with any transaction options opts
 	Begin(ctx context.Context) *Impl
@@ -502,6 +498,41 @@ func (db *Impl) RemoveStatements(ctx context.Context, policyID common.Hash) erro
 
 func (db *Impl) GetMissingHeights(ctx context.Context, startHeight, endHeight uint64) []uint64 {
 	return nil
+}
+
+func (db *Impl) SavePermissionAndStatementByTx(ctx context.Context, permission *models.Permission, statements []*models.Statements) error {
+	f := func(tx *gorm.DB) error {
+		if err := tx.Table((&models.Permission{}).TableName()).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "principal_type"}, {Name: "principal_value"}, {Name: "resource_type"}, {Name: "resource_id"}},
+			UpdateAll: true,
+		}).Create(permission).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Table((&models.Statements{}).TableName()).Create(statements).Error; err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return db.Db.Transaction(f)
+}
+
+func (db *Impl) UpdatePermissionAndStatementByTx(ctx context.Context, permission *models.Permission, policyID common.Hash) error {
+	f := func(tx *gorm.DB) error {
+		if err := tx.Table((&models.Permission{}).TableName()).Where("policy_id = ?", permission.PolicyID).Updates(permission).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Table((&models.Statements{}).TableName()).Where("policy_id = ?", policyID).Update("removed", true).Error; err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return db.Db.Transaction(f)
 }
 
 func (db *Impl) Begin(ctx context.Context) *Impl {
