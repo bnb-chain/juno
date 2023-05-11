@@ -8,7 +8,6 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -16,10 +15,10 @@ import (
 )
 
 var (
-	EventCreateBucket      = proto.MessageName(&storagetypes.EventCreateBucket{})
-	EventDeleteBucket      = proto.MessageName(&storagetypes.EventDeleteBucket{})
-	EventUpdateBucketInfo  = proto.MessageName(&storagetypes.EventUpdateBucketInfo{})
-	EventDiscontinueBucket = proto.MessageName(&storagetypes.EventDiscontinueBucket{})
+	EventCreateBucket      = "greenfield.storage.EventCreateBucket"
+	EventDeleteBucket      = "greenfield.storage.EventDeleteBucket"
+	EventUpdateBucketInfo  = "greenfield.storage.EventUpdateBucketInfo"
+	EventDiscontinueBucket = "greenfield.storage.EventDiscontinueBucket"
 )
 
 var bucketEvents = map[string]bool{

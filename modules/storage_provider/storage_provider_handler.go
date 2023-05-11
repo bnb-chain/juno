@@ -8,7 +8,6 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -16,9 +15,9 @@ import (
 )
 
 var (
-	EventCreateStorageProvider = proto.MessageName(&sptypes.EventCreateStorageProvider{})
-	EventEditStorageProvider   = proto.MessageName(&sptypes.EventEditStorageProvider{})
-	EventSpStoragePriceUpdate  = proto.MessageName(&sptypes.EventSpStoragePriceUpdate{})
+	EventCreateStorageProvider = "greenfield.sp.EventCreateStorageProvider"
+	EventEditStorageProvider   = "greenfield.sp.EventEditStorageProvider"
+	EventSpStoragePriceUpdate  = "greenfield.sp.EventSpStoragePriceUpdate"
 )
 
 var storageProviderEvents = map[string]bool{

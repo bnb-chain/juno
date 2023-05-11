@@ -8,7 +8,6 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -16,8 +15,8 @@ import (
 )
 
 var (
-	EventPutPolicy    = proto.MessageName(&permissiontypes.EventPutPolicy{})
-	EventDeletePolicy = proto.MessageName(&permissiontypes.EventDeletePolicy{})
+	EventPutPolicy    = "greenfield.permission.EventPutPolicy"
+	EventDeletePolicy = "greenfield.permission.EventDeletePolicy"
 )
 
 var policyEvents = map[string]bool{

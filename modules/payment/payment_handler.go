@@ -8,7 +8,6 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/forbole/juno/v4/common"
@@ -17,8 +16,8 @@ import (
 )
 
 var (
-	EventPaymentAccountUpdate = proto.MessageName(&paymenttypes.EventPaymentAccountUpdate{})
-	EventStreamRecordUpdate   = proto.MessageName(&paymenttypes.EventStreamRecordUpdate{})
+	EventPaymentAccountUpdate = "greenfield.payment.EventPaymentAccountUpdate"
+	EventStreamRecordUpdate   = "greenfield.payment.EventStreamRecordUpdate"
 )
 
 var paymentEvents = map[string]bool{
