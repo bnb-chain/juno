@@ -9,7 +9,6 @@ require (
 	github.com/cometbft/cometbft-db v0.7.0
 	github.com/cosmos/cosmos-sdk v0.47.0-rc2.0.20230220103612-f094a0c33410
 	github.com/go-co-op/gocron v1.13.0
-	github.com/gogo/protobuf v1.3.3
 	github.com/golangci/golangci-lint v1.50.1
 	github.com/gorilla/mux v1.8.0
 	github.com/jmoiron/sqlx v1.3.5
@@ -315,5 +314,5 @@ replace (
 	github.com/cometbft/cometbft => github.com/bnb-chain/greenfield-tendermint v0.0.0-20230505031757-bb05128f3794
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
 	github.com/cosmos/cosmos-sdk => github.com/bnb-chain/greenfield-cosmos-sdk v0.0.0-20230505075208-b889f9645259
-	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
+	github.com/gogo/protobuf => github.com/cosmos/gogoproto v1.4.8
 )
