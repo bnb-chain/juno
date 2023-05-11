@@ -52,14 +52,6 @@ type Database interface {
 	// An error is returned if the operation fails.
 	SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx *types.Tx) error
 
-	// HasValidator returns true if a given validator by consensus address exists.
-	// An error is returned if the operation fails.
-	HasValidator(ctx context.Context, address common.Address) (bool, error)
-
-	// SaveValidators stores a list of validators if they do not already exist.
-	// An error is returned if the operation fails.
-	SaveValidators(ctx context.Context, validators []*models.Validator) error
-
 	// SaveCommitSignatures stores a  slice of validator commit signatures.
 	// An error is returned if the operation fails.
 	SaveCommitSignatures(ctx context.Context, signatures []*types.CommitSig) error
@@ -337,26 +329,6 @@ func (db *Impl) SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx
 		Columns:   []clause.Column{{Name: "height"}, {Name: "tx_index"}},
 		UpdateAll: true,
 	}).Create(dbTx).Error
-	return err
-}
-
-// HasValidator implements database.Database
-func (db *Impl) HasValidator(ctx context.Context, addr common.Address) (bool, error) {
-	var res bool
-	stmt := `SELECT EXISTS(SELECT 1 FROM validators WHERE consensus_address = ?);`
-	err := db.Db.Raw(stmt, addr).WithContext(ctx).Take(&res).Error
-	return res, err
-}
-
-// SaveValidators implements database.Database
-func (db *Impl) SaveValidators(ctx context.Context, validators []*models.Validator) error {
-	if len(validators) == 0 {
-		return nil
-	}
-
-	err := db.Db.Table((&models.Validator{}).TableName()).WithContext(ctx).
-		Clauses(clause.OnConflict{DoNothing: true}).Save(validators).Error
-
 	return err
 }
 
