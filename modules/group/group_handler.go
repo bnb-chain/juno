@@ -8,6 +8,7 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/gogoproto/proto"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -15,10 +16,10 @@ import (
 )
 
 var (
-	EventCreateGroup       = "greenfield.storage.EventCreateGroup"
-	EventDeleteGroup       = "greenfield.storage.EventDeleteGroup"
-	EventLeaveGroup        = "greenfield.storage.EventLeaveGroup"
-	EventUpdateGroupMember = "greenfield.storage.EventUpdateGroupMember"
+	EventCreateGroup       = proto.MessageName(&storagetypes.EventCreateGroup{})
+	EventDeleteGroup       = proto.MessageName(&storagetypes.EventDeleteGroup{})
+	EventLeaveGroup        = proto.MessageName(&storagetypes.EventLeaveGroup{})
+	EventUpdateGroupMember = proto.MessageName(&storagetypes.EventUpdateGroupMember{})
 )
 
 var groupEvents = map[string]bool{

@@ -8,6 +8,7 @@ require (
 	github.com/cometbft/cometbft v0.37.1
 	github.com/cometbft/cometbft-db v0.7.0
 	github.com/cosmos/cosmos-sdk v0.47.0-rc2.0.20230220103612-f094a0c33410
+	github.com/cosmos/gogoproto v1.4.8
 	github.com/go-co-op/gocron v1.13.0
 	github.com/gogo/protobuf v1.3.3
 	github.com/golangci/golangci-lint v1.50.1
@@ -80,7 +81,6 @@ require (
 	github.com/cosmos/cosmos-proto v1.0.0-beta.3 // indirect
 	github.com/cosmos/go-bip39 v1.0.0 // indirect
 	github.com/cosmos/gogogateway v1.2.0 // indirect
-	github.com/cosmos/gogoproto v1.4.8 // indirect
 	github.com/cosmos/iavl v0.20.0 // indirect
 	github.com/cosmos/ledger-cosmos-go v0.13.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect

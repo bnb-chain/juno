@@ -8,7 +8,7 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
+	"github.com/cosmos/gogoproto/proto"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -16,14 +16,14 @@ import (
 )
 
 var (
-	EventCreateObject       = "greenfield.storage.EventCreateObject"
-	EventCancelCreateObject = "greenfield.storage.EventCancelCreateObject"
-	EventSealObject         = "greenfield.storage.EventSealObject"
-	EventCopyObject         = "greenfield.storage.EventCopyObject"
-	EventDeleteObject       = "greenfield.storage.EventDeleteObject"
-	EventRejectSealObject   = "greenfield.storage.EventRejectSealObject"
-	EventDiscontinueObject  = "greenfield.storage.EventDiscontinueObject"
-	EventUpdateObjectInfo   = "greenfield.storage.EventUpdateObjectInfo"
+	EventCreateObject       = proto.MessageName(&storagetypes.EventCreateObject{})
+	EventCancelCreateObject = proto.MessageName(&storagetypes.EventCancelCreateObject{})
+	EventSealObject         = proto.MessageName(&storagetypes.EventSealObject{})
+	EventCopyObject         = proto.MessageName(&storagetypes.EventCopyObject{})
+	EventDeleteObject       = proto.MessageName(&storagetypes.EventDeleteObject{})
+	EventRejectSealObject   = proto.MessageName(&storagetypes.EventRejectSealObject{})
+	EventDiscontinueObject  = proto.MessageName(&storagetypes.EventDiscontinueObject{})
+	EventUpdateObjectInfo   = proto.MessageName(&storagetypes.EventUpdateObjectInfo{})
 )
 
 var objectEvents = map[string]bool{
@@ -38,7 +38,6 @@ var objectEvents = map[string]bool{
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
-	proto.MessageName(&storagetypes.EventCreateGroup{})
 	if !objectEvents[event.Type] {
 		return nil
 	}
