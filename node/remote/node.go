@@ -74,11 +74,6 @@ func NewNode(cfg *Details, codec codec.Codec) (*Node, error) {
 		WithTxConfig(txConfig).
 		WithClient(rpcClient)
 
-	//grpcConnection, err := CreateGrpcConnection(cfg.GRPC)
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	return &Node{
 		ctx:   context.Background(),
 		codec: codec,
