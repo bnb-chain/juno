@@ -9,25 +9,23 @@ import (
 	"time"
 
 	"github.com/forbole/juno/v4/log"
-
-	tmtypes "github.com/tendermint/tendermint/types"
-
-	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"google.golang.org/grpc"
-
-	constypes "github.com/tendermint/tendermint/consensus/types"
-	tmjson "github.com/tendermint/tendermint/libs/json"
-
 	"github.com/forbole/juno/v4/node"
-
-	"github.com/cosmos/cosmos-sdk/types/tx"
-
 	"github.com/forbole/juno/v4/types"
 
+	gftypes "github.com/bnb-chain/greenfield/sdk/types"
+	sdkclient "github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/tx"
+	"github.com/cosmos/cosmos-sdk/types/tx/signing"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
+	constypes "github.com/tendermint/tendermint/consensus/types"
+	tmjson "github.com/tendermint/tendermint/libs/json"
 	httpclient "github.com/tendermint/tendermint/rpc/client/http"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	jsonrpcclient "github.com/tendermint/tendermint/rpc/jsonrpc/client"
+	tmtypes "github.com/tendermint/tendermint/types"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -68,18 +66,20 @@ func NewNode(cfg *Details, codec codec.Codec) (*Node, error) {
 		return nil, err
 	}
 
-	grpcConnection, err := CreateGrpcConnection(cfg.GRPC)
-	if err != nil {
-		return nil, err
-	}
+	cdc := gftypes.Codec()
+	txConfig := authtx.NewTxConfig(cdc, []signing.SignMode{signing.SignMode_SIGN_MODE_EIP_712})
+	clientCtx := sdkclient.Context{}.
+		WithCodec(cdc).
+		WithInterfaceRegistry(cdc.InterfaceRegistry()).
+		WithTxConfig(txConfig).
+		WithClient(rpcClient)
 
 	return &Node{
 		ctx:   context.Background(),
 		codec: codec,
 
 		client:          rpcClient,
-		txServiceClient: tx.NewServiceClient(grpcConnection),
-		grpcConnection:  grpcConnection,
+		txServiceClient: tx.NewServiceClient(clientCtx),
 	}, nil
 }
 
