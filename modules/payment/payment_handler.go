@@ -5,11 +5,11 @@ import (
 	"errors"
 
 	paymenttypes "github.com/bnb-chain/greenfield/x/payment/types"
+	abci "github.com/cometbft/cometbft/abci/types"
+	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
+	"github.com/cosmos/gogoproto/proto"
 	jsoniter "github.com/json-iterator/go"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"

@@ -8,24 +8,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/forbole/juno/v4/log"
-	"github.com/forbole/juno/v4/node"
-	"github.com/forbole/juno/v4/types"
-
 	gftypes "github.com/bnb-chain/greenfield/sdk/types"
+	constypes "github.com/cometbft/cometbft/consensus/types"
+	tmjson "github.com/cometbft/cometbft/libs/json"
+	httpclient "github.com/cometbft/cometbft/rpc/client/http"
+	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
+	jsonrpcclient "github.com/cometbft/cometbft/rpc/jsonrpc/client"
+	tmtypes "github.com/cometbft/cometbft/types"
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
-	constypes "github.com/tendermint/tendermint/consensus/types"
-	tmjson "github.com/tendermint/tendermint/libs/json"
-	httpclient "github.com/tendermint/tendermint/rpc/client/http"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-	jsonrpcclient "github.com/tendermint/tendermint/rpc/jsonrpc/client"
-	tmtypes "github.com/tendermint/tendermint/types"
 	"google.golang.org/grpc"
+
+	"github.com/forbole/juno/v4/log"
+	"github.com/forbole/juno/v4/node"
+	"github.com/forbole/juno/v4/types"
 )
 
 var (
