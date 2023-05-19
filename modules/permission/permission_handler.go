@@ -98,7 +98,7 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 			actionValue |= 1 << value
 		}
 		s := &models.Statements{
-			PolicyID:    common.HexToHash(policy.PolicyId.String()),
+			PolicyID:    common.BigToHash(policy.PolicyId.BigInt()),
 			Effect:      statement.Effect.String(),
 			ActionValue: actionValue,
 		}
