@@ -9,7 +9,7 @@ type Group struct {
 	GroupName  string         `gorm:"column:group_name;type:varchar(63)"`
 	SourceType string         `gorm:"column:source_type;type:varchar(63)"`
 
-	AccountID common.Hash    `gorm:"column:account_id;type:BINARY(32);unique_index:idx_account_group,priority:1"`
+	AccountID common.Address `gorm:"column:account_id;type:BINARY(32);unique_index:idx_account_group,priority:1"`
 	Operator  common.Address `gorm:"column:operator;type:BINARY(20)"`
 
 	CreateAt   int64 `gorm:"column:create_at"`
