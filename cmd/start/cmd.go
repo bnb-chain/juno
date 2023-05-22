@@ -103,7 +103,7 @@ func Parsing(ctx *parser.Context) error {
 	// off of the export queue.
 	for i, w := range workers {
 		log.Debugw("starting worker...", "number", i+1)
-		go w.Start()
+		go w.Start(context.Background())
 	}
 
 	// Listen for and trap any OS signal to gracefully shutdown and exit

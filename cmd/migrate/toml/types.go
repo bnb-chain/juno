@@ -15,6 +15,8 @@ type TomlConfig struct {
 	Database       databaseconfig.Config
 	Logging        loggingconfig.Config
 	RecreateTables bool
+	EnableDualDB   bool
+	DsnSwitched    string
 }
 
 type NodeConfig struct {

@@ -12,7 +12,7 @@ type Object struct {
 	BucketID   common.Hash `gorm:"column:bucket_id;type:BINARY(32);index:idx_bucket_id"`
 	BucketName string      `gorm:"column:bucket_name;type:varchar(64);uniqueIndex:idx_bucket_name_object_name,priority:1"`
 	ObjectID   common.Hash `gorm:"column:object_id;type:BINARY(32);uniqueIndex:idx_object_id"`
-	ObjectName string      `gorm:"column:object_name;type:varchar(1024);uniqueIndex:idx_bucket_name_object_name,priority:2"`
+	ObjectName string      `gorm:"column:object_name;type:varchar(1024);uniqueIndex:idx_bucket_name_object_name,length:512,priority:2"`
 
 	Creator              common.Address `gorm:"column:creator;type:BINARY(20)"`
 	Owner                common.Address `gorm:"column:owner;type:BINARY(20);index:idx_owner"`
