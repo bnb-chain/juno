@@ -86,7 +86,7 @@ func (m *Module) handleCreateGroup(ctx context.Context, block *tmctypes.ResultBl
 			GroupID:    common.BigToHash(createGroup.GroupId.BigInt()),
 			GroupName:  createGroup.GroupName,
 			SourceType: createGroup.SourceType.String(),
-			AccountID:  common.HexToHash(member),
+			AccountID:  common.HexToAddress(member),
 
 			CreateAt:   block.Block.Height,
 			CreateTime: block.Block.Time.UTC().Unix(),
@@ -118,7 +118,7 @@ func (m *Module) handleLeaveGroup(ctx context.Context, block *tmctypes.ResultBlo
 		Owner:     common.HexToAddress(leaveGroup.Owner),
 		GroupID:   common.BigToHash(leaveGroup.GroupId.BigInt()),
 		GroupName: leaveGroup.GroupName,
-		AccountID: common.HexToHash(leaveGroup.MemberAddress),
+		AccountID: common.HexToAddress(leaveGroup.MemberAddress),
 
 		UpdateAt:   block.Block.Height,
 		UpdateTime: block.Block.Time.UTC().Unix(),
@@ -140,7 +140,7 @@ func (m *Module) handleUpdateGroupMember(ctx context.Context, block *tmctypes.Re
 				Owner:     common.HexToAddress(updateGroupMember.Owner),
 				GroupID:   common.BigToHash(updateGroupMember.GroupId.BigInt()),
 				GroupName: updateGroupMember.GroupName,
-				AccountID: common.HexToHash(memberToAdd),
+				AccountID: common.HexToAddress(memberToAdd),
 				Operator:  common.HexToAddress(updateGroupMember.Operator),
 
 				CreateAt:   block.Block.Height,
@@ -159,7 +159,7 @@ func (m *Module) handleUpdateGroupMember(ctx context.Context, block *tmctypes.Re
 			Owner:     common.HexToAddress(updateGroupMember.Owner),
 			GroupID:   common.BigToHash(updateGroupMember.GroupId.BigInt()),
 			GroupName: updateGroupMember.GroupName,
-			AccountID: common.HexToHash(memberToDelete),
+			AccountID: common.HexToAddress(memberToDelete),
 			Operator:  common.HexToAddress(updateGroupMember.Operator),
 
 			UpdateAt:   block.Block.Height,
