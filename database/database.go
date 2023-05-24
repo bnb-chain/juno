@@ -130,12 +130,6 @@ type Database interface {
 
 	RemoveStatements(ctx context.Context, policyID common.Hash) error
 
-	// GetMasterDB returns current master DB
-	GetMasterDB(ctx context.Context) (*models.MasterDB, error)
-
-	// SetMasterDB set current master DB flag
-	SetMasterDB(ctx context.Context, masterDB *models.MasterDB) error
-
 	// Begin begins a transaction with any transaction options opts
 	Begin(ctx context.Context) *Impl
 
@@ -504,24 +498,6 @@ func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Sta
 
 func (db *Impl) RemoveStatements(ctx context.Context, policyID common.Hash) error {
 	return db.Db.WithContext(ctx).Table((&models.Statements{}).TableName()).Where("policy_id = ?", policyID).Update("removed", true).Error
-}
-
-func (db *Impl) GetMasterDB(ctx context.Context) (*models.MasterDB, error) {
-	var masterDB models.MasterDB
-
-	err := db.Db.Find(&masterDB).Error
-	if err != nil && !errIsNotFound(err) {
-		return nil, err
-	}
-	return &masterDB, nil
-}
-
-func (db *Impl) SetMasterDB(ctx context.Context, masterDB *models.MasterDB) error {
-	err := db.Db.Table((&models.MasterDB{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "one_row_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"is_master"}),
-	}).Create(masterDB).Error
-	return err
 }
 
 func (db *Impl) Begin(ctx context.Context) *Impl {

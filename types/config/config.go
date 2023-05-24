@@ -6,6 +6,7 @@ import (
 	databaseconfig "github.com/forbole/juno/v4/database/config"
 	loggingconfig "github.com/forbole/juno/v4/log/config"
 	nodeconfig "github.com/forbole/juno/v4/node/config"
+	"github.com/forbole/juno/v4/node/remote"
 	parserconfig "github.com/forbole/juno/v4/parser/config"
 )
 
@@ -80,4 +81,21 @@ func (cfg ChainConfig) IsModuleEnabled(moduleName string) bool {
 	}
 
 	return false
+}
+
+type TomlConfig struct {
+	Chain          ChainConfig
+	Node           NodeConfig
+	Parser         parserconfig.Config
+	Database       databaseconfig.Config
+	Logging        loggingconfig.Config
+	RecreateTables bool
+	EnableDualDB   bool
+	DsnSwitched    string
+}
+
+type NodeConfig struct {
+	Type string
+	RPC  *remote.RPCConfig
+	GRPC *remote.GRPCConfig
 }
