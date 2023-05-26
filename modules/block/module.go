@@ -61,3 +61,7 @@ func (m *Module) RecreateTables() error {
 		&models.Tx{},
 	})
 }
+
+func (m *Module) AutoMigrate() error {
+	return nil
+}

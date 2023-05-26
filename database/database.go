@@ -28,6 +28,9 @@ type Database interface {
 	// RecreateTables recreate tables when given table exists
 	RecreateTables(ctx context.Context, tables []schema.Tabler) error
 
+	// AutoMigrate Automatically migrate your schema, to keep your schema up to date.
+	AutoMigrate(ctx context.Context, tables []schema.Tabler) error
+
 	// HasBlock tells whether the database has already stored the block having the given height.
 	// An error is returned if the operation fails.
 	HasBlock(ctx context.Context, height uint64) (bool, error)
@@ -227,6 +230,17 @@ func (db *Impl) RecreateTables(ctx context.Context, tables []schema.Tabler) erro
 			}
 		}
 		if err := m.CreateTable(t); err != nil {
+			log.Errorw("create table failed", "table", t.TableName(), "err", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (db *Impl) AutoMigrate(ctx context.Context, tables []schema.Tabler) error {
+	m := db.Db.Migrator()
+	for _, t := range tables {
+		if err := m.AutoMigrate(t); err != nil {
 			log.Errorw("create table failed", "table", t.TableName(), "err", err)
 			return err
 		}

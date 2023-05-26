@@ -84,14 +84,13 @@ func (cfg ChainConfig) IsModuleEnabled(moduleName string) bool {
 }
 
 type TomlConfig struct {
-	Chain          ChainConfig
-	Node           NodeConfig
-	Parser         parserconfig.Config
-	Database       databaseconfig.Config
-	Logging        loggingconfig.Config
-	RecreateTables bool
-	EnableDualDB   bool
-	DsnSwitched    string
+	Chain        ChainConfig
+	Node         NodeConfig
+	Parser       parserconfig.Config
+	Database     databaseconfig.Config
+	Logging      loggingconfig.Config
+	EnableDualDB bool
+	DsnSwitched  string
 }
 
 type NodeConfig struct {

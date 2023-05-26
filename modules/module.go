@@ -42,6 +42,8 @@ type PrepareTablesModule interface {
 	PrepareTables() error
 	// RecreateTables will recreate table as table schema changes.
 	RecreateTables() error
+	// AutoMigrate will migrate your schema, to keep your schema up to date.
+	AutoMigrate() error
 }
 
 type AdditionalOperationsModule interface {

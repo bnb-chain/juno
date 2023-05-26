@@ -55,3 +55,8 @@ func (m *Module) RecreateTables() error {
 		&models.ValidatorStatus{},
 		&models.ValidatorSigningInfo{}})
 }
+
+// AutoMigrate implements
+func (m *Module) AutoMigrate() error {
+	return nil
+}
