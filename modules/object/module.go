@@ -41,7 +41,7 @@ func (m *Module) PrepareTables() error {
 	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.Object{}})
 }
 
-// RecreateTables implements
-func (m *Module) RecreateTables() error {
-	return m.db.RecreateTables(context.TODO(), []schema.Tabler{&models.Object{}})
+// AutoMigrate implements
+func (m *Module) AutoMigrate() error {
+	return m.db.AutoMigrate(context.TODO(), []schema.Tabler{&models.Object{}})
 }

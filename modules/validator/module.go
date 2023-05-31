@@ -44,14 +44,7 @@ func (m *Module) PrepareTables() error {
 		&models.ValidatorSigningInfo{}})
 }
 
-// RecreateTables implements
-func (m *Module) RecreateTables() error {
-	return m.db.RecreateTables(context.TODO(), []schema.Tabler{
-		&models.Validator{},
-		&models.ValidatorInfo{},
-		&models.ValidatorDescription{},
-		&models.ValidatorCommission{},
-		&models.ValidatorVotingPower{},
-		&models.ValidatorStatus{},
-		&models.ValidatorSigningInfo{}})
+// AutoMigrate implements
+func (m *Module) AutoMigrate() error {
+	return nil
 }

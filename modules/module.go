@@ -40,8 +40,8 @@ func (m Modules) FindByName(name string) (module Module, found bool) {
 type PrepareTablesModule interface {
 	// PrepareTables creates tables required by the module.
 	PrepareTables() error
-	// RecreateTables will recreate table as table schema changes.
-	RecreateTables() error
+	// AutoMigrate will migrate your schema, to keep your schema up to date.
+	AutoMigrate() error
 }
 
 type AdditionalOperationsModule interface {
