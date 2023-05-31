@@ -87,6 +87,7 @@ func (m *Module) handleCreateGroup(ctx context.Context, block *tmctypes.ResultBl
 			GroupName:  createGroup.GroupName,
 			SourceType: createGroup.SourceType.String(),
 			AccountID:  common.HexToAddress(member),
+			Extra:      createGroup.Extra,
 
 			CreateAt:   block.Block.Height,
 			CreateTime: block.Block.Time.UTC().Unix(),

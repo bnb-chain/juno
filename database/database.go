@@ -25,9 +25,6 @@ type Database interface {
 	// PrepareTables create tables
 	PrepareTables(ctx context.Context, tables []schema.Tabler) error
 
-	// RecreateTables recreate tables when given table exists
-	RecreateTables(ctx context.Context, tables []schema.Tabler) error
-
 	// AutoMigrate Automatically migrate your schema, to keep your schema up to date.
 	AutoMigrate(ctx context.Context, tables []schema.Tabler) error
 
@@ -212,28 +209,11 @@ func (db *Impl) PrepareTables(ctx context.Context, tables []schema.Tabler) error
 		}
 
 		if err := q.Table(t.TableName()).AutoMigrate(t); err != nil {
-			log.Errorw("create table failed", "table", t.TableName(), "err", err)
+			log.Errorw("migrate table failed", "table", t.TableName(), "err", err)
 			return err
 		}
 	}
 
-	return nil
-}
-
-func (db *Impl) RecreateTables(ctx context.Context, tables []schema.Tabler) error {
-	m := db.Db.Migrator()
-	for _, t := range tables {
-		if m.HasTable(t.TableName()) {
-			if err := m.DropTable(t.TableName()); err != nil {
-				log.Errorw("delete table failed", "table", t.TableName(), "err", err)
-				return err
-			}
-		}
-		if err := m.CreateTable(t); err != nil {
-			log.Errorw("create table failed", "table", t.TableName(), "err", err)
-			return err
-		}
-	}
 	return nil
 }
 
@@ -241,7 +221,7 @@ func (db *Impl) AutoMigrate(ctx context.Context, tables []schema.Tabler) error {
 	m := db.Db.Migrator()
 	for _, t := range tables {
 		if err := m.AutoMigrate(t); err != nil {
-			log.Errorw("create table failed", "table", t.TableName(), "err", err)
+			log.Errorw("migrate table failed", "table", t.TableName(), "err", err)
 			return err
 		}
 	}

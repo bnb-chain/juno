@@ -48,20 +48,6 @@ func (m *Module) PrepareTables() error {
 	})
 }
 
-// RecreateTables implements
-func (m *Module) RecreateTables() error {
-	return m.db.RecreateTables(context.TODO(), []schema.Tabler{
-		&models.Block{},
-		&models.Genesis{},
-		&models.AverageBlockTimeFromGenesis{},
-		&models.AverageBlockTimePerDay{},
-		&models.AverageBlockTimePerHour{},
-		&models.AverageBlockTimePerMinute{},
-
-		&models.Tx{},
-	})
-}
-
 func (m *Module) AutoMigrate() error {
 	return nil
 }
