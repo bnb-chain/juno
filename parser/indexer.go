@@ -33,19 +33,15 @@ type Indexer interface {
 
 	// ExportBlock accepts a finalized block and persists then inside the database.
 	// An error is returned if write fails.
-	ExportBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators) error
+	ExportBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, getTmcValidators modules.GetTmcValidators) error
 
 	// ExportTxs accepts a slice of transactions and persists then inside the database.
 	// An error is returned if write fails.
 	ExportTxs(block *tmctypes.ResultBlock, txs []*types.Tx) error
 
-	// ExportValidators accepts ResultValidators and persists validators inside the database.
-	// An error is returned if write fails.
-	ExportValidators(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) error
-
 	// ExportCommit accepts ResultValidators and persists validator commit signatures inside the database.
 	// An error is returned if write fails.
-	ExportCommit(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) error
+	ExportCommit(block *tmctypes.ResultBlock, getTmcValidators modules.GetTmcValidators) error
 
 	// ExportEvents accepts a slice of transactions and get events in order to save in database.
 	ExportEvents(ctx context.Context, block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults) error
@@ -54,7 +50,7 @@ type Indexer interface {
 	// in the order in which they have been registered.
 	HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[string]json.RawMessage) error
 
-	HandleBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators)
+	HandleBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, getTmcValidators modules.GetTmcValidators)
 
 	// HandleTx accepts the transaction and calls the tx handlers.
 	HandleTx(tx *types.Tx)
@@ -114,10 +110,10 @@ func (i *Impl) HandleGenesis(genesisDoc *tmtypes.GenesisDoc, appState map[string
 	return nil
 }
 
-func (i *Impl) HandleBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators) {
+func (i *Impl) HandleBlock(block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, getTmcValidators modules.GetTmcValidators) {
 	for _, module := range i.Modules {
 		if blockModule, ok := module.(modules.BlockModule); ok {
-			err := blockModule.HandleBlock(block, events, txs, vals)
+			err := blockModule.HandleBlock(block, events, txs, getTmcValidators)
 			if err != nil {
 				log.Errorw("error while handling block", "module", module.Name(), "height", block.Block.Height, "err", err)
 			}
@@ -231,7 +227,7 @@ func (i *Impl) Process(height uint64) error {
 // ExportBlock accepts a finalized block and persists then inside the database.
 // An error is returned if write fails.
 func (i *Impl) ExportBlock(
-	block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators,
+	block *tmctypes.ResultBlock, events *tmctypes.ResultBlockResults, txs []*types.Tx, getTmcValidators modules.GetTmcValidators,
 ) error {
 	// Save the block
 	err := i.DB.SaveBlock(i.Ctx, models.NewBlockFromTmBlock(block, SumGasTxs(txs)))
@@ -239,30 +235,7 @@ func (i *Impl) ExportBlock(
 		return fmt.Errorf("failed to persist block: %s", err)
 	}
 
-	i.HandleBlock(block, events, txs, vals)
-
-	return nil
-}
-
-func (i *Impl) ExportValidators(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) error {
-	var validators = make([]*models.Validator, len(vals.Validators))
-	for index, val := range vals.Validators {
-		consAddr := sdk.ConsAddress(val.Address).String()
-
-		validators[index] = models.NewValidator(common.HexToAddress(consAddr), models.BytesToPubkey(val.PubKey.Bytes()))
-	}
-
-	err := i.DB.SaveValidators(context.TODO(), validators)
-	if err != nil {
-		return fmt.Errorf("error while saving validators: %s", err)
-	}
-
-	// Make sure the proposer exists
-	proposerAddr := sdk.ConsAddress(block.Block.ProposerAddress)
-	val := FindValidatorByAddr(proposerAddr.String(), vals)
-	if val == nil {
-		return fmt.Errorf("failed to find validator by proposer address %s: %s", proposerAddr.String(), err)
-	}
+	i.HandleBlock(block, events, txs, getTmcValidators)
 
 	return nil
 }
@@ -270,7 +243,7 @@ func (i *Impl) ExportValidators(block *tmctypes.ResultBlock, vals *tmctypes.Resu
 // ExportCommit accepts a block commitment and a corresponding set of
 // validators for the commitment and persists them to the database. An error is
 // returned if any write fails or if there is any missed aggregated data.
-func (i *Impl) ExportCommit(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) error {
+func (i *Impl) ExportCommit(block *tmctypes.ResultBlock, getTmcValidators modules.GetTmcValidators) error {
 	commit := block.Block.LastCommit
 
 	var signatures []*types.CommitSig
@@ -281,6 +254,7 @@ func (i *Impl) ExportCommit(block *tmctypes.ResultBlock, vals *tmctypes.ResultVa
 		}
 
 		valAddr := sdk.ConsAddress(commitSig.ValidatorAddress)
+		vals, _ := getTmcValidators(block.Block.Height)
 		val := FindValidatorByAddr(valAddr.String(), vals)
 		if val == nil {
 			return fmt.Errorf("failed to find validator by commit validator address %s", valAddr.String())

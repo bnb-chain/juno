@@ -15,6 +15,8 @@ import (
 	"github.com/forbole/juno/v4/types"
 )
 
+type GetTmcValidators func(height int64) (*tmctypes.ResultValidators, error)
+
 // Module represents a generic module without any particular handling of data
 type Module interface {
 	// Name returns the module name
@@ -88,7 +90,7 @@ type BlockModule interface {
 	// For each transaction present inside the block, HandleTx will be called as well.
 	// NOTE. The returned error will be logged using the BlockError method. All other modules' handlers
 	// will still be called.
-	HandleBlock(block *tmctypes.ResultBlock, results *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators) error
+	HandleBlock(block *tmctypes.ResultBlock, results *tmctypes.ResultBlockResults, txs []*types.Tx, getTmcValidators GetTmcValidators) error
 }
 
 type TransactionModule interface {
