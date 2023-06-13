@@ -17,6 +17,8 @@ import (
 
 type GetTmcValidators func(height int64) (*tmctypes.ResultValidators, error)
 
+type GetLatestHeight func() (int64, error)
+
 // Module represents a generic module without any particular handling of data
 type Module interface {
 	// Name returns the module name
@@ -107,7 +109,7 @@ type MessageModule interface {
 	// are passed as well.
 	// NOTE. The returned error will be logged using the MsgError method. All other modules' handlers
 	// will still be called.
-	HandleMsg(block *tmctypes.ResultBlock, index int, msg sdk.Msg, tx *types.Tx) error
+	HandleMsg(block *tmctypes.ResultBlock, index int, msg sdk.Msg, tx *types.Tx, getLatestHeight GetLatestHeight) error
 }
 
 type AuthzMessageModule interface {
