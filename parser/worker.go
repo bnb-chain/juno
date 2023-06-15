@@ -119,6 +119,7 @@ func (w *Worker) ProcessIfNotExists(height uint64) error {
 // It returns an error if any export process fails.
 func (w *Worker) Process(height uint64) error {
 	log.Infow("processing block", "height", height)
+	timeStart := time.Now().Unix()
 
 	if height == 0 {
 		cfg := config.Cfg.Parser
@@ -134,7 +135,8 @@ func (w *Worker) Process(height uint64) error {
 	err := w.indexer.Process(height)
 
 	if err == nil {
-		log.Infow("processed block", "height", height)
+		timeEnd := time.Now().Unix()
+		log.Infow("processed block", "height", height, "time_used", timeEnd-timeStart)
 
 		totalBlocks := w.indexer.GetBlockRecordNum(context.TODO())
 		log.DBBlockCount.Set(float64(totalBlocks))
