@@ -80,7 +80,7 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 		BucketName:       createBucket.BucketName,
 		Owner:            common.HexToAddress(createBucket.Owner),
 		PaymentAddress:   common.HexToAddress(createBucket.PaymentAddress),
-		PrimarySpAddress: common.HexToAddress(createBucket.PrimarySpAddress),
+		PrimarySpId:      createBucket.PrimarySpId,
 		Operator:         common.HexToAddress(createBucket.Owner),
 		SourceType:       createBucket.SourceType.String(),
 		ChargedReadQuota: createBucket.ChargedReadQuota,
@@ -101,9 +101,12 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, deleteBucket *storagetypes.EventDeleteBucket) error {
 	bucket := &models.Bucket{
-		BucketID:     common.BigToHash(deleteBucket.BucketId.BigInt()),
-		BucketName:   deleteBucket.BucketName,
-		Operator:     common.HexToAddress(deleteBucket.Operator),
+		BucketID:    common.BigToHash(deleteBucket.BucketId.BigInt()),
+		BucketName:  deleteBucket.BucketName,
+		Operator:    common.HexToAddress(deleteBucket.Operator),
+		Owner:       common.HexToAddress(deleteBucket.Owner),
+		PrimarySpId: deleteBucket.PrimarySpId,
+
 		Removed:      true,
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
