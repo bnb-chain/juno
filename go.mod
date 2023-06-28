@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/aws/aws-sdk-go v1.42.25
-	github.com/bnb-chain/greenfield v0.2.2-0.20230620131739-1ed830ae2149
+	github.com/bnb-chain/greenfield v0.2.3-0.20230628024113-2609d081ee4d
 	github.com/cometbft/cometbft v0.37.1
 	github.com/cometbft/cometbft-db v0.7.0
 	github.com/cosmos/cosmos-sdk v0.47.2
