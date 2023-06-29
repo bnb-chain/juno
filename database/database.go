@@ -460,14 +460,14 @@ func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
 
 func (db *Impl) CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
 	err := db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "operator_address"}},
+		Columns:   []clause.Column{{Name: "sp_id"}},
 		UpdateAll: true,
 	}).Create(storageProvider).Error
 	return err
 }
 
 func (db *Impl) UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
-	return db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Where("operator_address = ? ", storageProvider.OperatorAddress).Updates(storageProvider).Error
+	return db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Where("sp_id = ? ", storageProvider.SpId).Updates(storageProvider).Error
 }
 
 func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Statements) error {

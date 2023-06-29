@@ -67,6 +67,7 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 
 func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, createStorageProvider *sptypes.EventCreateStorageProvider) error {
 	storageProvider := &models.StorageProvider{
+		SpId:            createStorageProvider.SpId,
 		OperatorAddress: common.HexToAddress(createStorageProvider.SpAddress),
 		FundingAddress:  common.HexToAddress(createStorageProvider.FundingAddress),
 		SealAddress:     common.HexToAddress(createStorageProvider.SealAddress),
@@ -93,6 +94,7 @@ func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctype
 
 func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, editStorageProvider *sptypes.EventEditStorageProvider) error {
 	storageProvider := &models.StorageProvider{
+		SpId:            editStorageProvider.SpId,
 		OperatorAddress: common.HexToAddress(editStorageProvider.SpAddress),
 		SealAddress:     common.HexToAddress(editStorageProvider.SealAddress),
 		ApprovalAddress: common.HexToAddress(editStorageProvider.ApprovalAddress),
@@ -114,11 +116,11 @@ func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.
 
 func (m *Module) handleSpStoragePriceUpdate(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, spStoragePriceUpdate *sptypes.EventSpStoragePriceUpdate) error {
 	storageProvider := &models.StorageProvider{
-		OperatorAddress: common.HexToAddress(spStoragePriceUpdate.SpAddress),
-		UpdateTimeSec:   spStoragePriceUpdate.UpdateTimeSec,
-		ReadPrice:       (*common.Big)(spStoragePriceUpdate.ReadPrice.BigInt()),
-		FreeReadQuota:   spStoragePriceUpdate.FreeReadQuota,
-		StorePrice:      (*common.Big)(spStoragePriceUpdate.StorePrice.BigInt()),
+		SpId:          spStoragePriceUpdate.SpId,
+		UpdateTimeSec: spStoragePriceUpdate.UpdateTimeSec,
+		ReadPrice:     (*common.Big)(spStoragePriceUpdate.ReadPrice.BigInt()),
+		FreeReadQuota: spStoragePriceUpdate.FreeReadQuota,
+		StorePrice:    (*common.Big)(spStoragePriceUpdate.StorePrice.BigInt()),
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
