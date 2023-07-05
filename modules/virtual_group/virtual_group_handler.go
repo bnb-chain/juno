@@ -3,14 +3,12 @@ package virtualgroup
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	vgtypes "github.com/bnb-chain/greenfield/x/virtualgroup/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
-	"github.com/lib/pq"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -129,16 +127,16 @@ func (m *Module) handleUpdateLocalVirtualGroup(ctx context.Context, block *tmcty
 
 func (m *Module) handleCreateGlobalVirtualGroup(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, createGlobalVirtualGroup *vgtypes.EventCreateGlobalVirtualGroup) error {
 
-	spIdArray := pq.StringArray{}
-	for _, val := range createGlobalVirtualGroup.SecondarySpIds {
-		spIdArray = append(spIdArray, fmt.Sprintf("%d", val))
-	}
+	//spIdArray := pq.StringArray{}
+	//for _, val := range createGlobalVirtualGroup.SecondarySpIds {
+	//	spIdArray = append(spIdArray, fmt.Sprintf("%d", val))
+	//}
 
 	gvgGroup := &models.GlobalVirtualGroup{
 		GlobalVirtualGroupId:  createGlobalVirtualGroup.Id,
 		FamilyId:              createGlobalVirtualGroup.FamilyId,
 		PrimarySpId:           createGlobalVirtualGroup.PrimarySpId,
-		SecondarySpIds:        spIdArray,
+		SecondarySpIds:        createGlobalVirtualGroup.SecondarySpIds,
 		StoredSize:            createGlobalVirtualGroup.StoredSize,
 		VirtualPaymentAddress: common.HexToAddress(createGlobalVirtualGroup.VirtualPaymentAddress),
 		TotalDeposit:          (*common.Big)(createGlobalVirtualGroup.TotalDeposit.BigInt()),
