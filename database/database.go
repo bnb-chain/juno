@@ -443,11 +443,11 @@ func (db *Impl) UpdatePermission(ctx context.Context, permission *models.Permiss
 }
 
 func (db *Impl) CreateGroup(ctx context.Context, groupMembers []*models.Group) error {
-	err := db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Clauses(clause.OnConflict{
+
+	return db.Db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "group_id"}, {Name: "account_id"}},
 		UpdateAll: true,
-	}).Create(groupMembers).Error
-	return err
+	}).CreateInBatches(groupMembers, 100).Error
 }
 
 func (db *Impl) UpdateGroup(ctx context.Context, group *models.Group) error {
@@ -471,7 +471,9 @@ func (db *Impl) UpdateStorageProvider(ctx context.Context, storageProvider *mode
 }
 
 func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Statements) error {
-	return db.Db.WithContext(ctx).Table((&models.Statements{}).TableName()).Create(statements).Error
+	return db.Db.WithContext(ctx).Clauses(clause.OnConflict{
+		UpdateAll: true,
+	}).CreateInBatches(statements, 100).Error
 }
 
 func (db *Impl) RemoveStatements(ctx context.Context, policyID common.Hash) error {
