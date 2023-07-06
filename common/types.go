@@ -462,3 +462,9 @@ func (i Big) Value() (driver.Value, error) {
 func (i *Big) Raw() *big.Int {
 	return (*big.Int)(i)
 }
+
+type UseTx string
+
+func (c UseTx) String() string {
+	return string(c)
+}
