@@ -138,7 +138,7 @@ func (i *Impl) HandleMessage(block *tmctypes.ResultBlock, index int, msg sdk.Msg
 	// Allow modules to handle the message
 	for _, module := range i.Modules {
 		if messageModule, ok := module.(modules.MessageModule); ok {
-			err := messageModule.HandleMsg(block, index, msg, tx)
+			err := messageModule.HandleMsg(block, index, msg, tx, i.Node.LatestHeight)
 			if err != nil {
 				log.Errorw("error while handling message", "module", module, "height", tx.Height,
 					"txHash", tx.TxHash, "msg", proto.MessageName(msg), "err", err)
