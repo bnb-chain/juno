@@ -21,13 +21,13 @@ var (
 	EventStreamRecordUpdate   = proto.MessageName(&paymenttypes.EventStreamRecordUpdate{})
 )
 
-var paymentEvents = map[string]bool{
+var PaymentEvents = map[string]bool{
 	EventPaymentAccountUpdate: true,
 	EventStreamRecordUpdate:   true,
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
-	if !paymentEvents[event.Type] {
+	if !PaymentEvents[event.Type] {
 		return nil
 	}
 

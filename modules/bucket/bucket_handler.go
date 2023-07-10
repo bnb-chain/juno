@@ -22,7 +22,7 @@ var (
 	EventDiscontinueBucket = proto.MessageName(&storagetypes.EventDiscontinueBucket{})
 )
 
-var bucketEvents = map[string]bool{
+var BucketEvents = map[string]bool{
 	EventCreateBucket:      true,
 	EventDeleteBucket:      true,
 	EventUpdateBucketInfo:  true,
@@ -30,7 +30,7 @@ var bucketEvents = map[string]bool{
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
-	if !bucketEvents[event.Type] {
+	if !BucketEvents[event.Type] {
 		return nil
 	}
 

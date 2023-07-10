@@ -21,14 +21,14 @@ var (
 	EventSpStoragePriceUpdate  = proto.MessageName(&sptypes.EventSpStoragePriceUpdate{})
 )
 
-var storageProviderEvents = map[string]bool{
+var StorageProviderEvents = map[string]bool{
 	EventCreateStorageProvider: true,
 	EventEditStorageProvider:   true,
 	EventSpStoragePriceUpdate:  true,
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
-	if !storageProviderEvents[event.Type] {
+	if !StorageProviderEvents[event.Type] {
 		return nil
 	}
 
