@@ -136,6 +136,7 @@ func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.Res
 		ChargedReadQuota: updateBucket.ChargedReadQuotaAfter,
 		Operator:         common.HexToAddress(updateBucket.Operator),
 		PaymentAddress:   common.HexToAddress(updateBucket.PaymentAddressAfter),
+		Visibility:       updateBucket.Visibility.String(),
 		UpdateAt:         block.Block.Height,
 		UpdateTxHash:     txHash,
 		UpdateTime:       block.Block.Time.UTC().Unix(),
