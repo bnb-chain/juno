@@ -8,18 +8,18 @@ import (
 	"unsafe"
 
 	"github.com/bnb-chain/greenfield/app/params"
+	db "github.com/cometbft/cometbft-db"
+	cfg "github.com/cometbft/cometbft/config"
+	"github.com/cometbft/cometbft/libs/log"
+	tmnode "github.com/cometbft/cometbft/node"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	tmstore "github.com/cometbft/cometbft/store"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	storesdk "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/forbole/juno/v4/node"
 	"github.com/spf13/viper"
-	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/libs/log"
-	tmnode "github.com/tendermint/tendermint/node"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-	tmstore "github.com/tendermint/tendermint/store"
-	db "github.com/tendermint/tm-db"
 )
 
 var (

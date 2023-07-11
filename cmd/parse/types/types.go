@@ -3,7 +3,6 @@ package types
 import (
 	"github.com/bnb-chain/greenfield/app"
 
-	tomlconfig "github.com/forbole/juno/v4/cmd/migrate/toml"
 	"github.com/forbole/juno/v4/database"
 	"github.com/forbole/juno/v4/database/builder"
 	"github.com/forbole/juno/v4/modules/registrar"
@@ -18,7 +17,7 @@ type Config struct {
 	setupCfg              SdkConfigSetup
 	buildDb               database.Builder
 	fileType              string
-	tomlConfig            *tomlconfig.TomlConfig
+	tomlConfig            *config.TomlConfig
 }
 
 // NewConfig allows to build a new Config instance
@@ -53,7 +52,7 @@ func (cfg *Config) WithConfigParser(p config.Parser) *Config {
 }
 
 // WithTomlConfig sets the tomlConfig
-func (cfg *Config) WithTomlConfig(tomlConfig *tomlconfig.TomlConfig) *Config {
+func (cfg *Config) WithTomlConfig(tomlConfig *config.TomlConfig) *Config {
 	cfg.tomlConfig = tomlConfig
 	return cfg
 }

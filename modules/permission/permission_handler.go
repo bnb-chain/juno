@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	permissiontypes "github.com/bnb-chain/greenfield/x/permission/types"
+	abci "github.com/cometbft/cometbft/abci/types"
+	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/cosmos/gogoproto/proto"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -37,7 +37,7 @@ var actionTypeMap = map[permissiontypes.ActionType]int{
 	permissiontypes.ACTION_LIST_OBJECT:         8,
 	permissiontypes.ACTION_UPDATE_GROUP_MEMBER: 9,
 	permissiontypes.ACTION_DELETE_GROUP:        10,
-	//permissiontypes.ACTION_GROUP_MEMBER:        11,
+	permissiontypes.ACTION_UPDATE_OBJECT_INFO:  11,
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
@@ -98,7 +98,7 @@ func (m *Module) handlePutPolicy(ctx context.Context, block *tmctypes.ResultBloc
 			actionValue |= 1 << value
 		}
 		s := &models.Statements{
-			PolicyID:    common.HexToHash(policy.PolicyId.String()),
+			PolicyID:    common.BigToHash(policy.PolicyId.BigInt()),
 			Effect:      statement.Effect.String(),
 			ActionValue: actionValue,
 		}

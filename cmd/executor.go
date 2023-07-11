@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/cometbft/cometbft/libs/cli"
 	initcmd "github.com/forbole/juno/v4/cmd/init"
 	migratecmd "github.com/forbole/juno/v4/cmd/migrate"
 	parsecmd "github.com/forbole/juno/v4/cmd/parse"
@@ -12,7 +13,6 @@ import (
 	"github.com/forbole/juno/v4/types"
 	"github.com/forbole/juno/v4/types/config"
 	"github.com/spf13/cobra"
-	"github.com/tendermint/tendermint/libs/cli"
 )
 
 var (

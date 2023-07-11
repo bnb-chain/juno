@@ -1,4 +1,4 @@
-package payment
+package storageprovider
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ModuleName = "payment"
+	ModuleName = "storage_provider"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 	_ modules.PrepareTablesModule = &Module{}
 )
 
-// Module represents the payment module
+// Module represents the storage provider module
 type Module struct {
 	db database.Database
 }
@@ -38,10 +38,10 @@ func (m *Module) Name() string {
 
 // PrepareTables implements
 func (m *Module) PrepareTables() error {
-	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.StreamRecord{}, &models.PaymentAccount{}})
+	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.StorageProvider{}})
 }
 
 // AutoMigrate implements
 func (m *Module) AutoMigrate() error {
-	return m.db.AutoMigrate(context.TODO(), []schema.Tabler{&models.PaymentAccount{}})
+	return m.db.AutoMigrate(context.TODO(), []schema.Tabler{&models.StorageProvider{}})
 }

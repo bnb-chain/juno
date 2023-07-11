@@ -25,8 +25,8 @@ type Database interface {
 	// PrepareTables create tables
 	PrepareTables(ctx context.Context, tables []schema.Tabler) error
 
-	// RecreateTables recreate tables when given table exists
-	RecreateTables(ctx context.Context, tables []schema.Tabler) error
+	// AutoMigrate Automatically migrate your schema, to keep your schema up to date.
+	AutoMigrate(ctx context.Context, tables []schema.Tabler) error
 
 	// HasBlock tells whether the database has already stored the block having the given height.
 	// An error is returned if the operation fails.
@@ -51,14 +51,6 @@ type Database interface {
 	// SaveTx will be called to save each transaction contained inside a block.
 	// An error is returned if the operation fails.
 	SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx *types.Tx) error
-
-	// HasValidator returns true if a given validator by consensus address exists.
-	// An error is returned if the operation fails.
-	HasValidator(ctx context.Context, address common.Address) (bool, error)
-
-	// SaveValidators stores a list of validators if they do not already exist.
-	// An error is returned if the operation fails.
-	SaveValidators(ctx context.Context, validators []*models.Validator) error
 
 	// SaveCommitSignatures stores a  slice of validator commit signatures.
 	// An error is returned if the operation fails.
@@ -115,6 +107,14 @@ type Database interface {
 	// DeleteGroup will be called to delete each group
 	// An error is returned if the operation fails.
 	DeleteGroup(ctx context.Context, group *models.Group) error
+
+	// CreateStorageProvider will be called to save each sp contained inside an event.
+	// An error is returned if the operation fails.
+	CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error
+
+	// UpdateStorageProvider will be called to update each sp
+	// An error is returned if the operation fails.
+	UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error
 
 	// MultiSaveStatement will be called to save each statement contained inside a policy.
 	// An error is returned if the operation fails.
@@ -201,7 +201,7 @@ func (db *Impl) PrepareTables(ctx context.Context, tables []schema.Tabler) error
 		}
 
 		if err := q.Table(t.TableName()).AutoMigrate(t); err != nil {
-			log.Errorw("create table failed", "table", t.TableName(), "err", err)
+			log.Errorw("migrate table failed", "table", t.TableName(), "err", err)
 			return err
 		}
 	}
@@ -209,17 +209,11 @@ func (db *Impl) PrepareTables(ctx context.Context, tables []schema.Tabler) error
 	return nil
 }
 
-func (db *Impl) RecreateTables(ctx context.Context, tables []schema.Tabler) error {
+func (db *Impl) AutoMigrate(ctx context.Context, tables []schema.Tabler) error {
 	m := db.Db.Migrator()
 	for _, t := range tables {
-		if m.HasTable(t.TableName()) {
-			if err := m.DropTable(t.TableName()); err != nil {
-				log.Errorw("delete table failed", "table", t.TableName(), "err", err)
-				return err
-			}
-		}
-		if err := m.CreateTable(t); err != nil {
-			log.Errorw("create table failed", "table", t.TableName(), "err", err)
+		if err := m.AutoMigrate(t); err != nil {
+			log.Errorw("migrate table failed", "table", t.TableName(), "err", err)
 			return err
 		}
 	}
@@ -329,26 +323,6 @@ func (db *Impl) SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx
 		Columns:   []clause.Column{{Name: "height"}, {Name: "tx_index"}},
 		UpdateAll: true,
 	}).Create(dbTx).Error
-	return err
-}
-
-// HasValidator implements database.Database
-func (db *Impl) HasValidator(ctx context.Context, addr common.Address) (bool, error) {
-	var res bool
-	stmt := `SELECT EXISTS(SELECT 1 FROM validators WHERE consensus_address = ?);`
-	err := db.Db.Raw(stmt, addr).WithContext(ctx).Take(&res).Error
-	return res, err
-}
-
-// SaveValidators implements database.Database
-func (db *Impl) SaveValidators(ctx context.Context, validators []*models.Validator) error {
-	if len(validators) == 0 {
-		return nil
-	}
-
-	err := db.Db.Table((&models.Validator{}).TableName()).WithContext(ctx).
-		Clauses(clause.OnConflict{DoNothing: true}).Save(validators).Error
-
 	return err
 }
 
@@ -470,6 +444,18 @@ func (db *Impl) UpdateGroup(ctx context.Context, group *models.Group) error {
 
 func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
 	return db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Where("group_id = ?", group.GroupID).Updates(group).Error
+}
+
+func (db *Impl) CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
+	err := db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "operator_address"}},
+		UpdateAll: true,
+	}).Create(storageProvider).Error
+	return err
+}
+
+func (db *Impl) UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
+	return db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Where("operator_address = ? ", storageProvider.OperatorAddress).Updates(storageProvider).Error
 }
 
 func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Statements) error {
