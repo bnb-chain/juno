@@ -9,7 +9,6 @@ import (
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
-	jsoniter "github.com/json-iterator/go"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -71,22 +70,16 @@ func (m *Module) handlePaymentAccountUpdate(ctx context.Context, block *tmctypes
 
 func (m *Module) handleEventStreamRecordUpdate(ctx context.Context, streamRecordUpdate *paymenttypes.EventStreamRecordUpdate) error {
 	streamRecord := &models.StreamRecord{
-		Account:         common.HexToAddress(streamRecordUpdate.Account),
-		CrudTimestamp:   streamRecordUpdate.CrudTimestamp,
-		NetflowRate:     (*common.Big)(streamRecordUpdate.NetflowRate.BigInt()),
-		StaticBalance:   (*common.Big)(streamRecordUpdate.StaticBalance.BigInt()),
-		BufferBalance:   (*common.Big)(streamRecordUpdate.BufferBalance.BigInt()),
-		LockBalance:     (*common.Big)(streamRecordUpdate.LockBalance.BigInt()),
-		Status:          streamRecordUpdate.Status.String(),
-		SettleTimestamp: streamRecordUpdate.SettleTimestamp,
+		Account:           common.HexToAddress(streamRecordUpdate.Account),
+		CrudTimestamp:     streamRecordUpdate.CrudTimestamp,
+		NetflowRate:       (*common.Big)(streamRecordUpdate.NetflowRate.BigInt()),
+		FrozenNetflowRate: (*common.Big)(streamRecordUpdate.FrozenNetflowRate.BigInt()),
+		StaticBalance:     (*common.Big)(streamRecordUpdate.StaticBalance.BigInt()),
+		BufferBalance:     (*common.Big)(streamRecordUpdate.BufferBalance.BigInt()),
+		LockBalance:       (*common.Big)(streamRecordUpdate.LockBalance.BigInt()),
+		Status:            streamRecordUpdate.Status.String(),
+		SettleTimestamp:   streamRecordUpdate.SettleTimestamp,
 	}
-
-	outflows, err := jsoniter.Marshal(streamRecordUpdate.OutFlows)
-	if err != nil {
-		return errors.New("marshal stream record outflows failed")
-	}
-
-	streamRecord.OutFlows = outflows
 
 	return m.db.SaveStreamRecord(ctx, streamRecord)
 }

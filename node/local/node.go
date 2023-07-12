@@ -141,6 +141,7 @@ func NewNode(config *Details, txConfig client.TxConfig, codec codec.Codec) (*Nod
 		stateStore,
 		logger.With("module", "state"),
 		proxyApp.Consensus(),
+		proxyApp.Prefetch(),
 		nil,
 		evidencePool,
 		sm.BlockExecutorWithMetrics(smMetrics),
