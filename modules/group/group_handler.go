@@ -22,7 +22,7 @@ var (
 	EventUpdateGroupMember = proto.MessageName(&storagetypes.EventUpdateGroupMember{})
 )
 
-var groupEvents = map[string]bool{
+var GroupEvents = map[string]bool{
 	EventCreateGroup:       true,
 	EventDeleteGroup:       true,
 	EventLeaveGroup:        true,
@@ -30,7 +30,7 @@ var groupEvents = map[string]bool{
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
-	if !groupEvents[event.Type] {
+	if !GroupEvents[event.Type] {
 		return nil
 	}
 

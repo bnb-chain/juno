@@ -1,4 +1,4 @@
-package payment
+package virtualgroup
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ModuleName = "payment"
+	ModuleName = "virtual_group"
 )
 
 var (
@@ -38,10 +38,10 @@ func (m *Module) Name() string {
 
 // PrepareTables implements
 func (m *Module) PrepareTables() error {
-	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.StreamRecord{}, &models.PaymentAccount{}})
+	return m.db.PrepareTables(context.TODO(), []schema.Tabler{&models.GlobalVirtualGroup{}, &models.LocalVirtualGroup{}, &models.GlobalVirtualGroupFamily{}})
 }
 
 // AutoMigrate implements
 func (m *Module) AutoMigrate() error {
-	return m.db.AutoMigrate(context.TODO(), []schema.Tabler{&models.StreamRecord{}, &models.PaymentAccount{}})
+	return m.db.AutoMigrate(context.TODO(), []schema.Tabler{&models.GlobalVirtualGroup{}, &models.LocalVirtualGroup{}, &models.GlobalVirtualGroupFamily{}})
 }
