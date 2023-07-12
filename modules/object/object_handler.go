@@ -26,7 +26,7 @@ var (
 	EventUpdateObjectInfo   = proto.MessageName(&storagetypes.EventUpdateObjectInfo{})
 )
 
-var objectEvents = map[string]bool{
+var ObjectEvents = map[string]bool{
 	EventCreateObject:       true,
 	EventCancelCreateObject: true,
 	EventSealObject:         true,
@@ -38,7 +38,7 @@ var objectEvents = map[string]bool{
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
-	if !objectEvents[event.Type] {
+	if !ObjectEvents[event.Type] {
 		return nil
 	}
 
