@@ -40,6 +40,10 @@ var actionTypeMap = map[permissiontypes.ActionType]int{
 	permissiontypes.ACTION_UPDATE_OBJECT_INFO:  11,
 }
 
+func (m *Module) ExtractEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) (interface{}, error) {
+	return nil, nil
+}
+
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
 	if !PolicyEvents[event.Type] {
 		return nil

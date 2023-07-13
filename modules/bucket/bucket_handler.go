@@ -33,6 +33,10 @@ var BucketEvents = map[string]bool{
 	EventCompleteMigrationBucket: true,
 }
 
+func (m *Module) ExtractEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) (interface{}, error) {
+	return nil, nil
+}
+
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
 	if !BucketEvents[event.Type] {
 		return nil

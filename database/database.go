@@ -67,14 +67,17 @@ type Database interface {
 	// SaveObject will be called to save each object contained inside a block.
 	// An error is returned if the operation fails.
 	SaveObject(ctx context.Context, object *models.Object) error
+	BatchSaveObject(ctx context.Context, object []*models.Object) error
 
 	// UpdateObject will be called to update each object contained inside a block.
 	// An error is returned if the operation fails.
 	UpdateObject(ctx context.Context, object *models.Object) error
+	BatchUpdateObject(ctx context.Context, value map[string]interface{}, objects []*models.Object) error
 
 	// GetObject returns an object model with given objectId.
 	// It should return only one record
 	GetObject(ctx context.Context, objectId common.Hash) (*models.Object, error)
+	GetObjectList(ctx context.Context, objectIds []common.Hash) ([]*models.Object, error)
 
 	SaveEpoch(ctx context.Context, epoch *models.Epoch) error
 
@@ -83,10 +86,12 @@ type Database interface {
 	// SavePaymentAccount will be called to save PaymentAccount.
 	// An error is returned if the operation fails.
 	SavePaymentAccount(ctx context.Context, paymentAccount *models.PaymentAccount) error
+	BatchSavePaymentAccount(ctx context.Context, paymentAccount []*models.PaymentAccount) error
 
 	// SaveStreamRecord will be called to save SaveStreamRecord.
 	// An error is returned if the operation fails.
 	SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error
+	BatchSaveStreamRecord(ctx context.Context, streamRecord []*models.StreamRecord) error
 
 	// SavePermission will be called to save each policy contained inside a event.
 	// An error is returned if the operation fails.
@@ -386,6 +391,21 @@ func (db *Impl) UpdateObject(ctx context.Context, object *models.Object) error {
 	return err
 }
 
+func (db *Impl) BatchSaveObject(ctx context.Context, objects []*models.Object) error {
+	err := db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "object_id"}},
+		UpdateAll: true,
+	}).Create(objects).Error
+	return err
+}
+
+func (db *Impl) BatchUpdateObject(ctx context.Context, value map[string]interface{}, objects []*models.Object) error {
+	return db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "object_id"}},
+		DoUpdates: clause.Assignments(value),
+	}).Create(objects).Error
+}
+
 func (db *Impl) GetObject(ctx context.Context, objectId common.Hash) (*models.Object, error) {
 	var object models.Object
 
@@ -397,6 +417,17 @@ func (db *Impl) GetObject(ctx context.Context, objectId common.Hash) (*models.Ob
 	return &object, nil
 }
 
+func (db *Impl) GetObjectList(ctx context.Context, objectIds []common.Hash) ([]*models.Object, error) {
+	var object []*models.Object
+
+	err := db.Db.WithContext(ctx).Where(
+		"object_id IN ? AND removed IS NOT TRUE", objectIds).Find(&object).Error
+	if err != nil {
+		return nil, err
+	}
+	return object, nil
+}
+
 func (db *Impl) SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error {
 	err := db.Db.WithContext(ctx).Table((&models.StreamRecord{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "account"}},
@@ -405,7 +436,23 @@ func (db *Impl) SaveStreamRecord(ctx context.Context, streamRecord *models.Strea
 	return err
 }
 
+func (db *Impl) BatchSaveStreamRecord(ctx context.Context, streamRecord []*models.StreamRecord) error {
+	err := db.Db.WithContext(ctx).Table((&models.StreamRecord{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "account"}},
+		UpdateAll: true,
+	}).Create(streamRecord).Error
+	return err
+}
+
 func (db *Impl) SavePaymentAccount(ctx context.Context, paymentAccount *models.PaymentAccount) error {
+	err := db.Db.WithContext(ctx).Table((&models.PaymentAccount{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "addr"}},
+		UpdateAll: true,
+	}).Create(paymentAccount).Error
+	return err
+}
+
+func (db *Impl) BatchSavePaymentAccount(ctx context.Context, paymentAccount []*models.PaymentAccount) error {
 	err := db.Db.WithContext(ctx).Table((&models.PaymentAccount{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "addr"}},
 		UpdateAll: true,

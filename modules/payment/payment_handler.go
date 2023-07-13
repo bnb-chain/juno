@@ -26,50 +26,70 @@ var PaymentEvents = map[string]bool{
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
-	if !PaymentEvents[event.Type] {
-		return nil
-	}
+	_, err := m.Handle(ctx, block, common.Hash{}, event, true)
+	return err
+}
 
+func (m *Module) Handle(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event, OperateDB bool) (interface{}, error) {
+	log.Infof("Handle")
+	if !PaymentEvents[event.Type] {
+		log.Infof("event type: %s", event.Type)
+		return nil, nil
+	}
+	log.Infof("Handle1")
 	typedEvent, err := sdk.ParseTypedEvent(abci.Event(event))
 	if err != nil {
 		log.Errorw("parse typed events error", "module", m.Name(), "event", event, "err", err)
-		return err
+		return nil, err
 	}
-
+	log.Infof("Handle2")
 	switch event.Type {
 	case EventPaymentAccountUpdate:
+		log.Infof("Aaaaaaaaaa")
 		paymentAccountUpdate, ok := typedEvent.(*paymenttypes.EventPaymentAccountUpdate)
 		if !ok {
 			log.Errorw("type assert error", "type", "EventPaymentAccountUpdate", "event", typedEvent)
-			return errors.New("update payment account event assert error")
+			return nil, errors.New("update payment account event assert error")
 		}
-		return m.handlePaymentAccountUpdate(ctx, block, paymentAccountUpdate)
+		data := m.handlePaymentAccountUpdate(ctx, block, paymentAccountUpdate)
+		if !OperateDB {
+			return data, nil
+		}
+		return m.db.SavePaymentAccount(ctx, data), nil
 	case EventStreamRecordUpdate:
+		log.Infof("bbbbbbbbbbbb")
 		streamRecordUpdate, ok := typedEvent.(*paymenttypes.EventStreamRecordUpdate)
 		if !ok {
 			log.Errorw("type assert error", "type", "EventStreamRecordUpdate", "event", typedEvent)
-			return errors.New("update stream record event assert error")
+			return nil, errors.New("update stream record event assert error")
 		}
-		return m.handleEventStreamRecordUpdate(ctx, streamRecordUpdate)
+		data := m.handleEventStreamRecordUpdate(ctx, streamRecordUpdate)
+		if !OperateDB {
+			log.Infof("data:%v", data)
+			return data, nil
+		}
+		return nil, m.db.SaveStreamRecord(ctx, data)
 	}
-
-	return nil
+	log.Infof("Handle3")
+	return nil, nil
 }
 
-func (m *Module) handlePaymentAccountUpdate(ctx context.Context, block *tmctypes.ResultBlock, paymentAccountUpdate *paymenttypes.EventPaymentAccountUpdate) error {
-	paymentAccount := &models.PaymentAccount{
+func (m *Module) ExtractEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) (interface{}, error) {
+	return m.Handle(ctx, block, common.Hash{}, event, false)
+}
+
+func (m *Module) handlePaymentAccountUpdate(ctx context.Context, block *tmctypes.ResultBlock, paymentAccountUpdate *paymenttypes.EventPaymentAccountUpdate) *models.PaymentAccount {
+	return &models.PaymentAccount{
 		Addr:       common.HexToAddress(paymentAccountUpdate.Addr),
 		Owner:      common.HexToAddress(paymentAccountUpdate.Owner),
 		Refundable: paymentAccountUpdate.Refundable,
 		UpdateAt:   block.Block.Height,
 		UpdateTime: block.Block.Time.UTC().Unix(),
 	}
-
-	return m.db.SavePaymentAccount(ctx, paymentAccount)
 }
 
-func (m *Module) handleEventStreamRecordUpdate(ctx context.Context, streamRecordUpdate *paymenttypes.EventStreamRecordUpdate) error {
-	streamRecord := &models.StreamRecord{
+func (m *Module) handleEventStreamRecordUpdate(ctx context.Context, streamRecordUpdate *paymenttypes.EventStreamRecordUpdate) *models.StreamRecord {
+	return &models.StreamRecord{
 		Account:           common.HexToAddress(streamRecordUpdate.Account),
 		CrudTimestamp:     streamRecordUpdate.CrudTimestamp,
 		NetflowRate:       (*common.Big)(streamRecordUpdate.NetflowRate.BigInt()),
@@ -80,6 +100,4 @@ func (m *Module) handleEventStreamRecordUpdate(ctx context.Context, streamRecord
 		Status:            streamRecordUpdate.Status.String(),
 		SettleTimestamp:   streamRecordUpdate.SettleTimestamp,
 	}
-
-	return m.db.SaveStreamRecord(ctx, streamRecord)
 }
