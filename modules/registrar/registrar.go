@@ -19,7 +19,6 @@ import (
 	storageprovider "github.com/forbole/juno/v4/modules/storage_provider"
 	"github.com/forbole/juno/v4/modules/telemetry"
 	"github.com/forbole/juno/v4/modules/validator"
-	"github.com/forbole/juno/v4/modules/virtual_group"
 	"github.com/forbole/juno/v4/node"
 	"github.com/forbole/juno/v4/types/config"
 )
@@ -99,7 +98,6 @@ func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 		permission.NewModule(ctx.Database),
 		group.NewModule(ctx.Database),
 		storageprovider.NewModule(ctx.Database),
-		virtualgroup.NewModule(ctx.Database),
 	}
 }
 

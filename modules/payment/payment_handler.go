@@ -90,14 +90,13 @@ func (m *Module) handlePaymentAccountUpdate(ctx context.Context, block *tmctypes
 
 func (m *Module) handleEventStreamRecordUpdate(ctx context.Context, streamRecordUpdate *paymenttypes.EventStreamRecordUpdate) *models.StreamRecord {
 	return &models.StreamRecord{
-		Account:           common.HexToAddress(streamRecordUpdate.Account),
-		CrudTimestamp:     streamRecordUpdate.CrudTimestamp,
-		NetflowRate:       (*common.Big)(streamRecordUpdate.NetflowRate.BigInt()),
-		FrozenNetflowRate: (*common.Big)(streamRecordUpdate.FrozenNetflowRate.BigInt()),
-		StaticBalance:     (*common.Big)(streamRecordUpdate.StaticBalance.BigInt()),
-		BufferBalance:     (*common.Big)(streamRecordUpdate.BufferBalance.BigInt()),
-		LockBalance:       (*common.Big)(streamRecordUpdate.LockBalance.BigInt()),
-		Status:            streamRecordUpdate.Status.String(),
-		SettleTimestamp:   streamRecordUpdate.SettleTimestamp,
+		Account:         common.HexToAddress(streamRecordUpdate.Account),
+		CrudTimestamp:   streamRecordUpdate.CrudTimestamp,
+		NetflowRate:     (*common.Big)(streamRecordUpdate.NetflowRate.BigInt()),
+		StaticBalance:   (*common.Big)(streamRecordUpdate.StaticBalance.BigInt()),
+		BufferBalance:   (*common.Big)(streamRecordUpdate.BufferBalance.BigInt()),
+		LockBalance:     (*common.Big)(streamRecordUpdate.LockBalance.BigInt()),
+		Status:          streamRecordUpdate.Status.String(),
+		SettleTimestamp: streamRecordUpdate.SettleTimestamp,
 	}
 }

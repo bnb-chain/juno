@@ -74,7 +74,6 @@ func (m *Module) ExtractEvent(ctx context.Context, block *tmctypes.ResultBlock, 
 
 func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, createStorageProvider *sptypes.EventCreateStorageProvider) *models.StorageProvider {
 	return &models.StorageProvider{
-		SpId:            createStorageProvider.SpId,
 		OperatorAddress: common.HexToAddress(createStorageProvider.SpAddress),
 		FundingAddress:  common.HexToAddress(createStorageProvider.FundingAddress),
 		SealAddress:     common.HexToAddress(createStorageProvider.SealAddress),
@@ -99,7 +98,6 @@ func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctype
 
 func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, editStorageProvider *sptypes.EventEditStorageProvider) *models.StorageProvider {
 	return &models.StorageProvider{
-		SpId:            editStorageProvider.SpId,
 		OperatorAddress: common.HexToAddress(editStorageProvider.SpAddress),
 		SealAddress:     common.HexToAddress(editStorageProvider.SealAddress),
 		ApprovalAddress: common.HexToAddress(editStorageProvider.ApprovalAddress),
@@ -119,7 +117,6 @@ func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.
 
 func (m *Module) handleSpStoragePriceUpdate(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, spStoragePriceUpdate *sptypes.EventSpStoragePriceUpdate) *models.StorageProvider {
 	return &models.StorageProvider{
-		SpId:          spStoragePriceUpdate.SpId,
 		UpdateTimeSec: spStoragePriceUpdate.UpdateTimeSec,
 		ReadPrice:     (*common.Big)(spStoragePriceUpdate.ReadPrice.BigInt()),
 		FreeReadQuota: spStoragePriceUpdate.FreeReadQuota,

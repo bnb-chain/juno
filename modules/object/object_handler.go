@@ -182,13 +182,12 @@ func (m *Module) handleCreateObject(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleSealObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, sealObject *storagetypes.EventSealObject) *models.Object {
 	return &models.Object{
-		BucketName:          sealObject.BucketName,
-		ObjectName:          sealObject.ObjectName,
-		ObjectID:            common.BigToHash(sealObject.ObjectId.BigInt()),
-		Operator:            common.HexToAddress(sealObject.Operator),
-		LocalVirtualGroupId: sealObject.LocalVirtualGroupId,
-		Status:              sealObject.Status.String(),
-		SealedTxHash:        txHash,
+		BucketName:   sealObject.BucketName,
+		ObjectName:   sealObject.ObjectName,
+		ObjectID:     common.BigToHash(sealObject.ObjectId.BigInt()),
+		Operator:     common.HexToAddress(sealObject.Operator),
+		Status:       sealObject.Status.String(),
+		SealedTxHash: txHash,
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
@@ -233,10 +232,9 @@ func (m *Module) handleCopyObject(ctx context.Context, block *tmctypes.ResultBlo
 
 func (m *Module) handleDeleteObject(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, deleteObject *storagetypes.EventDeleteObject) *models.Object {
 	return &models.Object{
-		BucketName:          deleteObject.BucketName,
-		ObjectName:          deleteObject.ObjectName,
-		ObjectID:            common.BigToHash(deleteObject.ObjectId.BigInt()),
-		LocalVirtualGroupId: deleteObject.LocalVirtualGroupId,
+		BucketName: deleteObject.BucketName,
+		ObjectName: deleteObject.ObjectName,
+		ObjectID:   common.BigToHash(deleteObject.ObjectId.BigInt()),
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
