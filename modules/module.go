@@ -122,6 +122,7 @@ type AuthzMessageModule interface {
 type EventModule interface {
 	//HandleEvent index param here to save possible sequence order
 	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error
+	ExtractEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) (interface{}, error)
 }
 
 type EpochModule interface {

@@ -45,28 +45,35 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 			log.Errorw("type assert error", "type", "EventCreateStorageProvider", "event", typedEvent)
 			return errors.New("create storage provider event assert error")
 		}
-		return m.handleCreateStorageProvider(ctx, block, txHash, createStorageProvider)
+		data := m.handleCreateStorageProvider(ctx, block, txHash, createStorageProvider)
+		return m.db.CreateStorageProvider(ctx, data)
 	case EventEditStorageProvider:
 		editStorageProvider, ok := typedEvent.(*sptypes.EventEditStorageProvider)
 		if !ok {
 			log.Errorw("type assert error", "type", "EventEditStorageProvider", "event", typedEvent)
 			return errors.New("edit storage provider event assert error")
 		}
-		return m.handleEditStorageProvider(ctx, block, txHash, editStorageProvider)
+		data := m.handleEditStorageProvider(ctx, block, txHash, editStorageProvider)
+		return m.db.UpdateStorageProvider(ctx, data)
 	case EventSpStoragePriceUpdate:
 		spStoragePriceUpdate, ok := typedEvent.(*sptypes.EventSpStoragePriceUpdate)
 		if !ok {
 			log.Errorw("type assert error", "type", "EventSpStoragePriceUpdate", "event", typedEvent)
 			return errors.New("storage provider price update event assert error")
 		}
-		return m.handleSpStoragePriceUpdate(ctx, block, txHash, spStoragePriceUpdate)
+		data := m.handleSpStoragePriceUpdate(ctx, block, txHash, spStoragePriceUpdate)
+		return m.db.UpdateStorageProvider(ctx, data)
 	}
 
 	return nil
 }
 
-func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, createStorageProvider *sptypes.EventCreateStorageProvider) error {
-	storageProvider := &models.StorageProvider{
+func (m *Module) ExtractEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) (interface{}, error) {
+	return nil, nil
+}
+
+func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, createStorageProvider *sptypes.EventCreateStorageProvider) *models.StorageProvider {
+	return &models.StorageProvider{
 		SpId:            createStorageProvider.SpId,
 		OperatorAddress: common.HexToAddress(createStorageProvider.SpAddress),
 		FundingAddress:  common.HexToAddress(createStorageProvider.FundingAddress),
@@ -88,12 +95,10 @@ func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctype
 		UpdateTxHash: txHash,
 		Removed:      false,
 	}
-
-	return m.db.CreateStorageProvider(ctx, storageProvider)
 }
 
-func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, editStorageProvider *sptypes.EventEditStorageProvider) error {
-	storageProvider := &models.StorageProvider{
+func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, editStorageProvider *sptypes.EventEditStorageProvider) *models.StorageProvider {
+	return &models.StorageProvider{
 		SpId:            editStorageProvider.SpId,
 		OperatorAddress: common.HexToAddress(editStorageProvider.SpAddress),
 		SealAddress:     common.HexToAddress(editStorageProvider.SealAddress),
@@ -110,12 +115,10 @@ func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.
 		UpdateTxHash: txHash,
 		Removed:      false,
 	}
-
-	return m.db.UpdateStorageProvider(ctx, storageProvider)
 }
 
-func (m *Module) handleSpStoragePriceUpdate(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, spStoragePriceUpdate *sptypes.EventSpStoragePriceUpdate) error {
-	storageProvider := &models.StorageProvider{
+func (m *Module) handleSpStoragePriceUpdate(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, spStoragePriceUpdate *sptypes.EventSpStoragePriceUpdate) *models.StorageProvider {
+	return &models.StorageProvider{
 		SpId:          spStoragePriceUpdate.SpId,
 		UpdateTimeSec: spStoragePriceUpdate.UpdateTimeSec,
 		ReadPrice:     (*common.Big)(spStoragePriceUpdate.ReadPrice.BigInt()),
@@ -126,6 +129,4 @@ func (m *Module) handleSpStoragePriceUpdate(ctx context.Context, block *tmctypes
 		UpdateTxHash: txHash,
 		Removed:      false,
 	}
-
-	return m.db.UpdateStorageProvider(ctx, storageProvider)
 }
