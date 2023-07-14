@@ -15,7 +15,6 @@ type StreamRecord struct {
 	LockBalance     *common.Big    `gorm:"column:lock_balance"`
 	Status          string         `gorm:"column:status"`
 	SettleTimestamp int64          `gorm:"column:settle_timestamp"`
-	OutFlows        []byte         `gorm:"column:out_flows;type:longblob"`
 }
 
 func (*StreamRecord) TableName() string {
