@@ -98,7 +98,6 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 		BucketName:                 createBucket.BucketName,
 		Owner:                      common.HexToAddress(createBucket.Owner),
 		PaymentAddress:             common.HexToAddress(createBucket.PaymentAddress),
-		PrimarySpId:                createBucket.PrimarySpId,
 		GlobalVirtualGroupFamilyId: createBucket.GlobalVirtualGroupFamilyId,
 		Operator:                   common.HexToAddress(createBucket.Owner),
 		SourceType:                 createBucket.SourceType.String(),
@@ -120,11 +119,11 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, deleteBucket *storagetypes.EventDeleteBucket) error {
 	bucket := &models.Bucket{
-		BucketID:    common.BigToHash(deleteBucket.BucketId.BigInt()),
-		BucketName:  deleteBucket.BucketName,
-		Operator:    common.HexToAddress(deleteBucket.Operator),
-		Owner:       common.HexToAddress(deleteBucket.Owner),
-		PrimarySpId: deleteBucket.PrimarySpId,
+		BucketID:                   common.BigToHash(deleteBucket.BucketId.BigInt()),
+		BucketName:                 deleteBucket.BucketName,
+		Operator:                   common.HexToAddress(deleteBucket.Operator),
+		Owner:                      common.HexToAddress(deleteBucket.Owner),
+		GlobalVirtualGroupFamilyId: deleteBucket.GlobalVirtualGroupFamilyId,
 
 		Removed:      true,
 		UpdateAt:     block.Block.Height,
@@ -169,10 +168,9 @@ func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.Res
 
 func (m *Module) handleMigrationBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, migrationBucket *storagetypes.EventMigrationBucket) error {
 	bucket := &models.Bucket{
-		BucketID:    common.BigToHash(migrationBucket.BucketId.BigInt()),
-		BucketName:  migrationBucket.BucketName,
-		Operator:    common.HexToAddress(migrationBucket.Operator),
-		PrimarySpId: migrationBucket.DstPrimarySpId,
+		BucketID:   common.BigToHash(migrationBucket.BucketId.BigInt()),
+		BucketName: migrationBucket.BucketName,
+		Operator:   common.HexToAddress(migrationBucket.Operator),
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
