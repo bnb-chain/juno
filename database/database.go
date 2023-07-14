@@ -67,7 +67,7 @@ type Database interface {
 	// SaveObject will be called to save each object contained inside a block.
 	// An error is returned if the operation fails.
 	SaveObject(ctx context.Context, object *models.Object) error
-	BatchSaveObject(ctx context.Context, objects map[string][]*models.Object) error
+	BatchSaveObject(ctx context.Context, objects []*models.Object) error
 
 	// UpdateObject will be called to update each object contained inside a block.
 	// An error is returned if the operation fails.
@@ -76,7 +76,7 @@ type Database interface {
 	// GetObject returns an object model with given objectId.
 	// It should return only one record
 	GetObject(ctx context.Context, objectId common.Hash) (*models.Object, error)
-	GetObjectList(ctx context.Context, objects map[string][]common.Hash) ([]*models.Object, error)
+	GetObjectList(ctx context.Context, objects []common.Hash) ([]*models.Object, error)
 
 	SaveEpoch(ctx context.Context, epoch *models.Epoch) error
 
@@ -390,15 +390,12 @@ func (db *Impl) UpdateObject(ctx context.Context, object *models.Object) error {
 	return err
 }
 
-func (db *Impl) BatchSaveObject(ctx context.Context, objects map[string][]*models.Object) error {
-	return nil
-}
-
-func (db *Impl) BatchUpdateObject(ctx context.Context, value map[string]interface{}, objects []*models.Object) error {
-	return db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
+func (db *Impl) BatchSaveObject(ctx context.Context, objects []*models.Object) error {
+	err := db.Db.WithContext(ctx).Table((&models.Object{}).TableName()).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "object_id"}},
-		DoUpdates: clause.Assignments(value),
+		UpdateAll: true,
 	}).Create(objects).Error
+	return err
 }
 
 func (db *Impl) GetObject(ctx context.Context, objectId common.Hash) (*models.Object, error) {
@@ -412,8 +409,15 @@ func (db *Impl) GetObject(ctx context.Context, objectId common.Hash) (*models.Ob
 	return &object, nil
 }
 
-func (db *Impl) GetObjectList(ctx context.Context, objects map[string][]common.Hash) ([]*models.Object, error) {
-	return nil, nil
+func (db *Impl) GetObjectList(ctx context.Context, objects []common.Hash) ([]*models.Object, error) {
+	var object []*models.Object
+
+	err := db.Db.WithContext(ctx).Where(
+		"object_id IN ? AND removed IS NOT TRUE", objects).Find(&object).Error
+	if err != nil {
+		return nil, err
+	}
+	return object, nil
 }
 
 func (db *Impl) SaveStreamRecord(ctx context.Context, streamRecord *models.StreamRecord) error {
