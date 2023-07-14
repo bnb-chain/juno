@@ -8,15 +8,11 @@ import (
 	"github.com/forbole/juno/v4/log"
 	"github.com/forbole/juno/v4/modules"
 	"github.com/forbole/juno/v4/modules/block"
-	"github.com/forbole/juno/v4/modules/bucket"
 	"github.com/forbole/juno/v4/modules/epoch"
 	"github.com/forbole/juno/v4/modules/group"
 	"github.com/forbole/juno/v4/modules/messages"
-	"github.com/forbole/juno/v4/modules/object"
-	"github.com/forbole/juno/v4/modules/payment"
 	"github.com/forbole/juno/v4/modules/permission"
 	"github.com/forbole/juno/v4/modules/pruning"
-	storageprovider "github.com/forbole/juno/v4/modules/storage_provider"
 	"github.com/forbole/juno/v4/modules/telemetry"
 	"github.com/forbole/juno/v4/modules/validator"
 	"github.com/forbole/juno/v4/node"
@@ -89,15 +85,15 @@ func (r *DefaultRegistrar) BuildModules(ctx Context) modules.Modules {
 	return modules.Modules{
 		block.NewModule(ctx.Database),
 		validator.NewModule(ctx.Database),
-		bucket.NewModule(ctx.Database),
-		object.NewModule(ctx.Database),
+		//bucket.NewModule(ctx.Database),
+		//object.NewModule(ctx.Database),
 		pruning.NewModule(ctx.JunoConfig, ctx.Database),
 		telemetry.NewModule(ctx.JunoConfig),
 		epoch.NewModule(ctx.Database),
-		payment.NewModule(ctx.Database),
+		//payment.NewModule(ctx.Database),
 		permission.NewModule(ctx.Database),
 		group.NewModule(ctx.Database),
-		storageprovider.NewModule(ctx.Database),
+		//storageprovider.NewModule(ctx.Database),
 	}
 }
 

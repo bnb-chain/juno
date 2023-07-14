@@ -123,7 +123,7 @@ func NewNode(config *Details, txConfig client.TxConfig, codec codec.Codec) (*Nod
 
 	proxyApp := proxy.NewAppConns(clientCreator, proxy.NopMetrics())
 
-	csMetrics, _, _, smMetrics, _ := metricsProvider(genDoc.ChainID)
+	csMetrics, _, _, _, _ := metricsProvider(genDoc.ChainID)
 
 	evidenceDB, err := dbProvider(&tmnode.DBContext{ID: "evidence", Config: tmCfg})
 	if err != nil {
@@ -142,8 +142,8 @@ func NewNode(config *Details, txConfig client.TxConfig, codec codec.Codec) (*Nod
 		logger.With("module", "state"),
 		proxyApp.Consensus(),
 		nil,
-		evidencePool,
-		sm.BlockExecutorWithMetrics(smMetrics),
+		nil,
+		nil,
 	)
 
 	consensusState := cs.NewState(
