@@ -204,6 +204,7 @@ func (m *Module) handleUpdateGlobalVirtualGroup(ctx context.Context, block *tmct
 func (m *Module) handleCreateGlobalVirtualGroupFamily(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, createGlobalVirtualGroupFamily *vgtypes.EventCreateGlobalVirtualGroupFamily) *models.GlobalVirtualGroupFamily {
 	return &models.GlobalVirtualGroupFamily{
 		GlobalVirtualGroupFamilyId: createGlobalVirtualGroupFamily.Id,
+		PrimarySpId:                createGlobalVirtualGroupFamily.PrimarySpId,
 		VirtualPaymentAddress:      common.HexToAddress(createGlobalVirtualGroupFamily.VirtualPaymentAddress),
 
 		CreateAt:     block.Block.Height,

@@ -11,7 +11,6 @@ type Bucket struct {
 	BucketName                 string         `gorm:"column:bucket_name;type:varchar(64);uniqueIndex:idx_bucket_name"` // BucketName length between 3 and 63
 	Owner                      common.Address `gorm:"column:owner;type:BINARY(20);index:idx_owner"`
 	PaymentAddress             common.Address `gorm:"column:payment_address;type:BINARY(20)"`
-	PrimarySpId                uint32         `gorm:"column:primary_sp_id"`
 	GlobalVirtualGroupFamilyId uint32         `gorm:"column:global_virtual_group_family_id;index:idx_vgf_id"`
 	Operator                   common.Address `gorm:"column:operator;type:BINARY(20)"`
 	SourceType                 string         `gorm:"column:source_type;type:VARCHAR(50)"`
