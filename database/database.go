@@ -500,7 +500,7 @@ func (db *Impl) SaveLVG(ctx context.Context, lvg *models.LocalVirtualGroup) erro
 }
 
 func (db *Impl) UpdateLVG(ctx context.Context, lvg *models.LocalVirtualGroup) error {
-	err := db.Db.WithContext(ctx).Table((&models.LocalVirtualGroup{}).TableName()).Where("local_virtual_group_id = ?", lvg.LocalVirtualGroupId).Updates(lvg).Error
+	err := db.Db.WithContext(ctx).Table((&models.LocalVirtualGroup{}).TableName()).Where("local_virtual_group_id = ? and bucket_id = ?", lvg.LocalVirtualGroupId, lvg.BucketID).Updates(lvg).Error
 	return err
 }
 
