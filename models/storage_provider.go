@@ -21,6 +21,7 @@ type StorageProvider struct {
 	Website         string         `gorm:"column:website;type:VARCHAR(128)"`
 	SecurityContact string         `gorm:"column:security_contact;type:VARCHAR(128)"`
 	Details         string         `gorm:"column:details;type:VARCHAR(256)"`
+	BlsKey          string         `gorm:"column:bls_key;type:VARCHAR(96)"`
 
 	UpdateTimeSec int64       `gorm:"column:update_time_sec"`
 	ReadPrice     *common.Big `gorm:"column:read_price"`
