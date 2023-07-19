@@ -33,6 +33,10 @@ var virtualGroupEvents = map[string]bool{
 	EventCreateGlobalVirtualGroupFamily: true,
 }
 
+func (m *Module) ExtractEvent(data interface{}, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) {
+	return
+}
+
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
 	if !virtualGroupEvents[event.Type] {
 		return nil

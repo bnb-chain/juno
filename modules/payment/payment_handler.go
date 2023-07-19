@@ -25,6 +25,10 @@ var PaymentEvents = map[string]bool{
 	EventStreamRecordUpdate:   true,
 }
 
+func (m *Module) ExtractEvent(data interface{}, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) {
+	return
+}
+
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
 	if !PaymentEvents[event.Type] {
 		return nil

@@ -27,6 +27,10 @@ var StorageProviderEvents = map[string]bool{
 	EventSpStoragePriceUpdate:  true,
 }
 
+func (m *Module) ExtractEvent(data interface{}, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) {
+	return
+}
+
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
 	if !StorageProviderEvents[event.Type] {
 		return nil
