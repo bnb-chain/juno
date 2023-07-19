@@ -88,6 +88,7 @@ func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctype
 		Website:         createStorageProvider.Description.Website,
 		SecurityContact: createStorageProvider.Description.SecurityContact,
 		Details:         createStorageProvider.Description.Details,
+		BlsKey:          createStorageProvider.BlsKey,
 
 		CreateTxHash: txHash,
 		CreateAt:     block.Block.Height,
@@ -110,6 +111,7 @@ func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.
 		Website:         editStorageProvider.Description.Website,
 		SecurityContact: editStorageProvider.Description.SecurityContact,
 		Details:         editStorageProvider.Description.Details,
+		BlsKey:          editStorageProvider.BlsKey,
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,

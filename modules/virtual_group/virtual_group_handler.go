@@ -143,7 +143,8 @@ func (m *Module) handleCreateLocalVirtualGroup(ctx context.Context, block *tmcty
 func (m *Module) handleUpdateLocalVirtualGroup(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, updateLocalVirtualGroup *vgtypes.EventUpdateLocalVirtualGroup) *models.LocalVirtualGroup {
 	return &models.LocalVirtualGroup{
 		LocalVirtualGroupId:  updateLocalVirtualGroup.Id,
-		GlobalVirtualGroupId: updateLocalVirtualGroup.GlobalVirtualGroupId,
+		BucketID:             common.BigToHash(updateLocalVirtualGroup.BucketId.BigInt()),
+		GlobalVirtualGroupId: updateLocalVirtualGroup.DstGlobalVirtualGroupId,
 		StoredSize:           updateLocalVirtualGroup.StoredSize,
 
 		UpdateAt:     block.Block.Height,
