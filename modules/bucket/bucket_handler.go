@@ -156,15 +156,17 @@ func (m *Module) handleDiscontinueBucket(ctx context.Context, block *tmctypes.Re
 
 func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, updateBucket *storagetypes.EventUpdateBucketInfo) error {
 	bucket := &models.Bucket{
-		BucketID:         common.BigToHash(updateBucket.BucketId.BigInt()),
-		BucketName:       updateBucket.BucketName,
-		ChargedReadQuota: updateBucket.ChargedReadQuotaAfter,
-		Operator:         common.HexToAddress(updateBucket.Operator),
-		PaymentAddress:   common.HexToAddress(updateBucket.PaymentAddressAfter),
-		Visibility:       updateBucket.Visibility.String(),
-		UpdateAt:         block.Block.Height,
-		UpdateTxHash:     txHash,
-		UpdateTime:       block.Block.Time.UTC().Unix(),
+		Operator:                   common.HexToAddress(updateBucket.Operator),
+		BucketName:                 updateBucket.BucketName,
+		BucketID:                   common.BigToHash(updateBucket.BucketId.BigInt()),
+		ChargedReadQuota:           updateBucket.ChargedReadQuota,
+		PaymentAddress:             common.HexToAddress(updateBucket.PaymentAddress),
+		Visibility:                 updateBucket.Visibility.String(),
+		GlobalVirtualGroupFamilyId: updateBucket.GlobalVirtualGroupFamilyId,
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)

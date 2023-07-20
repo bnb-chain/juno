@@ -17,20 +17,26 @@ import (
 
 var (
 	EventCreateLocalVirtualGroup        = proto.MessageName(&vgtypes.EventCreateLocalVirtualGroup{})
+	EventDeleteLocalVirtualGroup        = proto.MessageName(&vgtypes.EventDeleteLocalVirtualGroup{})
 	EventUpdateLocalVirtualGroup        = proto.MessageName(&vgtypes.EventUpdateLocalVirtualGroup{})
 	EventCreateGlobalVirtualGroup       = proto.MessageName(&vgtypes.EventCreateGlobalVirtualGroup{})
 	EventDeleteGlobalVirtualGroup       = proto.MessageName(&vgtypes.EventDeleteGlobalVirtualGroup{})
 	EventUpdateGlobalVirtualGroup       = proto.MessageName(&vgtypes.EventUpdateGlobalVirtualGroup{})
 	EventCreateGlobalVirtualGroupFamily = proto.MessageName(&vgtypes.EventCreateGlobalVirtualGroupFamily{})
+	EventDeleteGlobalVirtualGroupFamily = proto.MessageName(&vgtypes.EventDeleteGlobalVirtualGroupFamily{})
+	EventUpdateGlobalVirtualGroupFamily = proto.MessageName(&vgtypes.EventUpdateGlobalVirtualGroupFamily{})
 )
 
 var VirtualGroupEvents = map[string]bool{
 	EventCreateLocalVirtualGroup:        true,
+	EventDeleteLocalVirtualGroup:        true,
 	EventUpdateLocalVirtualGroup:        true,
 	EventCreateGlobalVirtualGroup:       true,
 	EventDeleteGlobalVirtualGroup:       true,
 	EventUpdateGlobalVirtualGroup:       true,
 	EventCreateGlobalVirtualGroupFamily: true,
+	EventDeleteGlobalVirtualGroupFamily: true,
+	EventUpdateGlobalVirtualGroupFamily: true,
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
@@ -63,6 +69,17 @@ func (m *Module) Handle(ctx context.Context, block *tmctypes.ResultBlock, txHash
 		}
 		data := m.handleCreateLocalVirtualGroup(ctx, block, txHash, createLocalVirtualGroup)
 		return nil, m.db.SaveLVG(ctx, data)
+	case EventDeleteLocalVirtualGroup:
+		deleteLocalVirtualGroup, ok := typedEvent.(*vgtypes.EventDeleteLocalVirtualGroup)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventDeleteLocalVirtualGroup", "event", typedEvent)
+			return nil, errors.New("delete lvg event assert error")
+		}
+		data := m.handleDeleteLocalVirtualGroup(ctx, block, txHash, deleteLocalVirtualGroup)
+		if !OperateDB {
+			return data, nil
+		}
+		return nil, m.db.UpdateLVG(ctx, data)
 	case EventUpdateLocalVirtualGroup:
 		updateLocalVirtualGroup, ok := typedEvent.(*vgtypes.EventUpdateLocalVirtualGroup)
 		if !ok {
@@ -118,6 +135,28 @@ func (m *Module) Handle(ctx context.Context, block *tmctypes.ResultBlock, txHash
 			return data, nil
 		}
 		return nil, m.db.SaveVGF(ctx, data)
+	case EventDeleteGlobalVirtualGroupFamily:
+		deleteGlobalVirtualGroupFamily, ok := typedEvent.(*vgtypes.EventDeleteGlobalVirtualGroupFamily)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventDeleteGlobalVirtualGroupFamily", "event", typedEvent)
+			return nil, errors.New("delete vgf event assert error")
+		}
+		data := m.handleDeleteGlobalVirtualGroupFamily(ctx, block, txHash, deleteGlobalVirtualGroupFamily)
+		if !OperateDB {
+			return data, nil
+		}
+		return nil, m.db.UpdateVGF(ctx, data)
+	case EventUpdateGlobalVirtualGroupFamily:
+		updateGlobalVirtualGroupFamily, ok := typedEvent.(*vgtypes.EventUpdateGlobalVirtualGroupFamily)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventUpdateGlobalVirtualGroupFamily", "event", typedEvent)
+			return nil, errors.New("update vgf event assert error")
+		}
+		data := m.handleUpdateGlobalVirtualGroupFamily(ctx, block, txHash, updateGlobalVirtualGroupFamily)
+		if !OperateDB {
+			return data, nil
+		}
+		return nil, m.db.UpdateVGF(ctx, data)
 	}
 
 	return nil, nil
@@ -144,7 +183,7 @@ func (m *Module) handleUpdateLocalVirtualGroup(ctx context.Context, block *tmcty
 	return &models.LocalVirtualGroup{
 		LocalVirtualGroupId:  updateLocalVirtualGroup.Id,
 		BucketID:             common.BigToHash(updateLocalVirtualGroup.BucketId.BigInt()),
-		GlobalVirtualGroupId: updateLocalVirtualGroup.DstGlobalVirtualGroupId,
+		GlobalVirtualGroupId: updateLocalVirtualGroup.GlobalVirtualGroupId,
 		StoredSize:           updateLocalVirtualGroup.StoredSize,
 
 		UpdateAt:     block.Block.Height,
@@ -153,13 +192,19 @@ func (m *Module) handleUpdateLocalVirtualGroup(ctx context.Context, block *tmcty
 	}
 }
 
+func (m *Module) handleDeleteLocalVirtualGroup(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, deleteLocalVirtualGroup *vgtypes.EventDeleteLocalVirtualGroup) *models.LocalVirtualGroup {
+	return &models.LocalVirtualGroup{
+		LocalVirtualGroupId: deleteLocalVirtualGroup.Id,
+		BucketID:            common.BigToHash(deleteLocalVirtualGroup.BucketId.BigInt()),
+
+		Removed:      true,
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
+	}
+}
+
 func (m *Module) handleCreateGlobalVirtualGroup(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, createGlobalVirtualGroup *vgtypes.EventCreateGlobalVirtualGroup) *models.GlobalVirtualGroup {
-
-	//spIdArray := pq.StringArray{}
-	//for _, val := range createGlobalVirtualGroup.SecondarySpIds {
-	//	spIdArray = append(spIdArray, fmt.Sprintf("%d", val))
-	//}
-
 	return &models.GlobalVirtualGroup{
 		GlobalVirtualGroupId:  createGlobalVirtualGroup.Id,
 		FamilyId:              createGlobalVirtualGroup.FamilyId,
@@ -195,6 +240,8 @@ func (m *Module) handleUpdateGlobalVirtualGroup(ctx context.Context, block *tmct
 		GlobalVirtualGroupId: updateGlobalVirtualGroup.Id,
 		StoredSize:           updateGlobalVirtualGroup.StoreSize,
 		TotalDeposit:         (*common.Big)(updateGlobalVirtualGroup.TotalDeposit.BigInt()),
+		PrimarySpId:          updateGlobalVirtualGroup.PrimarySpId,
+		SecondarySpIds:       updateGlobalVirtualGroup.SecondarySpIds,
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
@@ -207,6 +254,7 @@ func (m *Module) handleCreateGlobalVirtualGroupFamily(ctx context.Context, block
 		GlobalVirtualGroupFamilyId: createGlobalVirtualGroupFamily.Id,
 		PrimarySpId:                createGlobalVirtualGroupFamily.PrimarySpId,
 		VirtualPaymentAddress:      common.HexToAddress(createGlobalVirtualGroupFamily.VirtualPaymentAddress),
+		GlobalVirtualGroupIds:      createGlobalVirtualGroupFamily.GlobalVirtualGroupIds,
 
 		CreateAt:     block.Block.Height,
 		CreateTxHash: txHash,
@@ -215,5 +263,28 @@ func (m *Module) handleCreateGlobalVirtualGroupFamily(ctx context.Context, block
 		UpdateTxHash: txHash,
 		UpdateTime:   block.Block.Time.UTC().Unix(),
 		Removed:      false,
+	}
+}
+
+func (m *Module) handleDeleteGlobalVirtualGroupFamily(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, deleteGlobalVirtualGroupFamily *vgtypes.EventDeleteGlobalVirtualGroupFamily) *models.GlobalVirtualGroupFamily {
+	return &models.GlobalVirtualGroupFamily{
+		GlobalVirtualGroupFamilyId: deleteGlobalVirtualGroupFamily.Id,
+
+		Removed:      true,
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
+	}
+}
+
+func (m *Module) handleUpdateGlobalVirtualGroupFamily(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, updateGlobalVirtualGroupFamily *vgtypes.EventUpdateGlobalVirtualGroupFamily) *models.GlobalVirtualGroupFamily {
+	return &models.GlobalVirtualGroupFamily{
+		GlobalVirtualGroupFamilyId: updateGlobalVirtualGroupFamily.Id,
+		PrimarySpId:                updateGlobalVirtualGroupFamily.PrimarySpId,
+		GlobalVirtualGroupIds:      updateGlobalVirtualGroupFamily.GlobalVirtualGroupIds,
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
 }
