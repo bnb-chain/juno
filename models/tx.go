@@ -43,6 +43,7 @@ func (t *Tx) ToTmTx() *ResultTx {
 		GasWanted: int64(t.GasWanted),
 		GasUsed:   int64(t.GasUsed),
 		Messages:  t.Messages,
+		Fee:       t.Fee,
 	}
 
 	if t.Success {
@@ -72,6 +73,7 @@ type ResponseDeliverTx struct {
 	Events    []abci.Event `protobuf:"bytes,7,rep,name=events,proto3" json:"events,omitempty"`
 	Codespace string       `protobuf:"bytes,8,opt,name=codespace,proto3" json:"codespace,omitempty"`
 	Messages  string       `json:"messages,omitempty"`
+	Fee       string       `json:"fee,omitempty"`
 }
 
 // ResultTx Result of querying for a tx
