@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	sptypes "github.com/bnb-chain/greenfield/x/sp/types"
+	vgtypes "github.com/bnb-chain/greenfield/x/virtualgroup/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -19,12 +20,14 @@ var (
 	EventCreateStorageProvider = proto.MessageName(&sptypes.EventCreateStorageProvider{})
 	EventEditStorageProvider   = proto.MessageName(&sptypes.EventEditStorageProvider{})
 	EventSpStoragePriceUpdate  = proto.MessageName(&sptypes.EventSpStoragePriceUpdate{})
+	EventCompleteSpExit        = proto.MessageName(&vgtypes.EventCompleteStorageProviderExit{})
 )
 
 var StorageProviderEvents = map[string]bool{
 	EventCreateStorageProvider: true,
 	EventEditStorageProvider:   true,
 	EventSpStoragePriceUpdate:  true,
+	EventCompleteSpExit:        true,
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
@@ -62,6 +65,14 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 			return errors.New("storage provider price update event assert error")
 		}
 		data := m.handleSpStoragePriceUpdate(ctx, block, txHash, spStoragePriceUpdate)
+		return m.db.UpdateStorageProvider(ctx, data)
+	case EventCompleteSpExit:
+		completeSpExit, ok := typedEvent.(*vgtypes.EventCompleteStorageProviderExit)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventCompleteSpExit", "event", typedEvent)
+			return errors.New("storage provider exit event assert error")
+		}
+		data := m.handleCompleteStorageProviderExit(ctx, block, txHash, completeSpExit)
 		return m.db.UpdateStorageProvider(ctx, data)
 	}
 
@@ -130,5 +141,15 @@ func (m *Module) handleSpStoragePriceUpdate(ctx context.Context, block *tmctypes
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
 		Removed:      false,
+	}
+}
+
+func (m *Module) handleCompleteStorageProviderExit(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, completeStorageProviderExit *vgtypes.EventCompleteStorageProviderExit) *models.StorageProvider {
+	return &models.StorageProvider{
+		SpId: completeStorageProviderExit.StorageProviderId,
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		Removed:      true,
 	}
 }
