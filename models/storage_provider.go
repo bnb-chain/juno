@@ -8,7 +8,7 @@ type StorageProvider struct {
 	ID uint64 `gorm:"column:id;primaryKey"`
 
 	SpId            uint32         `gorm:"column:sp_id;index:idx_sp_id"`
-	OperatorAddress common.Address `gorm:"column:operator_address;type:BINARY(20);uniqueIndex:idx_operator_address"`
+	OperatorAddress common.Address `gorm:"column:operator_address;type:BINARY(20);index:idx_operator_address"`
 	FundingAddress  common.Address `gorm:"column:funding_address;type:BINARY(20)"`
 	SealAddress     common.Address `gorm:"column:seal_address;;type:BINARY(20)"`
 	ApprovalAddress common.Address `gorm:"column:approval_address;;type:BINARY(20)"`
