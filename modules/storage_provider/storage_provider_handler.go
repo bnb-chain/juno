@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	sptypes "github.com/bnb-chain/greenfield/x/sp/types"
+	vgtypes "github.com/bnb-chain/greenfield/x/virtualgroup/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -19,16 +20,22 @@ var (
 	EventCreateStorageProvider = proto.MessageName(&sptypes.EventCreateStorageProvider{})
 	EventEditStorageProvider   = proto.MessageName(&sptypes.EventEditStorageProvider{})
 	EventSpStoragePriceUpdate  = proto.MessageName(&sptypes.EventSpStoragePriceUpdate{})
+	EventCompleteSpExit        = proto.MessageName(&vgtypes.EventCompleteStorageProviderExit{})
 )
 
-var storageProviderEvents = map[string]bool{
+var StorageProviderEvents = map[string]bool{
 	EventCreateStorageProvider: true,
 	EventEditStorageProvider:   true,
 	EventSpStoragePriceUpdate:  true,
+	EventCompleteSpExit:        true,
+}
+
+func (m *Module) ExtractEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) (map[string][]interface{}, error) {
+	return nil, nil
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
-	if !storageProviderEvents[event.Type] {
+	if !StorageProviderEvents[event.Type] {
 		return nil
 	}
 
@@ -60,6 +67,14 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 			return errors.New("storage provider price update event assert error")
 		}
 		return m.handleSpStoragePriceUpdate(ctx, block, txHash, spStoragePriceUpdate)
+	case EventCompleteSpExit:
+		completeSpExit, ok := typedEvent.(*vgtypes.EventCompleteStorageProviderExit)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventCompleteSpExit", "event", typedEvent)
+			return errors.New("storage provider exit event assert error")
+		}
+
+		return m.handleCompleteStorageProviderExit(ctx, block, txHash, completeSpExit)
 	}
 
 	return nil
@@ -67,6 +82,7 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 
 func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, createStorageProvider *sptypes.EventCreateStorageProvider) error {
 	storageProvider := &models.StorageProvider{
+		SpId:            createStorageProvider.SpId,
 		OperatorAddress: common.HexToAddress(createStorageProvider.SpAddress),
 		FundingAddress:  common.HexToAddress(createStorageProvider.FundingAddress),
 		SealAddress:     common.HexToAddress(createStorageProvider.SealAddress),
@@ -80,6 +96,7 @@ func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctype
 		Website:         createStorageProvider.Description.Website,
 		SecurityContact: createStorageProvider.Description.SecurityContact,
 		Details:         createStorageProvider.Description.Details,
+		BlsKey:          createStorageProvider.BlsKey,
 
 		CreateTxHash: txHash,
 		CreateAt:     block.Block.Height,
@@ -93,6 +110,7 @@ func (m *Module) handleCreateStorageProvider(ctx context.Context, block *tmctype
 
 func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, editStorageProvider *sptypes.EventEditStorageProvider) error {
 	storageProvider := &models.StorageProvider{
+		SpId:            editStorageProvider.SpId,
 		OperatorAddress: common.HexToAddress(editStorageProvider.SpAddress),
 		SealAddress:     common.HexToAddress(editStorageProvider.SealAddress),
 		ApprovalAddress: common.HexToAddress(editStorageProvider.ApprovalAddress),
@@ -103,6 +121,7 @@ func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.
 		Website:         editStorageProvider.Description.Website,
 		SecurityContact: editStorageProvider.Description.SecurityContact,
 		Details:         editStorageProvider.Description.Details,
+		BlsKey:          editStorageProvider.BlsKey,
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
@@ -114,11 +133,11 @@ func (m *Module) handleEditStorageProvider(ctx context.Context, block *tmctypes.
 
 func (m *Module) handleSpStoragePriceUpdate(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, spStoragePriceUpdate *sptypes.EventSpStoragePriceUpdate) error {
 	storageProvider := &models.StorageProvider{
-		OperatorAddress: common.HexToAddress(spStoragePriceUpdate.SpAddress),
-		UpdateTimeSec:   spStoragePriceUpdate.UpdateTimeSec,
-		ReadPrice:       (*common.Big)(spStoragePriceUpdate.ReadPrice.BigInt()),
-		FreeReadQuota:   spStoragePriceUpdate.FreeReadQuota,
-		StorePrice:      (*common.Big)(spStoragePriceUpdate.StorePrice.BigInt()),
+		SpId:          spStoragePriceUpdate.SpId,
+		UpdateTimeSec: spStoragePriceUpdate.UpdateTimeSec,
+		ReadPrice:     (*common.Big)(spStoragePriceUpdate.ReadPrice.BigInt()),
+		FreeReadQuota: spStoragePriceUpdate.FreeReadQuota,
+		StorePrice:    (*common.Big)(spStoragePriceUpdate.StorePrice.BigInt()),
 
 		UpdateAt:     block.Block.Height,
 		UpdateTxHash: txHash,
@@ -126,4 +145,15 @@ func (m *Module) handleSpStoragePriceUpdate(ctx context.Context, block *tmctypes
 	}
 
 	return m.db.UpdateStorageProvider(ctx, storageProvider)
+}
+
+func (m *Module) handleCompleteStorageProviderExit(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, completeStorageProviderExit *vgtypes.EventCompleteStorageProviderExit) error {
+	data := &models.StorageProvider{
+		SpId: completeStorageProviderExit.StorageProviderId,
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		Removed:      true,
+	}
+	return m.db.UpdateStorageProvider(ctx, data)
 }
