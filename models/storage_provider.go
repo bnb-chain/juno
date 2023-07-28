@@ -7,7 +7,8 @@ import (
 type StorageProvider struct {
 	ID uint64 `gorm:"column:id;primaryKey"`
 
-	OperatorAddress common.Address `gorm:"column:operator_address;type:BINARY(20);uniqueIndex:idx_operator_address"`
+	SpId            uint32         `gorm:"column:sp_id;index:idx_sp_id"`
+	OperatorAddress common.Address `gorm:"column:operator_address;type:BINARY(20);index:idx_operator_address"`
 	FundingAddress  common.Address `gorm:"column:funding_address;type:BINARY(20)"`
 	SealAddress     common.Address `gorm:"column:seal_address;;type:BINARY(20)"`
 	ApprovalAddress common.Address `gorm:"column:approval_address;;type:BINARY(20)"`
@@ -20,6 +21,7 @@ type StorageProvider struct {
 	Website         string         `gorm:"column:website;type:VARCHAR(128)"`
 	SecurityContact string         `gorm:"column:security_contact;type:VARCHAR(128)"`
 	Details         string         `gorm:"column:details;type:VARCHAR(256)"`
+	BlsKey          string         `gorm:"column:bls_key;type:VARCHAR(96)"`
 
 	UpdateTimeSec int64       `gorm:"column:update_time_sec"`
 	ReadPrice     *common.Big `gorm:"column:read_price"`

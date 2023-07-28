@@ -122,6 +122,18 @@ type Database interface {
 
 	RemoveStatements(ctx context.Context, policyID common.Hash) error
 
+	SaveGVG(ctx context.Context, gvg *models.GlobalVirtualGroup) error
+
+	UpdateGVG(ctx context.Context, gvg *models.GlobalVirtualGroup) error
+
+	SaveLVG(ctx context.Context, lvg *models.LocalVirtualGroup) error
+
+	UpdateLVG(ctx context.Context, lvg *models.LocalVirtualGroup) error
+
+	SaveVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamily) error
+
+	UpdateVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamily) error
+
 	// Begin begins a transaction with any transaction options opts
 	Begin(ctx context.Context) *Impl
 
@@ -448,14 +460,14 @@ func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
 
 func (db *Impl) CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
 	err := db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "operator_address"}},
+		Columns:   []clause.Column{{Name: "sp_id"}},
 		UpdateAll: true,
 	}).Create(storageProvider).Error
 	return err
 }
 
 func (db *Impl) UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
-	return db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Where("operator_address = ? ", storageProvider.OperatorAddress).Updates(storageProvider).Error
+	return db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Where("sp_id = ? ", storageProvider.SpId).Updates(storageProvider).Error
 }
 
 func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Statements) error {
@@ -464,6 +476,45 @@ func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Sta
 
 func (db *Impl) RemoveStatements(ctx context.Context, policyID common.Hash) error {
 	return db.Db.WithContext(ctx).Table((&models.Statements{}).TableName()).Where("policy_id = ?", policyID).Update("removed", true).Error
+}
+
+func (db *Impl) SaveGVG(ctx context.Context, gvg *models.GlobalVirtualGroup) error {
+	err := db.Db.WithContext(ctx).Table((&models.GlobalVirtualGroup{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "global_virtual_group_id"}},
+		UpdateAll: true,
+	}).Create(gvg).Error
+	return err
+}
+
+func (db *Impl) UpdateGVG(ctx context.Context, gvg *models.GlobalVirtualGroup) error {
+	err := db.Db.WithContext(ctx).Table((&models.GlobalVirtualGroup{}).TableName()).Where("global_virtual_group_id = ?", gvg.GlobalVirtualGroupId).Updates(gvg).Error
+	return err
+}
+
+func (db *Impl) SaveLVG(ctx context.Context, lvg *models.LocalVirtualGroup) error {
+	err := db.Db.WithContext(ctx).Table((&models.LocalVirtualGroup{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "local_virtual_group_id"}},
+		UpdateAll: true,
+	}).Create(lvg).Error
+	return err
+}
+
+func (db *Impl) UpdateLVG(ctx context.Context, lvg *models.LocalVirtualGroup) error {
+	err := db.Db.WithContext(ctx).Table((&models.LocalVirtualGroup{}).TableName()).Where("local_virtual_group_id = ? and bucket_id = ?", lvg.LocalVirtualGroupId, lvg.BucketID).Updates(lvg).Error
+	return err
+}
+
+func (db *Impl) SaveVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamily) error {
+	err := db.Db.WithContext(ctx).Table((&models.GlobalVirtualGroupFamily{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "global_virtual_group_family_id"}},
+		UpdateAll: true,
+	}).Create(vgf).Error
+	return err
+}
+
+func (db *Impl) UpdateVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamily) error {
+	err := db.Db.WithContext(ctx).Table((&models.GlobalVirtualGroupFamily{}).TableName()).Where("global_virtual_group_family_id = ?", vgf.GlobalVirtualGroupFamilyId).Updates(vgf).Error
+	return err
 }
 
 func (db *Impl) Begin(ctx context.Context) *Impl {

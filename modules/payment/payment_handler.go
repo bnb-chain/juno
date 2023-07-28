@@ -9,7 +9,6 @@ import (
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
-	jsoniter "github.com/json-iterator/go"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -21,13 +20,17 @@ var (
 	EventStreamRecordUpdate   = proto.MessageName(&paymenttypes.EventStreamRecordUpdate{})
 )
 
-var paymentEvents = map[string]bool{
+var PaymentEvents = map[string]bool{
 	EventPaymentAccountUpdate: true,
 	EventStreamRecordUpdate:   true,
 }
 
+func (m *Module) ExtractEventStatements(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) (map[string][]interface{}, error) {
+	return nil, nil
+}
+
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
-	if !paymentEvents[event.Type] {
+	if !PaymentEvents[event.Type] {
 		return nil
 	}
 
@@ -71,22 +74,16 @@ func (m *Module) handlePaymentAccountUpdate(ctx context.Context, block *tmctypes
 
 func (m *Module) handleEventStreamRecordUpdate(ctx context.Context, streamRecordUpdate *paymenttypes.EventStreamRecordUpdate) error {
 	streamRecord := &models.StreamRecord{
-		Account:         common.HexToAddress(streamRecordUpdate.Account),
-		CrudTimestamp:   streamRecordUpdate.CrudTimestamp,
-		NetflowRate:     (*common.Big)(streamRecordUpdate.NetflowRate.BigInt()),
-		StaticBalance:   (*common.Big)(streamRecordUpdate.StaticBalance.BigInt()),
-		BufferBalance:   (*common.Big)(streamRecordUpdate.BufferBalance.BigInt()),
-		LockBalance:     (*common.Big)(streamRecordUpdate.LockBalance.BigInt()),
-		Status:          streamRecordUpdate.Status.String(),
-		SettleTimestamp: streamRecordUpdate.SettleTimestamp,
+		Account:           common.HexToAddress(streamRecordUpdate.Account),
+		CrudTimestamp:     streamRecordUpdate.CrudTimestamp,
+		NetflowRate:       (*common.Big)(streamRecordUpdate.NetflowRate.BigInt()),
+		FrozenNetflowRate: (*common.Big)(streamRecordUpdate.FrozenNetflowRate.BigInt()),
+		StaticBalance:     (*common.Big)(streamRecordUpdate.StaticBalance.BigInt()),
+		BufferBalance:     (*common.Big)(streamRecordUpdate.BufferBalance.BigInt()),
+		LockBalance:       (*common.Big)(streamRecordUpdate.LockBalance.BigInt()),
+		Status:            streamRecordUpdate.Status.String(),
+		SettleTimestamp:   streamRecordUpdate.SettleTimestamp,
 	}
-
-	outflows, err := jsoniter.Marshal(streamRecordUpdate.OutFlows)
-	if err != nil {
-		return errors.New("marshal stream record outflows failed")
-	}
-
-	streamRecord.OutFlows = outflows
 
 	return m.db.SaveStreamRecord(ctx, streamRecord)
 }

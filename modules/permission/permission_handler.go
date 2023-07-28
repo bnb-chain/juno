@@ -20,7 +20,7 @@ var (
 	EventDeletePolicy = proto.MessageName(&permissiontypes.EventDeletePolicy{})
 )
 
-var policyEvents = map[string]bool{
+var PolicyEvents = map[string]bool{
 	EventPutPolicy:    true,
 	EventDeletePolicy: true,
 }
@@ -40,8 +40,12 @@ var actionTypeMap = map[permissiontypes.ActionType]int{
 	permissiontypes.ACTION_UPDATE_OBJECT_INFO:  11,
 }
 
+func (m *Module) ExtractEventStatements(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) (map[string][]interface{}, error) {
+	return nil, nil
+}
+
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
-	if !policyEvents[event.Type] {
+	if !PolicyEvents[event.Type] {
 		return nil
 	}
 
