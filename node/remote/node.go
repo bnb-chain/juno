@@ -48,6 +48,7 @@ func NewNode(cfg *Details, codec codec.Codec) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
+	httpClient.Timeout = time.Second
 
 	// Tweak the transport
 	httpTransport, ok := (httpClient.Transport).(*http.Transport)
