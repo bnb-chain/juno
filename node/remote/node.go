@@ -12,6 +12,7 @@ import (
 	constypes "github.com/cometbft/cometbft/consensus/types"
 	tmjson "github.com/cometbft/cometbft/libs/json"
 	httpclient "github.com/cometbft/cometbft/rpc/client/http"
+	bftws "github.com/cometbft/cometbft/rpc/client/http/v2"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	jsonrpcclient "github.com/cometbft/cometbft/rpc/jsonrpc/client"
 	tmtypes "github.com/cometbft/cometbft/types"
@@ -37,6 +38,7 @@ var (
 type Node struct {
 	ctx             context.Context
 	codec           codec.Codec
+	httpClient      *bftws.HTTP
 	client          *httpclient.HTTP
 	txServiceClient tx.ServiceClient
 	grpcConnection  *grpc.ClientConn
@@ -44,11 +46,11 @@ type Node struct {
 
 // NewNode allows to build a new Node instance
 func NewNode(cfg *Details, codec codec.Codec) (*Node, error) {
+	client, _ := bftws.New(cfg.RPC.Address, "/websocket")
 	httpClient, err := jsonrpcclient.DefaultHTTPClient(cfg.RPC.Address)
 	if err != nil {
 		return nil, err
 	}
-	//httpClient.Timeout = time.Second
 
 	// Tweak the transport
 	httpTransport, ok := (httpClient.Transport).(*http.Transport)
@@ -79,6 +81,7 @@ func NewNode(cfg *Details, codec codec.Codec) (*Node, error) {
 		ctx:   context.Background(),
 		codec: codec,
 
+		httpClient:      client,
 		client:          rpcClient,
 		txServiceClient: tx.NewServiceClient(clientCtx),
 	}, nil
