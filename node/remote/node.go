@@ -11,6 +11,7 @@ import (
 	gftypes "github.com/bnb-chain/greenfield/sdk/types"
 	constypes "github.com/cometbft/cometbft/consensus/types"
 	tmjson "github.com/cometbft/cometbft/libs/json"
+	cometbftcli "github.com/cometbft/cometbft/rpc/client"
 	httpclient "github.com/cometbft/cometbft/rpc/client/http"
 	bftws "github.com/cometbft/cometbft/rpc/client/http/v2"
 	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
@@ -38,7 +39,7 @@ var (
 type Node struct {
 	ctx             context.Context
 	codec           codec.Codec
-	httpClient      *bftws.HTTP
+	httpClient      cometbftcli.Client
 	client          *httpclient.HTTP
 	txServiceClient tx.ServiceClient
 	grpcConnection  *grpc.ClientConn
@@ -47,6 +48,10 @@ type Node struct {
 // NewNode allows to build a new Node instance
 func NewNode(cfg *Details, codec codec.Codec) (*Node, error) {
 	client, _ := bftws.New(cfg.RPC.Address, "/websocket")
+	err := client.Start()
+	if err != nil {
+		return nil, err
+	}
 	httpClient, err := jsonrpcclient.DefaultHTTPClient(cfg.RPC.Address)
 	if err != nil {
 		return nil, err
@@ -78,9 +83,8 @@ func NewNode(cfg *Details, codec codec.Codec) (*Node, error) {
 		WithClient(rpcClient)
 
 	return &Node{
-		ctx:   context.Background(),
-		codec: codec,
-
+		ctx:             context.Background(),
+		codec:           codec,
 		httpClient:      client,
 		client:          rpcClient,
 		txServiceClient: tx.NewServiceClient(clientCtx),
@@ -199,12 +203,16 @@ func (cp *Node) Validators(height int64) (*tmctypes.ResultValidators, error) {
 
 // Block implements node.Node
 func (cp *Node) Block(height int64) (*tmctypes.ResultBlock, error) {
-	return cp.client.Block(cp.ctx, &height)
+	ctx, cancel := context.WithTimeout(cp.ctx, time.Second*time.Duration(3))
+	defer cancel()
+	return cp.httpClient.Block(ctx, &height)
 }
 
 // BlockResults implements node.Node
 func (cp *Node) BlockResults(height int64) (*tmctypes.ResultBlockResults, error) {
-	return cp.client.BlockResults(cp.ctx, &height)
+	ctx, cancel := context.WithTimeout(cp.ctx, time.Second*time.Duration(3))
+	defer cancel()
+	return cp.httpClient.BlockResults(ctx, &height)
 }
 
 // Tx implements node.Node
