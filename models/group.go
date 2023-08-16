@@ -10,8 +10,9 @@ type Group struct {
 	SourceType string         `gorm:"column:source_type;type:varchar(63)"`
 	Extra      string         `gorm:"column:extra;type:varchar(512)"`
 
-	AccountID common.Address `gorm:"column:account_id;type:BINARY(20);unique_index:idx_account_group,priority:1"`
-	Operator  common.Address `gorm:"column:operator;type:BINARY(20)"`
+	AccountID      common.Address `gorm:"column:account_id;type:BINARY(20);unique_index:idx_account_group,priority:1"`
+	Operator       common.Address `gorm:"column:operator;type:BINARY(20)"`
+	ExpirationTime int64          `gorm:"column:expiration_time"`
 
 	CreateAt   int64 `gorm:"column:create_at"`
 	CreateTime int64 `gorm:"column:create_time"`
