@@ -5,12 +5,12 @@ import "github.com/forbole/juno/v4/common"
 type Group struct {
 	ID         uint64         `gorm:"column:id;primaryKey"`
 	Owner      common.Address `gorm:"column:owner;type:BINARY(20);index:idx_owner"`
-	GroupID    common.Hash    `gorm:"column:group_id;type:BINARY(32);index:idx_group_id;unique_index:idx_account_group,priority:2"`
+	GroupID    common.Hash    `gorm:"column:group_id;type:BINARY(32);index:idx_group_id;uniqueIndex:idx_account_group,priority:2"`
 	GroupName  string         `gorm:"column:group_name;type:varchar(63);index:idx_group_name"`
 	SourceType string         `gorm:"column:source_type;type:varchar(63)"`
 	Extra      string         `gorm:"column:extra;type:varchar(512)"`
 
-	AccountID      common.Address `gorm:"column:account_id;type:BINARY(20);unique_index:idx_account_group,priority:1"`
+	AccountID      common.Address `gorm:"column:account_id;type:BINARY(20);uniqueIndex:idx_account_group,priority:1"`
 	Operator       common.Address `gorm:"column:operator;type:BINARY(20)"`
 	ExpirationTime int64          `gorm:"column:expiration_time"`
 
