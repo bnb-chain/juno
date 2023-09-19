@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/forbole/juno/v4/common"
+	"github.com/shopspring/decimal"
 )
 
 type Bucket struct {
@@ -19,6 +20,9 @@ type Bucket struct {
 	Status                     string         `gorm:"column:status;type:varchar(64);"`
 	DeleteAt                   int64          `gorm:"column:delete_at"`
 	DeleteReason               string         `gorm:"column:delete_reason;type:varchar(256);"`
+
+	StorageSize decimal.Decimal `gorm:"column:storage_size;type:DECIMAL(65, 0);not null"`
+	ChargeSize  decimal.Decimal `gorm:"column:charge_size;type:DECIMAL(65, 0);not null"`
 
 	CreateAt     int64       `gorm:"column:create_at"`
 	CreateTxHash common.Hash `gorm:"column:create_tx_hash;type:BINARY(32);not null"`
