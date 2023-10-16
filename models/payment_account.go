@@ -7,7 +7,7 @@ type PaymentAccount struct {
 
 	Addr       common.Address `gorm:"column:addr;type:BINARY(20);not null;uniqueIndex:idx_addr"`
 	Owner      common.Address `gorm:"column:owner;type:BINARY(20);not null;index:idx_owner"`
-	Refundable bool           `gorm:"column:refundable;not null;default:true"`
+	Refundable bool           `gorm:"column:refundable"`
 
 	UpdateAt   int64 `gorm:"column:update_at;type:bigint(64)"`
 	UpdateTime int64 `gorm:"column:update_time;type:bigint(64)"`
