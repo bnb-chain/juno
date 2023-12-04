@@ -1,6 +1,7 @@
 package models
 
 import (
+	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
 	"github.com/lib/pq"
 
 	"github.com/forbole/juno/v4/common"
@@ -36,6 +37,9 @@ type Object struct {
 	SealedTxHash common.Hash `gorm:"column:sealed_tx_hash;type:BINARY(32)"`
 	UpdateTime   int64       `gorm:"column:update_time"` // seconds
 	Removed      bool        `gorm:"column:removed;default:false"`
+
+	Tags storagetypes.ResourceTags `gorm:"column:tags;TYPE:json"` // tags
+
 }
 
 func (*Object) TableName() string {
