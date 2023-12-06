@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/lib/pq"
+	"gorm.io/datatypes"
 
 	"github.com/forbole/juno/v4/common"
 )
@@ -37,7 +38,7 @@ type Object struct {
 	UpdateTime   int64       `gorm:"column:update_time"` // seconds
 	Removed      bool        `gorm:"column:removed;default:false"`
 
-	Tags string `gorm:"column:tags;TYPE:json"` // tags
+	Tags datatypes.JSON `gorm:"column:tags;TYPE:json"` // tags
 
 }
 

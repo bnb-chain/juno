@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/forbole/juno/v4/common"
+	"gorm.io/datatypes"
 )
 
 type Group struct {
@@ -22,7 +23,7 @@ type Group struct {
 	UpdateTime int64 `gorm:"column:update_time"`
 	Removed    bool  `gorm:"column:removed;default:false"`
 
-	Tags string `gorm:"column:tags;TYPE:json"` // tags
+	Tags datatypes.JSON `gorm:"column:tags;TYPE:json"` // tags
 
 }
 

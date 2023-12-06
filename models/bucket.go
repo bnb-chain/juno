@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/forbole/juno/v4/common"
 	"github.com/shopspring/decimal"
+	datatypes "gorm.io/datatypes"
 )
 
 type Bucket struct {
@@ -32,7 +33,7 @@ type Bucket struct {
 	UpdateTime   int64       `gorm:"column:update_time"` // seconds
 	Removed      bool        `gorm:"column:removed;default:false"`
 
-	Tags string `gorm:"column:tags;TYPE:json"` // tags
+	Tags datatypes.JSON `gorm:"column:tags;TYPE:json"` // tags
 }
 
 func (*Bucket) TableName() string {
