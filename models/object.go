@@ -1,7 +1,6 @@
 package models
 
 import (
-	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
 	"github.com/lib/pq"
 
 	"github.com/forbole/juno/v4/common"
@@ -38,7 +37,7 @@ type Object struct {
 	UpdateTime   int64       `gorm:"column:update_time"` // seconds
 	Removed      bool        `gorm:"column:removed;default:false"`
 
-	Tags storagetypes.ResourceTags `gorm:"column:tags;TYPE:json"` // tags
+	Tags string `gorm:"column:tags;TYPE:json"` // tags
 
 }
 

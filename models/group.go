@@ -1,7 +1,6 @@
 package models
 
 import (
-	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
 	"github.com/forbole/juno/v4/common"
 )
 
@@ -23,7 +22,7 @@ type Group struct {
 	UpdateTime int64 `gorm:"column:update_time"`
 	Removed    bool  `gorm:"column:removed;default:false"`
 
-	Tags storagetypes.ResourceTags `gorm:"column:tags;TYPE:json"` // tags
+	Tags string `gorm:"column:tags;TYPE:json"` // tags
 
 }
 

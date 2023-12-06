@@ -1,7 +1,6 @@
 package models
 
 import (
-	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
 	"github.com/forbole/juno/v4/common"
 	"github.com/shopspring/decimal"
 )
@@ -33,7 +32,7 @@ type Bucket struct {
 	UpdateTime   int64       `gorm:"column:update_time"` // seconds
 	Removed      bool        `gorm:"column:removed;default:false"`
 
-	Tags storagetypes.ResourceTags `gorm:"column:tags;TYPE:json"` // tags
+	Tags string `gorm:"column:tags;TYPE:json"` // tags
 }
 
 func (*Bucket) TableName() string {
