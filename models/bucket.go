@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/forbole/juno/v4/common"
 	"github.com/shopspring/decimal"
+	datatypes "gorm.io/datatypes"
 )
 
 type Bucket struct {
@@ -31,6 +32,8 @@ type Bucket struct {
 	UpdateTxHash common.Hash `gorm:"column:update_tx_hash;type:BINARY(32);not null"`
 	UpdateTime   int64       `gorm:"column:update_time"` // seconds
 	Removed      bool        `gorm:"column:removed;default:false"`
+
+	Tags datatypes.JSON `gorm:"column:tags;TYPE:json"` // tags
 }
 
 func (*Bucket) TableName() string {

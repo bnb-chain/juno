@@ -1,6 +1,9 @@
 package models
 
-import "github.com/forbole/juno/v4/common"
+import (
+	"github.com/forbole/juno/v4/common"
+	"gorm.io/datatypes"
+)
 
 type Group struct {
 	ID         uint64         `gorm:"column:id;primaryKey"`
@@ -19,6 +22,9 @@ type Group struct {
 	UpdateAt   int64 `gorm:"column:update_at"`
 	UpdateTime int64 `gorm:"column:update_time"`
 	Removed    bool  `gorm:"column:removed;default:false"`
+
+	Tags datatypes.JSON `gorm:"column:tags;TYPE:json"` // tags
+
 }
 
 func (*Group) TableName() string {
