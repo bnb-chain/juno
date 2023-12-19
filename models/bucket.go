@@ -12,7 +12,7 @@ type Bucket struct {
 	BucketID                   common.Hash    `gorm:"column:bucket_id;type:BINARY(32);uniqueIndex:idx_bucket_id"`
 	BucketName                 string         `gorm:"column:bucket_name;type:varchar(64);uniqueIndex:idx_bucket_name"` // BucketName length between 3 and 63
 	Owner                      common.Address `gorm:"column:owner;type:BINARY(20);index:idx_owner"`
-	PaymentAddress             common.Address `gorm:"column:payment_address;type:BINARY(20)"`
+	PaymentAddress             common.Address `gorm:"column:payment_address;type:BINARY(20);index:idx_payment_address"`
 	GlobalVirtualGroupFamilyId uint32         `gorm:"column:global_virtual_group_family_id;index:idx_vgf_id"`
 	Operator                   common.Address `gorm:"column:operator;type:BINARY(20)"`
 	SourceType                 string         `gorm:"column:source_type;type:VARCHAR(50)"`
