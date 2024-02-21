@@ -40,6 +40,10 @@ type Object struct {
 
 	Tags datatypes.JSON `gorm:"column:tags;TYPE:json"` // tags
 
+	IsUpdating         bool           `gorm:"is_updating"`
+	ContentUpdatedTime int64          `gorm:"content_updated_time"` // ContentUpdatedTime defines the content updated time, it is related to updated_at in ObjectInfo
+	Updater            common.Address `gorm:"column:updater;type:BINARY(20)"`
+	Version            int64          `gorm:"version"`
 }
 
 func (*Object) TableName() string {
