@@ -25,13 +25,14 @@ type Bucket struct {
 	StorageSize decimal.Decimal `gorm:"column:storage_size;type:DECIMAL(65, 0);not null"`
 	ChargeSize  decimal.Decimal `gorm:"column:charge_size;type:DECIMAL(65, 0);not null"`
 
-	CreateAt     int64       `gorm:"column:create_at"`
-	CreateTxHash common.Hash `gorm:"column:create_tx_hash;type:BINARY(32);not null"`
-	CreateTime   int64       `gorm:"column:create_time"` // seconds
-	UpdateAt     int64       `gorm:"column:update_at"`
-	UpdateTxHash common.Hash `gorm:"column:update_tx_hash;type:BINARY(32);not null"`
-	UpdateTime   int64       `gorm:"column:update_time"` // seconds
-	Removed      bool        `gorm:"column:removed;default:false"`
+	CreateAt       int64       `gorm:"column:create_at"`
+	CreateTxHash   common.Hash `gorm:"column:create_tx_hash;type:BINARY(32);not null"`
+	CreateTime     int64       `gorm:"column:create_time"` // seconds
+	UpdateAt       int64       `gorm:"column:update_at"`
+	UpdateTxHash   common.Hash `gorm:"column:update_tx_hash;type:BINARY(32);not null"`
+	UpdateTime     int64       `gorm:"column:update_time"` // seconds
+	Removed        bool        `gorm:"column:removed;default:false"`
+	OffChainStatus int         `gorm:"column:off_chain_status;type:int"`
 
 	Tags datatypes.JSON `gorm:"column:tags;TYPE:json"` // tags
 }
