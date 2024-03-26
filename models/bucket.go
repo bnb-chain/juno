@@ -32,7 +32,7 @@ type Bucket struct {
 	UpdateTxHash   common.Hash `gorm:"column:update_tx_hash;type:BINARY(32);not null"`
 	UpdateTime     int64       `gorm:"column:update_time"` // seconds
 	Removed        bool        `gorm:"column:removed;default:false"`
-	OffChainStatus int         `gorm:"column:off_chain_status;type:int"`
+	OffChainStatus int         `gorm:"column:off_chain_status;type:int;not null;default:0"`
 
 	Tags datatypes.JSON `gorm:"column:tags;TYPE:json"` // tags
 }
