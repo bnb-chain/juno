@@ -19,6 +19,7 @@ package common
 import (
 	"bytes"
 	"database/sql/driver"
+	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -26,6 +27,7 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"golang.org/x/crypto/sha3"
@@ -461,4 +463,47 @@ func (i Big) Value() (driver.Value, error) {
 
 func (i *Big) Raw() *big.Int {
 	return (*big.Int)(i)
+}
+
+type Uint32Array []uint32
+
+func (a *Uint32Array) Scan(value interface{}) error {
+	if value == nil {
+		*a = nil
+		return nil
+	}
+	s, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("failed to scan Uint32Array value: %v", value)
+	}
+	r := csv.NewReader(strings.NewReader(s))
+	records, err := r.ReadAll()
+	if err != nil {
+		return fmt.Errorf("failed to scan Uint32Array value: %v", err)
+	}
+	if len(records) != 1 {
+		return fmt.Errorf("failed to scan Uint32Array value: invalid format")
+	}
+	fields := records[0]
+	result := make([]uint32, len(fields))
+	for i, field := range fields {
+		value, err := strconv.ParseUint(field, 10, 32)
+		if err != nil {
+			return fmt.Errorf("failed to scan Uint32Array value: %v", err)
+		}
+		result[i] = uint32(value)
+	}
+	*a = result
+	return nil
+}
+
+func (a Uint32Array) Value() (driver.Value, error) {
+	if len(a) == 0 {
+		return nil, nil
+	}
+	values := make([]string, len(a))
+	for i, value := range a {
+		values[i] = strconv.FormatUint(uint64(value), 10)
+	}
+	return strings.Join(values, ","), nil
 }

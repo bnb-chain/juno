@@ -25,8 +25,8 @@ type Database interface {
 	// PrepareTables create tables
 	PrepareTables(ctx context.Context, tables []schema.Tabler) error
 
-	// RecreateTables recreate tables when given table exists
-	RecreateTables(ctx context.Context, tables []schema.Tabler) error
+	// AutoMigrate Automatically migrate your schema, to keep your schema up to date.
+	AutoMigrate(ctx context.Context, tables []schema.Tabler) error
 
 	// HasBlock tells whether the database has already stored the block having the given height.
 	// An error is returned if the operation fails.
@@ -51,14 +51,6 @@ type Database interface {
 	// SaveTx will be called to save each transaction contained inside a block.
 	// An error is returned if the operation fails.
 	SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx *types.Tx) error
-
-	// HasValidator returns true if a given validator by consensus address exists.
-	// An error is returned if the operation fails.
-	HasValidator(ctx context.Context, address common.Address) (bool, error)
-
-	// SaveValidators stores a list of validators if they do not already exist.
-	// An error is returned if the operation fails.
-	SaveValidators(ctx context.Context, validators []*models.Validator) error
 
 	// SaveCommitSignatures stores a  slice of validator commit signatures.
 	// An error is returned if the operation fails.
@@ -116,11 +108,31 @@ type Database interface {
 	// An error is returned if the operation fails.
 	DeleteGroup(ctx context.Context, group *models.Group) error
 
+	// CreateStorageProvider will be called to save each sp contained inside an event.
+	// An error is returned if the operation fails.
+	CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error
+
+	// UpdateStorageProvider will be called to update each sp
+	// An error is returned if the operation fails.
+	UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error
+
 	// MultiSaveStatement will be called to save each statement contained inside a policy.
 	// An error is returned if the operation fails.
 	MultiSaveStatement(ctx context.Context, statements []*models.Statements) error
 
 	RemoveStatements(ctx context.Context, policyID common.Hash) error
+
+	SaveGVG(ctx context.Context, gvg *models.GlobalVirtualGroup) error
+
+	UpdateGVG(ctx context.Context, gvg *models.GlobalVirtualGroup) error
+
+	SaveLVG(ctx context.Context, lvg *models.LocalVirtualGroup) error
+
+	UpdateLVG(ctx context.Context, lvg *models.LocalVirtualGroup) error
+
+	SaveVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamily) error
+
+	UpdateVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamily) error
 
 	// Begin begins a transaction with any transaction options opts
 	Begin(ctx context.Context) *Impl
@@ -201,7 +213,7 @@ func (db *Impl) PrepareTables(ctx context.Context, tables []schema.Tabler) error
 		}
 
 		if err := q.Table(t.TableName()).AutoMigrate(t); err != nil {
-			log.Errorw("create table failed", "table", t.TableName(), "err", err)
+			log.Errorw("migrate table failed", "table", t.TableName(), "err", err)
 			return err
 		}
 	}
@@ -209,17 +221,11 @@ func (db *Impl) PrepareTables(ctx context.Context, tables []schema.Tabler) error
 	return nil
 }
 
-func (db *Impl) RecreateTables(ctx context.Context, tables []schema.Tabler) error {
+func (db *Impl) AutoMigrate(ctx context.Context, tables []schema.Tabler) error {
 	m := db.Db.Migrator()
 	for _, t := range tables {
-		if m.HasTable(t.TableName()) {
-			if err := m.DropTable(t.TableName()); err != nil {
-				log.Errorw("delete table failed", "table", t.TableName(), "err", err)
-				return err
-			}
-		}
-		if err := m.CreateTable(t); err != nil {
-			log.Errorw("create table failed", "table", t.TableName(), "err", err)
+		if err := m.AutoMigrate(t); err != nil {
+			log.Errorw("migrate table failed", "table", t.TableName(), "err", err)
 			return err
 		}
 	}
@@ -329,26 +335,6 @@ func (db *Impl) SaveTx(ctx context.Context, blockTimestamp uint64, index int, tx
 		Columns:   []clause.Column{{Name: "height"}, {Name: "tx_index"}},
 		UpdateAll: true,
 	}).Create(dbTx).Error
-	return err
-}
-
-// HasValidator implements database.Database
-func (db *Impl) HasValidator(ctx context.Context, addr common.Address) (bool, error) {
-	var res bool
-	stmt := `SELECT EXISTS(SELECT 1 FROM validators WHERE consensus_address = ?);`
-	err := db.Db.Raw(stmt, addr).WithContext(ctx).Take(&res).Error
-	return res, err
-}
-
-// SaveValidators implements database.Database
-func (db *Impl) SaveValidators(ctx context.Context, validators []*models.Validator) error {
-	if len(validators) == 0 {
-		return nil
-	}
-
-	err := db.Db.Table((&models.Validator{}).TableName()).WithContext(ctx).
-		Clauses(clause.OnConflict{DoNothing: true}).Save(validators).Error
-
 	return err
 }
 
@@ -472,12 +458,63 @@ func (db *Impl) DeleteGroup(ctx context.Context, group *models.Group) error {
 	return db.Db.WithContext(ctx).Table((&models.Group{}).TableName()).Where("group_id = ?", group.GroupID).Updates(group).Error
 }
 
+func (db *Impl) CreateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
+	err := db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "sp_id"}},
+		UpdateAll: true,
+	}).Create(storageProvider).Error
+	return err
+}
+
+func (db *Impl) UpdateStorageProvider(ctx context.Context, storageProvider *models.StorageProvider) error {
+	return db.Db.WithContext(ctx).Table((&models.StorageProvider{}).TableName()).Where("sp_id = ? ", storageProvider.SpId).Updates(storageProvider).Error
+}
+
 func (db *Impl) MultiSaveStatement(ctx context.Context, statements []*models.Statements) error {
 	return db.Db.WithContext(ctx).Table((&models.Statements{}).TableName()).Create(statements).Error
 }
 
 func (db *Impl) RemoveStatements(ctx context.Context, policyID common.Hash) error {
 	return db.Db.WithContext(ctx).Table((&models.Statements{}).TableName()).Where("policy_id = ?", policyID).Update("removed", true).Error
+}
+
+func (db *Impl) SaveGVG(ctx context.Context, gvg *models.GlobalVirtualGroup) error {
+	err := db.Db.WithContext(ctx).Table((&models.GlobalVirtualGroup{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "global_virtual_group_id"}},
+		UpdateAll: true,
+	}).Create(gvg).Error
+	return err
+}
+
+func (db *Impl) UpdateGVG(ctx context.Context, gvg *models.GlobalVirtualGroup) error {
+	err := db.Db.WithContext(ctx).Table((&models.GlobalVirtualGroup{}).TableName()).Where("global_virtual_group_id = ?", gvg.GlobalVirtualGroupId).Updates(gvg).Error
+	return err
+}
+
+func (db *Impl) SaveLVG(ctx context.Context, lvg *models.LocalVirtualGroup) error {
+	err := db.Db.WithContext(ctx).Table((&models.LocalVirtualGroup{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "local_virtual_group_id"}},
+		UpdateAll: true,
+	}).Create(lvg).Error
+	return err
+}
+
+func (db *Impl) UpdateLVG(ctx context.Context, lvg *models.LocalVirtualGroup) error {
+	err := db.Db.WithContext(ctx).Table((&models.LocalVirtualGroup{}).TableName()).Where("local_virtual_group_id = ? and bucket_id = ?", lvg.LocalVirtualGroupId, lvg.BucketID).Updates(lvg).Error
+	return err
+}
+
+func (db *Impl) SaveVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamily) error {
+	err := db.Db.WithContext(ctx).Table((&models.GlobalVirtualGroupFamily{}).TableName()).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "global_virtual_group_family_id"}},
+		UpdateAll: true,
+	}).Create(vgf).Error
+	return err
+}
+
+func (db *Impl) UpdateVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamily) error {
+	err := db.Db.WithContext(ctx).Table((&models.GlobalVirtualGroupFamily{}).TableName()).Where("global_virtual_group_family_id = ?", vgf.GlobalVirtualGroupFamilyId).Updates(vgf).Error
+	return err
 }
 
 func (db *Impl) Begin(ctx context.Context) *Impl {

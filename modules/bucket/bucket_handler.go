@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
+	abci "github.com/cometbft/cometbft/abci/types"
+	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/cosmos/gogoproto/proto"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -16,19 +16,27 @@ import (
 )
 
 var (
-	EventCreateBucket     = proto.MessageName(&storagetypes.EventCreateBucket{})
-	EventDeleteBucket     = proto.MessageName(&storagetypes.EventDeleteBucket{})
-	EventUpdateBucketInfo = proto.MessageName(&storagetypes.EventUpdateBucketInfo{})
+	EventCreateBucket            = proto.MessageName(&storagetypes.EventCreateBucket{})
+	EventDeleteBucket            = proto.MessageName(&storagetypes.EventDeleteBucket{})
+	EventUpdateBucketInfo        = proto.MessageName(&storagetypes.EventUpdateBucketInfo{})
+	EventDiscontinueBucket       = proto.MessageName(&storagetypes.EventDiscontinueBucket{})
+	EventCompleteMigrationBucket = proto.MessageName(&storagetypes.EventCompleteMigrationBucket{})
 )
 
-var bucketEvents = map[string]bool{
-	EventCreateBucket:     true,
-	EventDeleteBucket:     true,
-	EventUpdateBucketInfo: true,
+var BucketEvents = map[string]bool{
+	EventCreateBucket:            true,
+	EventDeleteBucket:            true,
+	EventUpdateBucketInfo:        true,
+	EventDiscontinueBucket:       true,
+	EventCompleteMigrationBucket: true,
+}
+
+func (m *Module) ExtractEventStatements(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) (map[string][]interface{}, error) {
+	return nil, nil
 }
 
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error {
-	if !bucketEvents[event.Type] {
+	if !BucketEvents[event.Type] {
 		return nil
 	}
 
@@ -60,6 +68,20 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 			return errors.New("update bucket event assert error")
 		}
 		return m.handleUpdateBucketInfo(ctx, block, txHash, updateBucketInfo)
+	case EventDiscontinueBucket:
+		discontinueBucket, ok := typedEvent.(*storagetypes.EventDiscontinueBucket)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventDiscontinueBucket", "event", typedEvent)
+			return errors.New("discontinue bucket event assert error")
+		}
+		return m.handleDiscontinueBucket(ctx, block, txHash, discontinueBucket)
+	case EventCompleteMigrationBucket:
+		completeMigrationBucket, ok := typedEvent.(*storagetypes.EventCompleteMigrationBucket)
+		if !ok {
+			log.Errorw("type assert error", "type", "EventCompleteMigrationBucket", "event", typedEvent)
+			return errors.New("complete migrate bucket event assert error")
+		}
+		return m.handleCompleteMigrationBucket(ctx, block, txHash, completeMigrationBucket)
 	}
 
 	return nil
@@ -67,18 +89,18 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, t
 
 func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, createBucket *storagetypes.EventCreateBucket) error {
 	bucket := &models.Bucket{
-		BucketID:         common.BigToHash(createBucket.BucketId.BigInt()),
-		BucketName:       createBucket.BucketName,
-		OwnerAddress:     common.HexToAddress(createBucket.OwnerAddress),
-		PaymentAddress:   common.HexToAddress(createBucket.PaymentAddress),
-		PrimarySpAddress: common.HexToAddress(createBucket.PrimarySpAddress),
-		OperatorAddress:  common.HexToAddress(createBucket.OwnerAddress),
-		SourceType:       createBucket.SourceType.String(),
-		ChargedReadQuota: createBucket.ChargedReadQuota,
-		Visibility:       createBucket.Visibility.String(),
+		BucketID:                   common.BigToHash(createBucket.BucketId.BigInt()),
+		BucketName:                 createBucket.BucketName,
+		Owner:                      common.HexToAddress(createBucket.Owner),
+		PaymentAddress:             common.HexToAddress(createBucket.PaymentAddress),
+		GlobalVirtualGroupFamilyId: createBucket.GlobalVirtualGroupFamilyId,
+		Operator:                   common.HexToAddress(createBucket.Owner),
+		SourceType:                 createBucket.SourceType.String(),
+		ChargedReadQuota:           createBucket.ChargedReadQuota,
+		Visibility:                 createBucket.Visibility.String(),
+		Status:                     createBucket.Status.String(),
 
-		Removed: false,
-
+		Removed:      false,
 		CreateAt:     block.Block.Height,
 		CreateTxHash: txHash,
 		CreateTime:   createBucket.CreateAt,
@@ -92,13 +114,31 @@ func (m *Module) handleCreateBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, deleteBucket *storagetypes.EventDeleteBucket) error {
 	bucket := &models.Bucket{
-		BucketID:        common.BigToHash(deleteBucket.BucketId.BigInt()),
-		BucketName:      deleteBucket.BucketName,
-		OperatorAddress: common.HexToAddress(deleteBucket.OperatorAddress),
-		Removed:         true,
-		UpdateAt:        block.Block.Height,
-		UpdateTxHash:    txHash,
-		UpdateTime:      block.Block.Time.UTC().Unix(),
+		BucketID:                   common.BigToHash(deleteBucket.BucketId.BigInt()),
+		BucketName:                 deleteBucket.BucketName,
+		Owner:                      common.HexToAddress(deleteBucket.Owner),
+		GlobalVirtualGroupFamilyId: deleteBucket.GlobalVirtualGroupFamilyId,
+
+		Removed:      true,
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
+	}
+
+	return m.db.UpdateBucket(ctx, bucket)
+}
+
+func (m *Module) handleDiscontinueBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, discontinueBucket *storagetypes.EventDiscontinueBucket) error {
+	bucket := &models.Bucket{
+		BucketID:     common.BigToHash(discontinueBucket.BucketId.BigInt()),
+		BucketName:   discontinueBucket.BucketName,
+		DeleteReason: discontinueBucket.Reason,
+		DeleteAt:     discontinueBucket.DeleteAt,
+		Status:       storagetypes.BUCKET_STATUS_DISCONTINUED.String(),
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)
@@ -106,14 +146,30 @@ func (m *Module) handleDeleteBucket(ctx context.Context, block *tmctypes.ResultB
 
 func (m *Module) handleUpdateBucketInfo(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, updateBucket *storagetypes.EventUpdateBucketInfo) error {
 	bucket := &models.Bucket{
-		BucketID:         common.BigToHash(updateBucket.BucketId.BigInt()),
-		BucketName:       updateBucket.BucketName,
-		ChargedReadQuota: updateBucket.ChargedReadQuotaAfter,
-		OperatorAddress:  common.HexToAddress(updateBucket.OperatorAddress),
-		PaymentAddress:   common.HexToAddress(updateBucket.PaymentAddressAfter),
-		UpdateAt:         block.Block.Height,
-		UpdateTxHash:     txHash,
-		UpdateTime:       block.Block.Time.UTC().Unix(),
+		BucketName:                 updateBucket.BucketName,
+		BucketID:                   common.BigToHash(updateBucket.BucketId.BigInt()),
+		ChargedReadQuota:           updateBucket.ChargedReadQuota,
+		PaymentAddress:             common.HexToAddress(updateBucket.PaymentAddress),
+		Visibility:                 updateBucket.Visibility.String(),
+		GlobalVirtualGroupFamilyId: updateBucket.GlobalVirtualGroupFamilyId,
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
+	}
+
+	return m.db.UpdateBucket(ctx, bucket)
+}
+
+func (m *Module) handleCompleteMigrationBucket(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, completeMigrationBucket *storagetypes.EventCompleteMigrationBucket) error {
+	bucket := &models.Bucket{
+		BucketID:                   common.BigToHash(completeMigrationBucket.BucketId.BigInt()),
+		BucketName:                 completeMigrationBucket.BucketName,
+		GlobalVirtualGroupFamilyId: completeMigrationBucket.GlobalVirtualGroupFamilyId,
+
+		UpdateAt:     block.Block.Height,
+		UpdateTxHash: txHash,
+		UpdateTime:   block.Block.Time.UTC().Unix(),
 	}
 
 	return m.db.UpdateBucket(ctx, bucket)

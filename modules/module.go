@@ -5,15 +5,17 @@ import (
 	"encoding/json"
 	"strings"
 
+	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
+	tmtypes "github.com/cometbft/cometbft/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/authz"
 	"github.com/go-co-op/gocron"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/types"
 )
+
+type GetTmcValidators func(height int64) (*tmctypes.ResultValidators, error)
 
 // Module represents a generic module without any particular handling of data
 type Module interface {
@@ -40,8 +42,8 @@ func (m Modules) FindByName(name string) (module Module, found bool) {
 type PrepareTablesModule interface {
 	// PrepareTables creates tables required by the module.
 	PrepareTables() error
-	// RecreateTables will recreate table as table schema changes.
-	RecreateTables() error
+	// AutoMigrate will migrate your schema, to keep your schema up to date.
+	AutoMigrate() error
 }
 
 type AdditionalOperationsModule interface {
@@ -88,7 +90,7 @@ type BlockModule interface {
 	// For each transaction present inside the block, HandleTx will be called as well.
 	// NOTE. The returned error will be logged using the BlockError method. All other modules' handlers
 	// will still be called.
-	HandleBlock(block *tmctypes.ResultBlock, results *tmctypes.ResultBlockResults, txs []*types.Tx, vals *tmctypes.ResultValidators) error
+	HandleBlock(block *tmctypes.ResultBlock, results *tmctypes.ResultBlockResults, txs []*types.Tx, getTmcValidators GetTmcValidators) error
 }
 
 type TransactionModule interface {
@@ -120,6 +122,10 @@ type AuthzMessageModule interface {
 type EventModule interface {
 	//HandleEvent index param here to save possible sequence order
 	HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) error
+	ExtractEventStatements(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) (map[string][]interface{}, error)
+	SetCtx(key string, value interface{})
+	GetCtx(key string) interface{}
+	ClearCtx()
 }
 
 type EpochModule interface {

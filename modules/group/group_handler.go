@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	storagetypes "github.com/bnb-chain/greenfield/x/storage/types"
+	abci "github.com/cometbft/cometbft/abci/types"
+	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/cosmos/gogoproto/proto"
 
 	"github.com/forbole/juno/v4/common"
 	"github.com/forbole/juno/v4/log"
@@ -22,15 +22,19 @@ var (
 	EventUpdateGroupMember = proto.MessageName(&storagetypes.EventUpdateGroupMember{})
 )
 
-var groupEvents = map[string]bool{
+var GroupEvents = map[string]bool{
 	EventCreateGroup:       true,
 	EventDeleteGroup:       true,
 	EventLeaveGroup:        true,
 	EventUpdateGroupMember: true,
 }
 
+func (m *Module) ExtractEventStatements(ctx context.Context, block *tmctypes.ResultBlock, txHash common.Hash, event sdk.Event) (map[string][]interface{}, error) {
+	return nil, nil
+}
+
 func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _ common.Hash, event sdk.Event) error {
-	if !groupEvents[event.Type] {
+	if !GroupEvents[event.Type] {
 		return nil
 	}
 
@@ -77,29 +81,30 @@ func (m *Module) HandleEvent(ctx context.Context, block *tmctypes.ResultBlock, _
 func (m *Module) handleCreateGroup(ctx context.Context, block *tmctypes.ResultBlock, createGroup *storagetypes.EventCreateGroup) error {
 
 	var membersToAddList []*models.Group
-	for _, member := range createGroup.Members {
-		groupItem := &models.Group{
-			Owner:      common.HexToAddress(createGroup.OwnerAddress),
-			GroupID:    common.BigToHash(createGroup.GroupId.BigInt()),
-			GroupName:  createGroup.GroupName,
-			SourceType: createGroup.SourceType.String(),
-			AccountID:  common.HexToHash(member),
 
-			CreateAt:   block.Block.Height,
-			CreateTime: block.Block.Time.UTC().Unix(),
-			UpdateAt:   block.Block.Height,
-			UpdateTime: block.Block.Time.UTC().Unix(),
-			Removed:    false,
-		}
-		membersToAddList = append(membersToAddList, groupItem)
+	//create group first
+	groupItem := &models.Group{
+		Owner:      common.HexToAddress(createGroup.Owner),
+		GroupID:    common.BigToHash(createGroup.GroupId.BigInt()),
+		GroupName:  createGroup.GroupName,
+		SourceType: createGroup.SourceType.String(),
+		AccountID:  common.HexToAddress("0"),
+		Extra:      createGroup.Extra,
+
+		CreateAt:   block.Block.Height,
+		CreateTime: block.Block.Time.UTC().Unix(),
+		UpdateAt:   block.Block.Height,
+		UpdateTime: block.Block.Time.UTC().Unix(),
+		Removed:    false,
 	}
+	membersToAddList = append(membersToAddList, groupItem)
 
 	return m.db.CreateGroup(ctx, membersToAddList)
 }
 
 func (m *Module) handleDeleteGroup(ctx context.Context, block *tmctypes.ResultBlock, deleteGroup *storagetypes.EventDeleteGroup) error {
 	group := &models.Group{
-		Owner:     common.HexToAddress(deleteGroup.OwnerAddress),
+		Owner:     common.HexToAddress(deleteGroup.Owner),
 		GroupID:   common.BigToHash(deleteGroup.GroupId.BigInt()),
 		GroupName: deleteGroup.GroupName,
 
@@ -107,20 +112,44 @@ func (m *Module) handleDeleteGroup(ctx context.Context, block *tmctypes.ResultBl
 		UpdateTime: block.Block.Time.UTC().Unix(),
 		Removed:    true,
 	}
-	return m.db.DeleteGroup(ctx, group)
-}
 
-func (m *Module) handleLeaveGroup(ctx context.Context, block *tmctypes.ResultBlock, leaveGroup *storagetypes.EventLeaveGroup) error {
-	group := &models.Group{
-		Owner:     common.HexToAddress(leaveGroup.OwnerAddress),
-		GroupID:   common.BigToHash(leaveGroup.GroupId.BigInt()),
-		GroupName: leaveGroup.GroupName,
-		AccountID: common.HexToHash(leaveGroup.MemberAddress),
+	//update group item
+	groupItem := &models.Group{
+		GroupID:   common.BigToHash(deleteGroup.GroupId.BigInt()),
+		AccountID: common.HexToAddress("0"),
 
 		UpdateAt:   block.Block.Height,
 		UpdateTime: block.Block.Time.UTC().Unix(),
 		Removed:    true,
 	}
+	m.db.UpdateGroup(ctx, groupItem)
+
+	return m.db.DeleteGroup(ctx, group)
+}
+
+func (m *Module) handleLeaveGroup(ctx context.Context, block *tmctypes.ResultBlock, leaveGroup *storagetypes.EventLeaveGroup) error {
+	group := &models.Group{
+		Owner:     common.HexToAddress(leaveGroup.Owner),
+		GroupID:   common.BigToHash(leaveGroup.GroupId.BigInt()),
+		GroupName: leaveGroup.GroupName,
+		AccountID: common.HexToAddress(leaveGroup.MemberAddress),
+
+		UpdateAt:   block.Block.Height,
+		UpdateTime: block.Block.Time.UTC().Unix(),
+		Removed:    true,
+	}
+
+	//update group item
+	groupItem := &models.Group{
+		GroupID:   common.BigToHash(leaveGroup.GroupId.BigInt()),
+		AccountID: common.HexToAddress("0"),
+
+		UpdateAt:   block.Block.Height,
+		UpdateTime: block.Block.Time.UTC().Unix(),
+		Removed:    false,
+	}
+	m.db.UpdateGroup(ctx, groupItem)
+
 	return m.db.UpdateGroup(ctx, group)
 }
 
@@ -130,30 +159,35 @@ func (m *Module) handleUpdateGroupMember(ctx context.Context, block *tmctypes.Re
 	membersToDelete := updateGroupMember.MembersToDelete
 
 	var membersToAddList []*models.Group
-	for _, memberToAdd := range membersToAdd {
-		groupItem := &models.Group{
-			Owner:           common.HexToAddress(updateGroupMember.OwnerAddress),
-			GroupID:         common.BigToHash(updateGroupMember.GroupId.BigInt()),
-			GroupName:       updateGroupMember.GroupName,
-			AccountID:       common.HexToHash(memberToAdd),
-			OperatorAddress: common.HexToAddress(updateGroupMember.OperatorAddress),
 
-			UpdateAt:   block.Block.Height,
-			UpdateTime: block.Block.Time.UTC().Unix(),
-			Removed:    false,
+	if len(membersToAdd) > 0 {
+		for _, memberToAdd := range membersToAdd {
+			groupItem := &models.Group{
+				Owner:          common.HexToAddress(updateGroupMember.Owner),
+				GroupID:        common.BigToHash(updateGroupMember.GroupId.BigInt()),
+				GroupName:      updateGroupMember.GroupName,
+				AccountID:      common.HexToAddress(memberToAdd.Member),
+				Operator:       common.HexToAddress(updateGroupMember.Operator),
+				ExpirationTime: memberToAdd.ExpirationTime.Unix(),
+
+				CreateAt:   block.Block.Height,
+				CreateTime: block.Block.Time.UTC().Unix(),
+				UpdateAt:   block.Block.Height,
+				UpdateTime: block.Block.Time.UTC().Unix(),
+				Removed:    false,
+			}
+			membersToAddList = append(membersToAddList, groupItem)
 		}
-		membersToAddList = append(membersToAddList, groupItem)
+		m.db.CreateGroup(ctx, membersToAddList)
 	}
-
-	m.db.CreateGroup(ctx, membersToAddList)
 
 	for _, memberToDelete := range membersToDelete {
 		groupItem := &models.Group{
-			Owner:           common.HexToAddress(updateGroupMember.OwnerAddress),
-			GroupID:         common.BigToHash(updateGroupMember.GroupId.BigInt()),
-			GroupName:       updateGroupMember.GroupName,
-			AccountID:       common.HexToHash(memberToDelete),
-			OperatorAddress: common.HexToAddress(updateGroupMember.OperatorAddress),
+			Owner:     common.HexToAddress(updateGroupMember.Owner),
+			GroupID:   common.BigToHash(updateGroupMember.GroupId.BigInt()),
+			GroupName: updateGroupMember.GroupName,
+			AccountID: common.HexToAddress(memberToDelete),
+			Operator:  common.HexToAddress(updateGroupMember.Operator),
 
 			UpdateAt:   block.Block.Height,
 			UpdateTime: block.Block.Time.UTC().Unix(),
@@ -161,6 +195,17 @@ func (m *Module) handleUpdateGroupMember(ctx context.Context, block *tmctypes.Re
 		}
 		m.db.UpdateGroup(ctx, groupItem)
 	}
+
+	//update group item
+	groupItem := &models.Group{
+		GroupID:   common.BigToHash(updateGroupMember.GroupId.BigInt()),
+		AccountID: common.HexToAddress("0"),
+
+		UpdateAt:   block.Block.Height,
+		UpdateTime: block.Block.Time.UTC().Unix(),
+		Removed:    false,
+	}
+	m.db.UpdateGroup(ctx, groupItem)
 
 	return nil
 }

@@ -8,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/bnb-chain/greenfield/app/params"
+	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/forbole/juno/v4/database"
@@ -28,7 +29,13 @@ type DbTestSuite struct {
 
 func (suite *DbTestSuite) SetupTest() {
 	// Create the codec
-	codec := simapp.MakeTestEncodingConfig()
+	codec := testutil.MakeTestEncodingConfig()
+	paramsCodec := params.EncodingConfig{
+		InterfaceRegistry: codec.InterfaceRegistry,
+		Marshaler:         codec.Codec,
+		TxConfig:          codec.TxConfig,
+		Amino:             codec.Amino,
+	}
 
 	// Build the database
 	dbCfg := databaseconfig.NewDatabaseConfig(
@@ -38,7 +45,7 @@ func (suite *DbTestSuite) SetupTest() {
 		100000,
 		100,
 	)
-	db, err := postgres.Builder(database.NewContext(dbCfg, &codec))
+	db, err := postgres.Builder(database.NewContext(dbCfg, &paramsCodec))
 	suite.Require().NoError(err)
 
 	bigDipperDb, ok := (db).(*postgres.Database)
