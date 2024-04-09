@@ -134,6 +134,8 @@ type Database interface {
 
 	UpdateVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamily) error
 
+	SaveDBStatistics(ctx context.Context, ds *models.DataStat) error
+
 	// Begin begins a transaction with any transaction options opts
 	Begin(ctx context.Context) *Impl
 
@@ -515,6 +517,10 @@ func (db *Impl) SaveVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamil
 func (db *Impl) UpdateVGF(ctx context.Context, vgf *models.GlobalVirtualGroupFamily) error {
 	err := db.Db.WithContext(ctx).Table((&models.GlobalVirtualGroupFamily{}).TableName()).Where("global_virtual_group_family_id = ?", vgf.GlobalVirtualGroupFamilyId).Updates(vgf).Error
 	return err
+}
+
+func (db *Impl) SaveDBStatistics(ctx context.Context, ds *models.DataStat) error {
+	return nil
 }
 
 func (db *Impl) Begin(ctx context.Context) *Impl {
