@@ -56,7 +56,7 @@ func NewNode(cfg *Details, codec codec.Codec) (*Node, error) {
 	}
 	httpTransport.MaxConnsPerHost = cfg.RPC.MaxConnections
 
-	rpcClient, err := httpclient.NewWithClient(cfg.RPC.Address, "/websocket", httpClient)
+	rpcClient, err := httpclient.NewWithTimeout(cfg.RPC.Address, "/websocket", 15)
 	if err != nil {
 		return nil, err
 	}
