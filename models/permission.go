@@ -27,7 +27,7 @@ type Statements struct {
 	ID             uint64         `gorm:"id;type:bigint(64);primaryKey"`
 	PolicyID       common.Hash    `gorm:"policy_id;type:BINARY(32);index:idx_policy_id"`
 	Effect         string         `gorm:"effect;type:varchar(32)"`
-	ActionValue    int            `gorm:"action_value;type:int"`
+	ActionValue    int            `gorm:"action_value;type:int;index:idx_action_value"`
 	Resources      pq.StringArray `gorm:"resources;type:text"`
 	ExpirationTime int64          `gorm:"expiration_time;type:bigint(64)"`
 	LimitSize      uint64         `gorm:"limit_size;type:bigint(64)"`
