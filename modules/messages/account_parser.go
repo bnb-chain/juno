@@ -3,7 +3,7 @@ package messages
 import (
 	"fmt"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/cosmos/gogoproto/proto"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,8 +14,6 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	ibctransfertypes "github.com/cosmos/ibc-go/v5/modules/apps/transfer/types"
-	channeltypes "github.com/cosmos/ibc-go/v5/modules/core/04-channel/types"
 )
 
 // MessageNotSupported returns an error telling that the given message is not supported
@@ -172,23 +170,6 @@ func GovMessagesParser(cdc codec.Codec, cosmosMsg sdk.Msg) ([]string, error) {
 // IBCTransferMessagesParser returns the list of all the accounts involved in the given
 // message if it's related to the x/iBCTransfer module
 func IBCTransferMessagesParser(_ codec.Codec, cosmosMsg sdk.Msg) ([]string, error) {
-	switch msg := cosmosMsg.(type) {
-
-	case *ibctransfertypes.MsgTransfer:
-		return []string{msg.Sender, msg.Receiver}, nil
-
-	case *channeltypes.MsgRecvPacket:
-		var data ibctransfertypes.FungibleTokenPacketData
-		if err := ibctransfertypes.ModuleCdc.UnmarshalJSON(msg.Packet.Data, &data); err != nil {
-			// The packet data is not a FungibleTokenPacketData, so nothing to update
-			return nil, nil
-		}
-
-		// We are receiving some IBC tokens, so we need to update the receiver balance
-		// as well as the message signer (the relayer)
-		return []string{data.Receiver, msg.Signer}, nil
-	}
-
 	return nil, MessageNotSupported(cosmosMsg)
 }
 

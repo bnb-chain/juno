@@ -4,10 +4,10 @@ import (
 	"encoding/hex"
 	"time"
 
-	tmversion "github.com/tendermint/tendermint/proto/tendermint/version"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-	"github.com/tendermint/tendermint/version"
+	tmversion "github.com/cometbft/cometbft/proto/tendermint/version"
+	tmctypes "github.com/cometbft/cometbft/rpc/core/types"
+	tmtypes "github.com/cometbft/cometbft/types"
+	"github.com/cometbft/cometbft/version"
 
 	"github.com/forbole/juno/v4/common"
 )

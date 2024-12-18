@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	tomlconfig "github.com/forbole/juno/v4/cmd/migrate/toml"
 	nodeconfig "github.com/forbole/juno/v4/node/config"
 	"github.com/forbole/juno/v4/node/remote"
 	"github.com/forbole/juno/v4/types/config"
@@ -21,7 +20,7 @@ func ReadConfigPreRunE(cfg *Config) types.CobraCmdFunc {
 	}
 }
 
-func NewParseConfigFromToml(tomlConfig *tomlconfig.TomlConfig) config.Config {
+func NewParseConfigFromToml(tomlConfig *config.TomlConfig) config.Config {
 	config := config.Config{}
 	config.Chain = tomlConfig.Chain
 	config.Parser = tomlConfig.Parser

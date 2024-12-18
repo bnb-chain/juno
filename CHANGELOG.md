@@ -11,7 +11,7 @@
 - ([\#75](https://github.com/forbole/juno/pull/75)) Allow modules to handle MsgExec inner messages
 - ([\#76](https://github.com/forbole/juno/pull/76)) Return 0 as height for `GetLastBlockHeight()` method if there are no blocks saved in database
 - ([\#79](https://github.com/forbole/juno/pull/79)) Use `sqlx` instead of `sql` while dealing with a PostgreSQL database
-- ([\#83](https://github.com/forbole/juno/pull/83)) Bump `github.com/tendermint/tendermint` to `v0.34.22`
+- ([\#83](https://github.com/forbole/juno/pull/83)) Bump `github.com/cometbft/cometbft` to `v0.34.22`
 - ([\#84](https://github.com/forbole/juno/pull/84)) Replace database configuration params with URI
 - ([\#86](https://github.com/forbole/juno/pull/86)) Revert concurrent handling of transactions and messages
 

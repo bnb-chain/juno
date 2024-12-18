@@ -54,32 +54,46 @@ func (w *Worker) SetIndexer(indexer Indexer) {
 
 // Start starts a worker by listening for new jobs (block heights) from the
 // given worker queue. Any failed job is logged and re-enqueued.
-func (w *Worker) Start() {
+func (w *Worker) Start(ctx context.Context) {
 	log.WorkerCount.Inc()
 	chainID, err := w.node.ChainID()
 	if err != nil {
 		log.Errorw("error while getting chain ID from the node ", "err", err)
 	}
 
-	for i := range w.queue {
-		if err := w.ProcessIfNotExists(i); err != nil {
-			if w.concurrentSync {
-				// re-enqueue any failed job after average block time
-				// TODO: Implement exponential backoff or max retries for a block height.
-				go func() {
-					log.Errorw("re-enqueueing failed block", "height", i, "err", err)
-					w.queue <- i
-				}()
-				continue
+	for {
+		select {
+		case i, ok := <-w.queue:
+			if !ok {
+				//channel has been closed
+				log.Infow("block queue has been closed, worker will stop")
+				return
 			}
+			//process height at 'i'
+			{
+				if err := w.ProcessIfNotExists(i); err != nil {
+					if w.concurrentSync {
+						// re-enqueue any failed job after average block time
+						// TODO: Implement exponential backoff or max retries for a block height.
+						go func() {
+							log.Errorw("re-enqueueing failed block", "height", i, "err", err)
+							w.queue <- i
+						}()
+						continue
+					}
 
-			for err != nil {
-				log.Errorw("error while process block", "height", i, "err", err)
-				time.Sleep(config.GetAvgBlockTime())
-				err = w.ProcessIfNotExists(i)
+					for err != nil {
+						log.Errorw("error while process block", "height", i, "err", err)
+						time.Sleep(config.GetAvgBlockTime())
+						err = w.ProcessIfNotExists(i)
+					}
+				} else {
+					log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
+				}
 			}
-		} else {
-			log.WorkerHeight.WithLabelValues(fmt.Sprintf("%d", w.index), chainID).Set(float64(i))
+		case <-ctx.Done():
+			log.Infow("Receive cancel signal, worker will stop")
+			return
 		}
 	}
 }
